@@ -1,0 +1,38 @@
+{
+  "feedback": {
+    "button": "Feedback",
+    "title": "Feedback senden",
+    "success": {
+      "title": "Vielen Dank!",
+      "message": "Ihr Feedback wurde erfolgreich übermittelt."
+    },
+    "error": {
+      "title": "Fehler",
+      "message": "Feedback konnte nicht gesendet werden"
+    },
+    "form": {
+      "type": {
+        "label": "Feedback-Typ",
+        "placeholder": "Feedback-Typ auswählen",
+        "options": {
+          "general": "Allgemein",
+          "bug": "Fehlermeldung",
+          "feature": "Feature-Anfrage"
+        }
+      },
+      "name": {
+        "label": "Name",
+        "placeholder": "Ihr Name"
+      },
+      "email": {
+        "label": "E-Mail",
+        "placeholder": "ihre.email@beispiel.com"
+      },
+      "message": {
+        "label": "Nachricht",
+        "placeholder": "Sagen Sie uns, was Sie denken..."
+      },
+      "submit": "Feedback senden"
+    }
+  }
+}

@@ -7,6 +7,15 @@ import { organizationsRouter } from "../modules/organizations/router";
 import { paymentsRouter } from "../modules/payments/router";
 import { usersRouter } from "../modules/users/router";
 import { publicProcedure } from "./procedures";
+import { feedbackRouter } from "../modules/feedback/router";
+
+export const router = publicProcedure
+    // Prefix for openapi
+    .prefix("/api")
+    .router({
+        // ... other routers
+        feedback: feedbackRouter,
+    });
 
 export const router = publicProcedure.router({
 	admin: adminRouter,

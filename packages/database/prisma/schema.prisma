@@ -42,7 +42,7 @@ model User {
   twofactors               TwoFactor[]
   notifications            Notification[]
   notificationPreferences  UserNotificationPreference[]
-
+  feedbacks                Feedback[]
   @@unique([email])
   @@unique([username])
   @@map("user")
@@ -242,4 +242,18 @@ model UserNotificationPreference {
 
   @@unique([userId, type, target])
   @@map("user_notification_preference")
+}
+
+model Feedback {
+    id        String   @id @default(cuid())
+    userId    String?
+    user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+    email     String?
+    name      String?
+    message   String
+    type      String
+    ipAddress String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    @@map("feedback")
 }
