@@ -59,11 +59,11 @@ const posts = defineCollection({
 
 const legalPages = defineCollection({
 	name: "legalPages",
-	directory: "apps/marketing/content/legal",
+	directory: "content/legal",
 	include: "**/*.{mdx,md}",
 	schema: z.object({
 		title: z.string(),
-		content: z.string(),
+		//content: z.string(),
 	}),
 	transform: async (document, context) => {
 		const body = await compileMDX(context, document);
