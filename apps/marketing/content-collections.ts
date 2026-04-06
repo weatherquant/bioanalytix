@@ -22,7 +22,7 @@ function getLocaleFromFilePath(path: string) {
 
 const posts = defineCollection({
 	name: "posts",
-	directory: "content/posts",
+	directory: "apps/marketing/content/posts",
 	include: "**/*.{mdx,md}",
 	schema: z.object({
 		title: z.string(),
@@ -34,7 +34,7 @@ const posts = defineCollection({
 		excerpt: z.string().optional(),
 		tags: z.array(z.string()),
 		published: z.boolean(),
-		content: z.string(),
+		//content: z.string(),
 	}),
 	transform: async (document, context) => {
 		const body = await compileMDX(context, document, {
@@ -59,7 +59,7 @@ const posts = defineCollection({
 
 const legalPages = defineCollection({
 	name: "legalPages",
-	directory: "content/legal",
+	directory: "apps/marketing/content/legal",
 	include: "**/*.{mdx,md}",
 	schema: z.object({
 		title: z.string(),
