@@ -22,7 +22,7 @@ function getLocaleFromFilePath(path: string) {
 
 const posts = defineCollection({
 	name: "posts",
-	directory: "apps/marketing/content/posts",
+	directory: "content/posts",
 	include: "**/*.{mdx,md}",
 	schema: z.object({
 		title: z.string(),
