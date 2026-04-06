@@ -59,7 +59,7 @@ const posts = defineCollection({
 
 const legalPages = defineCollection({
 	name: "legalPages",
-	directory: "content/legal",
+	directory: "apps/marketing/content/legal",
 	include: "**/*.{mdx,md}",
 	schema: z.object({
 		title: z.string(),
