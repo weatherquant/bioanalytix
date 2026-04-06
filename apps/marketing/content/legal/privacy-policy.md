@@ -1,15 +1,15 @@
 ---
 title: Privacy Policy
 ---
- 
-_Last updated: {{04/04/2026}}_
+
+Last updated: 04/04/2026
 
 ## **1. Overview**
 This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our services. We comply with the **Privacy Act 1988 (Cth)** and the **Australian Privacy Principles (APPs)**.
 
 By using our website or creating an account, you agree to the terms of this policy.
 
----
+<hr />
 
 ## **2. What personal information we collect**
 
@@ -30,7 +30,7 @@ By using our website or creating an account, you agree to the terms of this poli
 ### **Information from third‑party services**
 We may receive information from services you interact with, such as Stripe, Supabase Auth, analytics tools, or email providers.
 
----
+<hr />
 
 ## **3. Why we collect your information**
 We collect personal information to:
@@ -46,7 +46,7 @@ We collect personal information to:
 
 We do **not** sell your personal information.
 
----
+<hr />
 
 ## **4. How we store and protect your information**
 We use industry‑standard security measures, including:
@@ -59,7 +59,7 @@ We use industry‑standard security measures, including:
 
 No method of transmission or storage is completely secure, and you use the service at your own risk.
 
----
+<hr />
 
 ## **5. How we share your information**
 We only share your information with trusted service providers who help us operate the platform, including:
@@ -75,7 +75,7 @@ We take reasonable steps to ensure they comply with the Australian Privacy Princ
 
 We do **not** share your information with advertisers.
 
----
+<hr />
 
 ## **6. Cookies and analytics**
 We use cookies and analytics tools to:
@@ -87,7 +87,7 @@ We use cookies and analytics tools to:
 
 You may disable cookies in your browser, but some features may not work properly.
 
----
+<hr />
 
 ## **7. Accessing and correcting your information**
 Under the Australian Privacy Act, you have the right to:
@@ -98,33 +98,30 @@ Under the Australian Privacy Act, you have the right to:
 Most information can be updated in your account settings.  
 For other requests, contact us using the details below.
 
----
+<hr />
 
 ## **8. Deleting your account**
 You may request deletion of your account and associated data at any time.
 
 We will take reasonable steps to permanently delete your personal information, except where we are legally required to retain certain records (e.g., financial transactions).
 
----
+<hr />
 
 ## **9. Children**
 Our service is not intended for individuals under 18 years of age.  
 We do not knowingly collect information from children.
 
----
+<hr />
 
 ## **10. Changes to this policy**
 We may update this Privacy Policy from time to time.  
 The updated version will be posted on this page with a new “Last updated” date.
 
----
+<hr />
 
 ## **11. Contact us**
 If you have questions, concerns, or requests relating to your privacy, you can contact us at:
 
 **Email:** {{your support email}}  
 **Business Name:** {{your business name}}  
-**Location:** Australia  
-
----
-
+**Location:** Australia
