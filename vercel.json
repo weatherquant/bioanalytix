@@ -1,0 +1,23 @@
+{
+  "projects": {
+    "marketing": {
+      "rootDirectory": "apps/marketing"
+    },
+    "saas": {
+      "rootDirectory": "apps/saas"
+    },
+    "docs": {
+      "rootDirectory": "apps/docs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/app/:path*",
+      "destination": "/apps/saas/:path*"
+    },
+    {
+      "source": "/docs/:path*",
+      "destination": "/apps/docs/:path*"
+    }
+  ]
+}
