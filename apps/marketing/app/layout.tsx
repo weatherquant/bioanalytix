@@ -1,8 +1,6 @@
 import { config } from "@config";
 import type { Metadata } from "next";
 import type { PropsWithChildren } from "react";
-import { NextIntlClientProvider } from "next-intl";
-import messages from "../messages/en";
 
 import "./globals.css";
 
@@ -15,14 +13,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
-  return (
-    <html lang="en">
-      <body>
-        <NextIntlClientProvider messages={messages}>
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
-  );
+	return children;
 }
-
