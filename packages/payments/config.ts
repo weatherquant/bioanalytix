@@ -9,7 +9,7 @@ export const config: PaymentsConfig = {
 			prices: [
 				{
 					type: "subscription",
-					priceId: process.env.PRICE_ID_SUBSCRIBER as string,
+					priceId: "price_1TLBNTGuAGsL9n0uJzu7WpWV",
 					interval: "year",
 					amount: 79,
 					currency: "AUD",
@@ -23,7 +23,7 @@ export const config: PaymentsConfig = {
 			prices: [
 				{
 					type: "subscription",
-					priceId: process.env.PRICE_ID_PREMIUM as string,
+					priceId: "price_1TKmcIGuAGsL9n0uMieb10c3",
 					interval: "year",
 					amount: 199,
 					currency: "AUD",
@@ -36,7 +36,7 @@ export const config: PaymentsConfig = {
 			prices: [
 				{
 					type: "subscription",
-					priceId: process.env.PRICE_ID_COMPREHENSIVE as string,
+					priceId: "price_1TLBQ0GuAGsL9n0u5o0dFVGX",
 					interval: "year",
 					amount: 499,
 					currency: "AUD",
