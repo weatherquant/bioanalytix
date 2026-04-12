@@ -4,41 +4,46 @@ export const config: PaymentsConfig = {
 	billingAttachedTo: "user",
 	requireActiveSubscription: false,
 	plans: {
-		pro: {
+		subscriber: {
+			recommended: false,
+			prices: [
+				{
+					type: "subscription",
+					priceId: process.env.PRICE_ID_SUBSCRIBER as string,
+					interval: "year",
+					amount: 79,
+					currency: "AUD",
+					seatBased: false,
+					trialPeriodDays: 0,
+				},
+			],
+		},
+		premium: {
 			recommended: true,
 			prices: [
 				{
 					type: "subscription",
-					priceId: process.env.PRICE_ID_PRO_MONTHLY as string,
-					interval: "month",
-					amount: 29,
-					currency: "USD",
-					seatBased: true,
-					trialPeriodDays: 7,
-				},
-				{
-					type: "subscription",
-					priceId: process.env.PRICE_ID_PRO_YEARLY as string,
+					priceId: process.env.PRICE_ID_PREMIUM as string,
 					interval: "year",
-					amount: 290,
-					currency: "USD",
-					seatBased: true,
+					amount: 199,
+					currency: "AUD",
+					seatBased: false,
 					trialPeriodDays: 7,
 				},
 			],
 		},
-		lifetime: {
+		comprehensive: {
 			prices: [
 				{
-					type: "one-time",
-					priceId: process.env.PRICE_ID_LIFETIME as string,
-					amount: 799,
-					currency: "USD",
+					type: "subscription",
+					priceId: process.env.PRICE_ID_COMPREHENSIVE as string,
+					interval: "year",
+					amount: 499,
+					currency: "AUD",
+					seatBased: false,
+					trialPeriodDays: 0,					
 				},
 			],
-		},
-		enterprise: {
-			isEnterprise: true,
 		},
 	},
 };
