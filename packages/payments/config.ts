@@ -2,7 +2,7 @@ import type { PaymentsConfig } from "./types";
 
 export const config: PaymentsConfig = {
 	billingAttachedTo: "user",
-	requireActiveSubscription: false,
+	requireActiveSubscription: true,
 	plans: {
 		subscriber: {
 			recommended: false,
@@ -45,5 +45,9 @@ export const config: PaymentsConfig = {
 				},
 			],
 		},
+		enterprise: {
+			isEnterprise: true,
+			recommended: false
+		}
 	},
 };

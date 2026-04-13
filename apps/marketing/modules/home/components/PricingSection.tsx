@@ -33,43 +33,72 @@ export function PricingSection() {
 			prices?: PaidPlan["prices"];
 			to: string;
 		}> = [];
-
+		
+		// Optional free plan
 		if (!paymentsConfig.requireActiveSubscription) {
 			result.push({
 				id: "free",
-				title: t("pricing.products.free.title") ?? "",
-				description: t("pricing.products.free.description") ?? "",
-				features: Object.values(
-					(t.raw("pricing.products.free.features") as Record<string, string>) ?? {},
-				),
-				cta: t("pricing.getStarted") ?? "",
+				title: "Free",
+				description: "Get started at no cost.",
+				features: [
+					"Basic access",
+					"Limited features"
+				],
+				cta: "Get Started",
 				to: signupUrl ?? "#",
 			});
 		}
-
-		for (const [planId, plan] of Object.entries(paymentsConfig.plans)) {
-			const isEnterprise = "isEnterprise" in plan;
-			const prices = "prices" in plan ? (plan as PaidPlan).prices : undefined;
-
-			result.push({
-				id: planId,
-				title: t(`pricing.products.${planId}.title`) ?? "",
-				description: t(`pricing.products.${planId}.description`) ?? "",
-				features: Object.values(
-					(t.raw(`pricing.products.${planId}.features`) as Record<string, string>) ?? {},
-				),
-				cta: isEnterprise
-					? (t("pricing.contactSales") ?? "")
-					: (t("pricing.getStarted") ?? ""),
-				recommended: plan.recommended,
-				isEnterprise,
-				prices,
-				to: signupUrl ?? "#",
-			});
-		}
-
+		
+		// The three real plans (static text, no translations)
+		result.push({
+			id: "subscriber",
+			title: "Subscriber Access",
+			description: "Entry-level access to BioAnalytix tools.",
+			features: [
+				"Access to core analytics",
+				"Standard support"
+			],
+			cta: "Get Started",
+			recommended: false,
+			isEnterprise: false,
+			prices: paymentsConfig.plans.subscriber.prices,
+			to: signupUrl ?? "#",
+		});
+		
+		result.push({
+			id: "premium",
+			title: "Premium Access",
+			description: "Advanced features for growing teams.",
+			features: [
+				"Everything in Subscriber",
+				"Advanced analytics",
+				"Priority support"
+			],
+			cta: "Get Started",
+			recommended: true, // highlight this one
+			isEnterprise: false,
+			prices: paymentsConfig.plans.premium.prices,
+			to: signupUrl ?? "#",
+		});
+		
+		result.push({
+			id: "comprehensive",
+			title: "Comprehensive Access",
+			description: "Full access to all BioAnalytix capabilities.",
+			features: [
+				"Everything in Premium",
+				"Full data export",
+				"Dedicated onboarding"
+			],
+			cta: "Get Started",
+			recommended: false,
+			isEnterprise: false,
+			prices: paymentsConfig.plans.comprehensive.prices,
+			to: signupUrl ?? "#",
+		});
+		
 		return result;
-	}, [t, signupUrl]);
+	}, [signupUrl]);
 
 	const hasSubscriptions = plans.some((p) =>
 		p.prices?.some((price) => price.type === "subscription"),
