@@ -45,9 +45,5 @@ export const config: PaymentsConfig = {
 				},
 			],
 		},
-		enterprise: {
-			isEnterprise: true,
-			recommended: false
-		}
 	},
 };
