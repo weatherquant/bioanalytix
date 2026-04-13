@@ -61,7 +61,9 @@ export function PricingSection() {
 			cta: "Get Started",
 			recommended: false,
 			isEnterprise: false,
-			prices: paymentsConfig.plans.subscriber.prices,
+			prices: "prices" in paymentsConfig.plans.subscriber
+				? paymentsConfig.plans.subscriber.prices
+				: undefined,
 			to: signupUrl ?? "#",
 		});
 		
@@ -77,7 +79,9 @@ export function PricingSection() {
 			cta: "Get Started",
 			recommended: true, // highlight this one
 			isEnterprise: false,
-			prices: paymentsConfig.plans.premium.prices,
+			prices: "prices" in paymentsConfig.plans.premium
+				? paymentsConfig.plans.premium.prices
+				: undefined,
 			to: signupUrl ?? "#",
 		});
 		
@@ -93,7 +97,9 @@ export function PricingSection() {
 			cta: "Get Started",
 			recommended: false,
 			isEnterprise: false,
-			prices: paymentsConfig.plans.comprehensive.prices,
+			prices: "prices" in paymentsConfig.plans.comprehensive
+				? paymentsConfig.plans.comprehensive.prices
+				: undefined,
 			to: signupUrl ?? "#",
 		});
 		
