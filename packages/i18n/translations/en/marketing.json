@@ -50,50 +50,50 @@
 	"home": {
 		"hero": {
 			"new": "New:",
-			"featureBadge": "Amazing feature of your SaaS",
-			"title": "Your revolutionary SaaS built with Next.js",
-			"subtitle": "This is a demo application built with supastarter. It will save you a lot of time and effort building your next SaaS.",
+			"featureBadge": "Integrating genetic risk into sophisticated financial planning",
+			"title": "Your genetic profile is unique. Your financial plan should be too.",
+			"subtitle": "Your DNA offers clues about longevity, resilience, and risk. BioAnalytix turns those clues into actionable insights, helping you build a financial plan that reflects your real future - not a generic one.",
 			"getStarted": "Get started",
 			"documentation": "Documentation",
 			"imageAlt": "Our application",
 			"builtWith": "Built & shipped with these awesome tools"
 		},
 		"features": {
-			"badge": "Incredible features",
-			"title": "Features your clients will love",
-			"description": "In this section you can showcase all the features of your SaaS provides and how they can benefit your clients.",
+			"badge": "Incredible insights",
+			"title": "Turn genetic insights into smarter fitness decisions",
+			"description": "Traditional financial planning is built on averages: average life expectancy, average health outcomes, and generic risk profiles.",
 			"feature1": {
-				"title": "Feature 1",
-				"subtitle": "Do more with our amazing SaaS.",
-				"description": "This is a brilliant feature. And below you can see some reasons why. This is basically just a dummy text.",
+				"title": "Precision planning",
+				"subtitle": "Planning that reflects your unique genetic makeup.",
+				"description": "Genetic analysis can identify predispositions to certain health conditions, longevity indicators, and inherited risk factors.",
 				"benefit1": {
-					"title": "Benefit 1",
-					"description": "This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text."
+					"title": "Replace assumptions with personalised risk insight",
+					"description": "Obtain a more accuracte assessment of long-term needs and reduce reliance on broad actuarial averages."
 				},
 				"benefit2": {
-					"title": "Benefit 2",
-					"description": "This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text."
+					"title": "Optimise insurance strategies",
+					"description": "Genetic insights can help tailor insurance coverage to your specific risk profile."
 				},
 				"benefit3": {
-					"title": "Benefit 3",
-					"description": "This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text."
+					"title": "Informed wealth accumulation",
+					"description": "Genetic insights allow for realistic planning scenarios, not to predict outcomes but to stress test financial strategies."
 				}
 			},
 			"feature2": {
-				"title": "Feature 2",
-				"subtitle": "Your SaaS can also do this.",
-				"description": "Another dummy text for another feature.",
+				"title": "Enhance estate and legacy planning",
+				"subtitle": "A legacy shaped by insight, not uncertainty.",
+				"description": "Genetic assessment introduces personalised insights to move beyond assumptions.",
 				"benefit1": {
-					"title": "Benefit 1",
-					"description": "This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text."
+					"title": "Informed longevity expectations",
+					"description": "Genetic indicators help clarify potential lifespan ranges, allowing you to structure inheritances, trusts, and asset transfers with greater precision rather than relying on generic assumptions."
 				},
 				"benefit2": {
-					"title": "Benefit 2",
-					"description": "This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text."
+					"title": "Strategic timing of wealth transfer",
+					"description": "Understanding predispositions that may influence health or capacity enables more intentional decisions about when and how to pass on assets, ensuring your legacy is protected and optimally timed."
 				},
 				"benefit3": {
-					"title": "Benefit 3",
-					"description": "This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text."
+					"title": "Confidence in multi‑generational planning",
+					"description": "Personalised genetic insights support clearer long‑term forecasting, helping families prepare for future needs, safeguard beneficiaries, and preserve wealth across generations."
 				}
 			}
 		}
