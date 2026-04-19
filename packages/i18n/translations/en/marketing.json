@@ -43,7 +43,7 @@
 			},
 			"freeTrial": {
 				"question": "Do you offer a free trial?",
-				"answer": "Yes, we offer a 14-day free trial."
+				"answer": "Not at this stage. But speak with your financial advisor to find out how you can get early access to our product and be among the first to try it out."
 			}
 		}
 	},
@@ -60,7 +60,7 @@
 		},
 		"features": {
 			"badge": "Incredible insights",
-			"title": "Turn genetic insights into smarter fitness decisions",
+			"title": "Turn genetic insights into smarter financial decisions",
 			"description": "Traditional financial planning is built on averages: average life expectancy, average health outcomes, and generic risk profiles.",
 			"feature1": {
 				"title": "Precision planning",

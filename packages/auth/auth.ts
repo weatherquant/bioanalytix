@@ -65,6 +65,26 @@ export const auth = betterAuth({
 					if (!createdUser?.id) {
 						return;
 					}
+
+					// 1. Create Supabase profile row
+					try {
+						const supabase = createClient(
+							process.env.NEXT_PUBLIC_SUPABASE_URL!,
+							process.env.SUPABASE_SERVICE_ROLE_KEY!,
+						);
+
+						await supabase.from("profiles").insert({
+							id: createdUser.id,
+							longevity_risk: 0.5,
+						});
+					} catch (error) {
+						logger.error(error, {
+							ctx: "createSupabaseProfile",
+							userId: createdUser.id,
+						});
+					}
+
+					// 2. Existing welcome notification logic
 					try {
 						await createWelcomeNotification(createdUser.id);
 					} catch (error) {
