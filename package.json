@@ -14,8 +14,8 @@
 		"format:check": "oxfmt --check ."
 	},
 	"dependencies": {
-		"@supabase/supabase-js": "^2.103.3",
-		"oxlint-tsgolint": "^0.18.1"
+		"@supabase/supabase-js": "^2.104.0",
+		"oxlint-tsgolint": "^0.21.1"
 	},
 	"devDependencies": {
 		"@repo/tsconfig": "workspace:*",
