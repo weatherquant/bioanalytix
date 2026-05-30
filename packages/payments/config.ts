@@ -2,7 +2,7 @@ import type { PaymentsConfig } from "./types";
 
 export const config: PaymentsConfig = {
 	billingAttachedTo: "user",
-	requireActiveSubscription: true,
+	requireActiveSubscription: false,
 	plans: {
 		subscriber: {
 			recommended: false,
@@ -41,7 +41,7 @@ export const config: PaymentsConfig = {
 					amount: 499,
 					currency: "AUD",
 					seatBased: false,
-					trialPeriodDays: 0,					
+					trialPeriodDays: 0,
 				},
 			],
 		},
