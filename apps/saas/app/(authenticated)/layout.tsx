@@ -50,18 +50,7 @@ export default async function AuthenticatedLayout({ children }: PropsWithChildre
 		<HydrationBoundary state={dehydrate(queryClient)}>
 			<SessionProvider>
 				<ActiveOrganizationProvider>
-					<ConfirmationAlertProvider>
-						{/* ✅ ADD YOUR DASHBOARD UI HERE */}
-						<div className="flex h-screen">
-							<Sidebar />
-
-							<div className="flex flex-1 flex-col">
-								<div className="p-4 border-b">Topbar (user / plan / etc)</div>
-
-								<main className="p-6 overflow-y-auto">{children}</main>
-							</div>
-						</div>
-					</ConfirmationAlertProvider>
+					<ConfirmationAlertProvider>{children}</ConfirmationAlertProvider>
 				</ActiveOrganizationProvider>
 			</SessionProvider>
 		</HydrationBoundary>
