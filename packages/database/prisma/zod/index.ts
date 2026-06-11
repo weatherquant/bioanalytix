@@ -82,6 +82,12 @@ export const UserNotificationPreferenceScalarFieldEnumSchema = z.enum(['id', 'us
 
 export type UserNotificationPreferenceScalarFieldEnum = z.infer<typeof UserNotificationPreferenceScalarFieldEnumSchema>;
 
+// File: FeedbackScalarFieldEnum.schema.ts
+
+export const FeedbackScalarFieldEnumSchema = z.enum(['id', 'userId', 'email', 'name', 'message', 'type', 'ipAddress', 'createdAt', 'updatedAt'])
+
+export type FeedbackScalarFieldEnum = z.infer<typeof FeedbackScalarFieldEnumSchema>;
+
 // File: SortOrder.schema.ts
 
 export const SortOrderSchema = z.enum(['asc', 'desc'])
@@ -328,4 +334,21 @@ export const UserNotificationPreferenceSchema = z.object({
 });
 
 export type UserNotificationPreferenceType = z.infer<typeof UserNotificationPreferenceSchema>;
+
+
+// File: Feedback.schema.ts
+
+export const FeedbackSchema = z.object({
+  id: z.string(),
+  userId: z.string().nullish(),
+  email: z.string().nullish(),
+  name: z.string().nullish(),
+  message: z.string(),
+  type: z.string(),
+  ipAddress: z.string().nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type FeedbackType = z.infer<typeof FeedbackSchema>;
 

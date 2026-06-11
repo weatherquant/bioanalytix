@@ -6,7 +6,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
 
+import { parse23andMe } from "./genetics/parser";
+import { mapGenetics } from "./genetics/traits";
 import { openApiHandler, rpcHandler } from "./orpc/handler";
+import { runMonteCarlo } from "./simulation/monteCarlo";
 
 export { router } from "./orpc/router";
 
@@ -31,6 +34,22 @@ export const app = new Hono()
 	.post("/webhooks/payments", (c) => paymentsWebhookHandler(c.req.raw))
 	// Health check
 	.get("/health", (c) => c.text("OK"))
+	.post("/simulate", async (c) => {
+		const input = await c.req.json();
+
+		const result = runMonteCarlo(input);
+
+		return c.json(result);
+	})
+	.post("/upload-genetics", async (c) => {
+		const body = await c.req.json();
+		const fileText = body.file;
+
+		const genotype = parse23andMe(fileText);
+		const genetics = mapGenetics(genotype);
+
+		return c.json({ genetics });
+	})
 	// oRPC handlers (for RPC and OpenAPI)
 	.use("*", async (c, next) => {
 		const context = {
