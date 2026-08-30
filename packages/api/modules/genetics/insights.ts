@@ -23,8 +23,8 @@ function computeLongevityScore(userSnps: Record<string, string>): number {
 	// Typical rawLongevity values are between -0.3 and +0.3
 	const normalized = (rawLongevity + 0.3) / 0.6; // 0–1
 
-	// Convert to 0–100
-	return Math.round(Math.max(0, Math.min(1, normalized)) * 100);
+	// Convert score to a 0–1 range, ensuring it doesn't exceed bounds
+	return Math.max(0, Math.min(1, normalized));
 }
 
 export type RiskLevel = "low" | "moderate" | "elevated" | "high";
