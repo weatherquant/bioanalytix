@@ -1,4 +1,5 @@
 import type { BiologicalInsight } from "../genetics/evidence/insight";
+import { assertMayGeneratePlanningExposures } from "../genetics/evidence/modelPolicyGuards";
 import type { PlanningExposure, PlanningSignificance } from "./types";
 
 function isHigher(insight: BiologicalInsight): boolean {
@@ -15,6 +16,7 @@ function significanceForFinding(
 export function biologicalInsightToPlanningExposures(
 	insight: BiologicalInsight,
 ): PlanningExposure[] {
+	assertMayGeneratePlanningExposures(insight);
 	switch (insight.id) {
 		case "factor-v-leiden-vte":
 			return factorVLeidenPlanningExposures(insight);
