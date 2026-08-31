@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { createGenotypeObservation } from "../observations/createObservation";
 import { interpretApoe } from "./apoeInterpretation";
 import { interpretFactorVLeiden } from "./factorVLeidenInterpretation";
 import {
@@ -8,6 +9,16 @@ import {
 	assertMayUseInLongevityModel,
 	requireModelPolicy,
 } from "./modelPolicyGuards";
+
+function factorVObservation(genotype: string) {
+	return createGenotypeObservation({
+		rsid: "rs6025",
+		genotype,
+		sourceType: "consumer_raw_data",
+		provider: "23andMe",
+		parserVersion: "genetics-parser-v1",
+	});
+}
 
 describe("genetics model governance policy", () => {
 	it("has a policy for Factor V Leiden", () => {
@@ -27,7 +38,7 @@ describe("genetics model governance policy", () => {
 	});
 
 	it("blocks Factor V Leiden from direct longevity adjustment", () => {
-		const insight = interpretFactorVLeiden("AG");
+		const insight = interpretFactorVLeiden(factorVObservation("AG"));
 
 		expect(() => assertMayUseInLongevityModel(insight)).toThrow();
 	});
@@ -45,7 +56,7 @@ describe("genetics model governance policy", () => {
 	});
 
 	it("blocks Factor V Leiden from silently changing financial parameters", () => {
-		const insight = interpretFactorVLeiden("AG");
+		const insight = interpretFactorVLeiden(factorVObservation("AG"));
 
 		expect(() => assertMayModifyFinancialParameters(insight)).toThrow();
 	});

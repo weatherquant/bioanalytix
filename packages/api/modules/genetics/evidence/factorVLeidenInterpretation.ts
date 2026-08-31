@@ -1,5 +1,8 @@
+import { assessInterpretationEligibility } from "../observations/interpretationEligibility";
+import type { GenotypeObservation } from "../observations/types";
 import { FACTOR_V_LEIDEN_EVIDENCE } from "./factorVLeiden";
 import type { BiologicalInsight } from "./insight";
+import { assertMayCalculate } from "./modelPolicyGuards";
 
 export type FactorVLeidenGenotypeState =
 	| "non_carrier"
@@ -37,8 +40,14 @@ export function classifyFactorVLeidenGenotype(
 	return "unresolved";
 }
 
-export function interpretFactorVLeiden(genotype: string | undefined): BiologicalInsight {
-	const state = classifyFactorVLeidenGenotype(genotype);
+export function interpretFactorVLeiden(observation: GenotypeObservation): BiologicalInsight {
+	assertMayCalculate(FACTOR_V_LEIDEN_EVIDENCE.id);
+
+	const eligibility = assessInterpretationEligibility(observation, "rs6025");
+
+	const state = eligibility.eligible
+		? classifyFactorVLeidenGenotype(observation.genotype)
+		: "unresolved";
 
 	const direction =
 		state === "heterozygous" || state === "homozygous"
@@ -62,26 +71,31 @@ export function interpretFactorVLeiden(genotype: string | undefined): Biological
 
 		result: {
 			direction,
-			genotype,
+			genotype: observation.genotype,
 		},
 
 		confidence: {
 			evidenceStrength: FACTOR_V_LEIDEN_EVIDENCE.evidenceStrength,
 
-			genotypeCoverage: state === "unresolved" ? 0 : 1,
+			genotypeCoverage: eligibility.eligible && state !== "unresolved" ? 1 : 0,
 
 			populationApplicability: "unknown",
 		},
 
 		input: {
-			genomeBuild: "unknown",
+			genomeBuild: observation.genomeBuild,
 
-			source: "consumer_raw_data",
+			source: observation.source.type,
 
-			confirmationStatus: "unconfirmed",
+			confirmationStatus: observation.confirmationStatus,
 		},
 
-		limitations: FACTOR_V_LEIDEN_EVIDENCE.limitations,
+		limitations: [
+			...FACTOR_V_LEIDEN_EVIDENCE.limitations,
+			...observation.limitations,
+			...eligibility.reasons,
+			...eligibility.warnings,
+		],
 
 		provenance: {
 			evidenceIds: [FACTOR_V_LEIDEN_EVIDENCE.id],

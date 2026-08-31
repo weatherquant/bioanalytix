@@ -1,4 +1,5 @@
-import type { EvidenceClass, EvidenceStrength, GenomeBuild } from "./types";
+import type { ConfirmationStatus, GenotypeSource, GenomeBuild } from "../observations/types";
+import type { EvidenceClass, EvidenceStrength } from "./types";
 
 export type InsightDirection = "lower" | "reference" | "higher" | "indeterminate";
 
@@ -50,10 +51,8 @@ export interface BiologicalInsight {
 
 	input: {
 		genomeBuild: GenomeBuild;
-
-		source: "consumer_raw_data" | "clinical_test" | "unknown";
-
-		confirmationStatus: "unconfirmed" | "confirmed" | "not_applicable";
+		source: GenotypeSource;
+		confirmationStatus: ConfirmationStatus;
 	};
 
 	limitations: string[];
