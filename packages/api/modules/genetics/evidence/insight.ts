@@ -8,22 +8,6 @@ export type PopulationApplicability =
 	| "not_validated"
 	| "unknown";
 
-export interface PlanningExposure {
-	domain:
-		| "healthy_working_life"
-		| "health_costs"
-		| "care_dependency"
-		| "premature_mortality"
-		| "longevity"
-		| "income_interruption"
-		| "estate"
-		| "partner_dependency";
-
-	significance: "low" | "moderate" | "high";
-
-	rationale: string;
-}
-
 export interface BiologicalInsight {
 	id: string;
 
@@ -71,8 +55,6 @@ export interface BiologicalInsight {
 
 		confirmationStatus: "unconfirmed" | "confirmed" | "not_applicable";
 	};
-
-	planningExposures: PlanningExposure[];
 
 	limitations: string[];
 

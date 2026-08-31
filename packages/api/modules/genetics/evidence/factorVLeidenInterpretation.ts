@@ -81,27 +81,6 @@ export function interpretFactorVLeiden(genotype: string | undefined): Biological
 			confirmationStatus: "unconfirmed",
 		},
 
-		planningExposures: [
-			{
-				domain: "healthy_working_life",
-				significance: "moderate",
-				rationale:
-					"A thrombotic event could interrupt employment or reduce healthy working capacity; financial resilience should be stress-tested independently of whether an event is expected to occur.",
-			},
-			{
-				domain: "health_costs",
-				significance: "moderate",
-				rationale:
-					"Potential acute or recurrent thrombotic events can create additional healthcare and recovery costs.",
-			},
-			{
-				domain: "premature_mortality",
-				significance: "moderate",
-				rationale:
-					"Venous thromboembolism can have serious consequences, but this genetic finding alone is not a mortality forecast.",
-			},
-		],
-
 		limitations: FACTOR_V_LEIDEN_EVIDENCE.limitations,
 
 		provenance: {
