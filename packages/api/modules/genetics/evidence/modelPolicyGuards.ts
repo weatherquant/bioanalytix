@@ -4,6 +4,7 @@ import { getModelPolicy, type ModelGovernance } from "./modelPolicy";
 export class ModelPolicyError extends Error {
 	constructor(message: string) {
 		super(message);
+
 		this.name = "ModelPolicyError";
 	}
 }
@@ -18,8 +19,22 @@ export function requireModelPolicy(modelId: string): ModelGovernance {
 	return policy;
 }
 
+/**
+ * Calculation is allowed for implemented models
+ * during development and validation when the
+ * granular calculation permission is enabled.
+ *
+ * Scientific approval is deliberately NOT required
+ * merely to execute a model in development. A model
+ * has to be executable before it can be validated
+ * and reviewed.
+ */
 export function assertMayCalculate(modelId: string): void {
 	const policy = requireModelPolicy(modelId);
+
+	if (policy.lifecycle.implementation === "retired") {
+		throw new ModelPolicyError(`Model ${modelId} is retired and may not calculate a result.`);
+	}
 
 	if (!policy.permissions.calculateResult) {
 		throw new ModelPolicyError(`Model ${modelId} is not permitted to calculate a result.`);
@@ -73,5 +88,25 @@ export function assertMayModifyFinancialParameters(insight: BiologicalInsight): 
 		throw new ModelPolicyError(
 			`Model ${insight.model.id} is not permitted to modify financial parameters.`,
 		);
+	}
+}
+
+/**
+ * This is intentionally stronger than
+ * assertMayCalculate().
+ *
+ * It answers whether the model has completed the
+ * governance lifecycle required for production
+ * release.
+ */
+export function assertApprovedForRelease(modelId: string): void {
+	const policy = requireModelPolicy(modelId);
+
+	if (policy.review.status !== "approved") {
+		throw new ModelPolicyError(`Model ${modelId} has not received scientific approval.`);
+	}
+
+	if (policy.lifecycle.release !== "approved_for_release") {
+		throw new ModelPolicyError(`Model ${modelId} is not approved for production release.`);
 	}
 }

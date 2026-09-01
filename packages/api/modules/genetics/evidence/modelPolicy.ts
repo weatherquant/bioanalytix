@@ -1,10 +1,16 @@
-import type { EvidenceClass, EvidenceStrength, InterpretationStatus } from "./types";
+import type { EvidenceClass, EvidenceStrength } from "./types";
 
 export type ConfirmationRequirement =
 	| "none"
 	| "recommended"
 	| "required_before_medical_action"
 	| "required_before_display";
+
+export type ImplementationStatus = "experimental" | "implemented" | "retired";
+
+export type ScientificReviewStatus = "pending" | "reviewed" | "approved" | "rejected";
+
+export type ReleaseStatus = "development" | "approved_for_release" | "retired";
 
 export interface ModelPermissions {
 	calculateResult: boolean;
@@ -17,14 +23,28 @@ export interface ModelPermissions {
 }
 
 export interface GovernanceReview {
-	reviewed: boolean;
+	status: ScientificReviewStatus;
+
 	reviewer?: string;
 	reviewedAt?: string;
 	nextReviewAt?: string;
+
+	notes?: string;
+}
+
+export interface ModelLifecycle {
+	implementation: ImplementationStatus;
+
+	release: ReleaseStatus;
 }
 
 export interface LicensingProvenance {
-	status: "permitted" | "restricted" | "unknown";
+	/**
+	 * This describes Bioanalytix's recorded
+	 * licensing assessment, not a guarantee of
+	 * legal permission.
+	 */
+	status: "not_applicable" | "review_required" | "reviewed_permitted" | "restricted";
 
 	source?: string;
 	notes?: string;
@@ -36,15 +56,15 @@ export interface ModelGovernance {
 
 	evidenceClass: EvidenceClass;
 	evidenceStrength: EvidenceStrength;
-	status: InterpretationStatus;
+
+	lifecycle: ModelLifecycle;
 
 	confirmationRequirement: ConfirmationRequirement;
-
-	commercialUsePermitted: boolean;
 
 	permissions: ModelPermissions;
 
 	review: GovernanceReview;
+
 	licensing: LicensingProvenance;
 
 	limitations: string[];
@@ -53,15 +73,27 @@ export interface ModelGovernance {
 export const MODEL_POLICIES: Record<string, ModelGovernance> = {
 	"f5-factor-v-leiden-vte": {
 		modelId: "f5-factor-v-leiden-vte",
+
 		modelVersion: "1.0.0",
 
 		evidenceClass: "established_risk_variant",
+
 		evidenceStrength: "established",
-		status: "approved",
+
+		lifecycle: {
+			implementation: "implemented",
+
+			/**
+			 * The implementation is available for
+			 * development and validation, but has
+			 * not yet completed the documented
+			 * Bioanalytix scientific release
+			 * process.
+			 */
+			release: "development",
+		},
 
 		confirmationRequirement: "required_before_medical_action",
-
-		commercialUsePermitted: true,
 
 		permissions: {
 			calculateResult: true,
@@ -74,13 +106,17 @@ export const MODEL_POLICIES: Record<string, ModelGovernance> = {
 		},
 
 		review: {
-			reviewed: false,
+			status: "pending",
+
+			notes: "Reference implementation pending formal Bioanalytix scientific review and production-release approval.",
 		},
 
 		licensing: {
-			status: "permitted",
-			source: "Publicly available scientific evidence and clinical reference sources",
-			notes: "No third-party proprietary scoring model is required for this interpretation.",
+			status: "not_applicable",
+
+			source: "Public scientific and clinical reference sources",
+
+			notes: "This interpretation currently uses public variant definitions and evidence rather than a licensed proprietary scoring algorithm. Any incorporated third-party dataset or scoring model requires a separate licensing assessment.",
 		},
 
 		limitations: [
@@ -92,15 +128,20 @@ export const MODEL_POLICIES: Record<string, ModelGovernance> = {
 
 	"apoe-common-diplotype-v1": {
 		modelId: "apoe-common-diplotype-v1",
+
 		modelVersion: "1.0.0",
 
 		evidenceClass: "susceptibility_haplotype",
+
 		evidenceStrength: "established",
-		status: "approved",
+
+		lifecycle: {
+			implementation: "implemented",
+
+			release: "development",
+		},
 
 		confirmationRequirement: "required_before_medical_action",
-
-		commercialUsePermitted: true,
 
 		permissions: {
 			calculateResult: true,
@@ -113,13 +154,17 @@ export const MODEL_POLICIES: Record<string, ModelGovernance> = {
 		},
 
 		review: {
-			reviewed: false,
+			status: "pending",
+
+			notes: "Reference implementation pending formal Bioanalytix scientific review and production-release approval.",
 		},
 
 		licensing: {
-			status: "permitted",
-			source: "Publicly available scientific evidence and clinical reference sources",
-			notes: "No third-party proprietary scoring model is required for this interpretation.",
+			status: "not_applicable",
+
+			source: "Public scientific and clinical reference sources",
+
+			notes: "This interpretation currently uses public APOE allele definitions and evidence rather than a licensed proprietary scoring algorithm. Any incorporated third-party dataset or scoring model requires a separate licensing assessment.",
 		},
 
 		limitations: [

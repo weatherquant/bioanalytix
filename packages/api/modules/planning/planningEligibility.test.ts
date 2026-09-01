@@ -114,4 +114,38 @@ describe("genetics planning eligibility", () => {
 			),
 		).toBe(true);
 	});
+
+	it("allows a pending-review implemented model to exercise planning in development", () => {
+		const insight = interpretFactorVLeiden(observation("rs6025", "AG"));
+
+		const assessment = assessPlanningEligibility(insight, "development");
+
+		expect(assessment.eligible).toBe(true);
+
+		expect(
+			assessment.qualifications.some((qualification) =>
+				qualification.toLowerCase().includes("development only"),
+			),
+		).toBe(true);
+	});
+
+	it("blocks a pending-review development model from production planning use", () => {
+		const insight = interpretFactorVLeiden(observation("rs6025", "AG"));
+
+		const assessment = assessPlanningEligibility(insight, "production");
+
+		expect(assessment.eligible).toBe(false);
+
+		expect(
+			assessment.reasons.some((reason) =>
+				reason.toLowerCase().includes("scientific approval"),
+			),
+		).toBe(true);
+
+		expect(
+			assessment.reasons.some((reason) =>
+				reason.toLowerCase().includes("production release"),
+			),
+		).toBe(true);
+	});
 });
