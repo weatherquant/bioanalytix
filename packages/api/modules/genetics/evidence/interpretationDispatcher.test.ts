@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createGenotypeObservation } from "../observations/createObservation";
+import { createGenotypeObservation } from "../observations/createObservation";
 import { interpretAvailableModels, interpretRegisteredModel } from "./interpretationDispatcher";
 
 function observation(rsid: string, genotype: string) {
@@ -9,7 +10,11 @@ function observation(rsid: string, genotype: string) {
 		genotype,
 		sourceType: "consumer_raw_data",
 		provider: "23andMe",
-		parserVersion: "genetics-parser-v1",
+		fileFormat: "23andMe raw genotype data",
+		genomeBuild: "unknown",
+		strandOrientation: "unknown",
+		confirmationStatus: "unconfirmed",
+		parserVersion: "23andme-parser-v1",
 	});
 }
 
@@ -78,5 +83,63 @@ describe("genetics interpretation dispatcher", () => {
 		]);
 
 		expect(insights).toEqual([]);
+	});
+
+	it("does not interpret Factor V Leiden when rs6025 has conflicting genotype observations", () => {
+		const insights = interpretAvailableModels([
+			observation("rs6025", "AG"),
+
+			observation("rs6025", "GG"),
+		]);
+
+		expect(insights.some((insight) => insight.model.id === "f5-factor-v-leiden-vte")).toBe(
+			false,
+		);
+	});
+
+	it("does not interpret APOE when one required locus has conflicting genotype observations", () => {
+		const insights = interpretAvailableModels([
+			observation("rs429358", "CT"),
+
+			observation("rs429358", "TT"),
+
+			observation("rs7412", "CC"),
+		]);
+
+		expect(insights.some((insight) => insight.model.id === "apoe-common-diplotype-v1")).toBe(
+			false,
+		);
+	});
+
+	it("keeps unrelated models available when a different locus is conflicted", () => {
+		const insights = interpretAvailableModels([
+			observation("rs6025", "AG"),
+
+			observation("rs6025", "GG"),
+
+			observation("rs429358", "CT"),
+
+			observation("rs7412", "CC"),
+		]);
+
+		expect(insights.some((insight) => insight.model.id === "f5-factor-v-leiden-vte")).toBe(
+			false,
+		);
+
+		expect(insights.some((insight) => insight.model.id === "apoe-common-diplotype-v1")).toBe(
+			true,
+		);
+	});
+
+	it("still interprets concordant duplicate genotype observations", () => {
+		const insights = interpretAvailableModels([
+			observation("rs6025", "AG"),
+
+			observation("rs6025", "AG"),
+		]);
+
+		expect(insights.some((insight) => insight.model.id === "f5-factor-v-leiden-vte")).toBe(
+			true,
+		);
 	});
 });
