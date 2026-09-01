@@ -1,12 +1,7 @@
-import type {
-	ConfirmationStatus,
-	GenomeBuild,
-	GenotypeSource,
-	StrandOrientation,
-} from "../observations/types";
+import type { GenomeBuild, StrandOrientation } from "../observations/types";
 import { APOE_RS429358_EVIDENCE, APOE_RS7412_EVIDENCE } from "./apoe";
 import { FACTOR_V_LEIDEN_EVIDENCE } from "./factorVLeiden";
-import type { EvidenceClass, EvidenceStrength } from "./types";
+import type { EvidenceClass } from "./types";
 
 export type InterpretationEngineKind =
 	| "single_variant"
@@ -19,9 +14,9 @@ export interface AnalyticalInputRequirements {
 	/**
 	 * Allowed genome builds for this interpretation.
 	 *
-	 * "any" means the model can be interpreted without
-	 * build-specific coordinates because its current
-	 * implementation is rsID/genotype based.
+	 * "any" means the current implementation can
+	 * interpret the model without requiring a known
+	 * build-specific coordinate.
 	 */
 	genomeBuild: "any" | "known" | readonly GenomeBuild[];
 
@@ -30,120 +25,90 @@ export interface AnalyticalInputRequirements {
 	 */
 	strand: "any" | "known" | "forward" | "model_specific";
 
-	requiredRsids: readonly string[];
-
 	/**
-	 * Fraction of required loci that must be present.
+	 * Fraction of required model loci that must be
+	 * analytically usable.
 	 *
-	 * Current registered models require full coverage.
+	 * Required loci themselves are defined once,
+	 * at GeneticsModelDefinition.requiredRsids.
 	 */
 	minimumCoverage: number;
 }
 
-export interface PlanningInputRequirements {
-	/**
-	 * Whether this model may contribute to financial
-	 * resilience scenarios.
-	 */
-	permitted: boolean;
-
-	/**
-	 * Minimum scientific evidence level required before
-	 * the result can affect planning scenarios.
-	 */
-	minimumEvidenceStrength: EvidenceStrength;
-
-	/**
-	 * Consumer raw genotype data may be useful for
-	 * risk-resilience planning without being sufficient
-	 * for clinical decision-making.
-	 */
-	consumerRawDataPermitted: boolean;
-
-	/**
-	 * Whether clinical confirmation is required before
-	 * this result may create planning scenarios.
-	 */
-	clinicalConfirmationRequired: boolean;
-}
-
-export interface ClinicalInputRequirements {
-	/**
-	 * Bioanalytix does not treat consumer raw genetic
-	 * data as sufficient for medical action.
-	 */
-	confirmationRequired: boolean;
-
-	medicalActionFromConsumerRawData: false;
-}
-
-export interface ModelInputRequirements {
-	analytical: AnalyticalInputRequirements;
-	planning: PlanningInputRequirements;
-	clinical: ClinicalInputRequirements;
-}
-
 export interface GeneticsModelDefinition {
 	readonly id: string;
+
 	readonly version: string;
+
 	readonly evidenceClass: EvidenceClass;
+
 	readonly engine: InterpretationEngineKind;
+
+	/**
+	 * Canonical locus requirements for the model.
+	 *
+	 * This is the single source of truth for which
+	 * rsIDs are required by the interpretation.
+	 */
 	readonly requiredRsids: readonly string[];
+
+	/**
+	 * Evidence records supporting this model.
+	 */
 	readonly evidenceIds: readonly string[];
-	readonly inputRequirements: ModelInputRequirements;
+
+	/**
+	 * Technical requirements for interpreting the
+	 * required observations.
+	 *
+	 * Planning permissions, clinical boundaries and
+	 * release governance deliberately do not belong
+	 * here. Those are controlled by modelPolicy.
+	 */
+	readonly analyticalRequirements: AnalyticalInputRequirements;
 }
 
 export const FACTOR_V_LEIDEN_MODEL: GeneticsModelDefinition = {
 	id: FACTOR_V_LEIDEN_EVIDENCE.id,
+
 	version: FACTOR_V_LEIDEN_EVIDENCE.version,
+
 	evidenceClass: FACTOR_V_LEIDEN_EVIDENCE.evidenceClass,
+
 	engine: "single_variant",
+
 	requiredRsids: ["rs6025"],
+
 	evidenceIds: [FACTOR_V_LEIDEN_EVIDENCE.id],
-	inputRequirements: {
-		analytical: {
-			genomeBuild: "any",
-			strand: "any",
-			requiredRsids: ["rs6025"],
-			minimumCoverage: 1,
-		},
-		planning: {
-			permitted: true,
-			minimumEvidenceStrength: "established",
-			consumerRawDataPermitted: true,
-			clinicalConfirmationRequired: false,
-		},
-		clinical: {
-			confirmationRequired: true,
-			medicalActionFromConsumerRawData: false,
-		},
+
+	analyticalRequirements: {
+		genomeBuild: "any",
+
+		strand: "any",
+
+		minimumCoverage: 1,
 	},
 };
 
 export const APOE_COMMON_DIPLOTYPE_MODEL: GeneticsModelDefinition = {
 	id: "apoe-common-diplotype-v1",
+
 	version: "1.0.0",
+
 	evidenceClass: "susceptibility_haplotype",
+
 	engine: "haplotype",
+
 	requiredRsids: ["rs429358", "rs7412"],
+
 	evidenceIds: [APOE_RS429358_EVIDENCE.id, APOE_RS7412_EVIDENCE.id],
-	inputRequirements: {
-		analytical: {
-			genomeBuild: "any",
-			strand: "any",
-			requiredRsids: ["rs429358", "rs7412"],
-			minimumCoverage: 1,
-		},
-		planning: {
-			permitted: true,
-			minimumEvidenceStrength: "established",
-			consumerRawDataPermitted: true,
-			clinicalConfirmationRequired: false,
-		},
-		clinical: {
-			confirmationRequired: true,
-			medicalActionFromConsumerRawData: false,
-		},
+
+	analyticalRequirements: {
+		genomeBuild: "any",
+
+		strand: "any",
+
+		minimumCoverage: 1,
 	},
 };
 
@@ -171,7 +136,8 @@ export function requireGeneticsModel(modelId: string): GeneticsModelDefinition {
 }
 
 /**
- * Finds models for which every required rsID is present.
+ * Finds models for which every required rsID is
+ * present.
  *
  * This is only an availability check.
  *
@@ -188,13 +154,12 @@ export function findModelsWithRequiredRsids(rsids: Iterable<string>): GeneticsMo
 }
 
 /**
- * Kept here as type-level documentation of the
- * provenance dimensions that input requirements may
- * constrain in future models.
+ * Type-level documentation of provenance dimensions
+ * that analytical requirements may constrain in
+ * future models.
  */
-export type ModelInputProvenance = {
-	source: GenotypeSource;
+export interface ModelAnalyticalProvenance {
 	genomeBuild: GenomeBuild;
+
 	strandOrientation: StrandOrientation;
-	confirmationStatus: ConfirmationStatus;
-};
+}

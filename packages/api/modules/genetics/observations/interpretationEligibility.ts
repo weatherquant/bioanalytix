@@ -6,16 +6,19 @@ export interface InterpretationEligibility {
 	eligible: boolean;
 
 	/**
-	 * Existing interpretation code expects `reasons`.
-	 *
-	 * These are hard eligibility failures which prevent
+	 * Hard analytical eligibility failures which prevent
 	 * an observation from being used by the model.
 	 */
 	reasons: string[];
 
 	/**
-	 * Non-blocking provenance, confirmation or scientific
+	 * Non-blocking provenance or analytical
 	 * qualification messages.
+	 *
+	 * Planning governance, clinical-use restrictions
+	 * and production-release permissions are enforced
+	 * in their respective governance layers rather than
+	 * here.
 	 */
 	warnings: string[];
 }
@@ -24,7 +27,7 @@ function genomeBuildEligible(
 	observation: GenotypeObservation,
 	model: GeneticsModelDefinition,
 ): boolean {
-	const requirement = model.inputRequirements.analytical.genomeBuild;
+	const requirement = model.analyticalRequirements.genomeBuild;
 
 	if (requirement === "any") {
 		return true;
@@ -38,7 +41,7 @@ function genomeBuildEligible(
 }
 
 function strandEligible(observation: GenotypeObservation, model: GeneticsModelDefinition): boolean {
-	const requirement = model.inputRequirements.analytical.strand;
+	const requirement = model.analyticalRequirements.strand;
 
 	if (requirement === "any" || requirement === "model_specific") {
 		return true;
@@ -54,9 +57,17 @@ function strandEligible(observation: GenotypeObservation, model: GeneticsModelDe
 /**
  * Model-aware analytical eligibility.
  *
+ * This function answers only whether an observation
+ * is technically suitable for interpretation by the
+ * specified model.
+ *
  * Hard analytical failures are returned in `reasons`.
- * Qualifications that should remain visible but do not
- * prevent interpretation are returned in `warnings`.
+ * Non-blocking analytical or provenance qualifications
+ * are returned in `warnings`.
+ *
+ * Planning eligibility, clinical-use restrictions and
+ * release governance are intentionally enforced
+ * elsewhere.
  */
 export function assessModelObservationEligibility(
 	observation: GenotypeObservation,
@@ -66,8 +77,8 @@ export function assessModelObservationEligibility(
 	const validation = validateGenotypeObservation(observation);
 
 	/**
-	 * Preserve the existing interpretation contract:
-	 * validator errors become hard eligibility reasons.
+	 * Preserve the observation-validation contract:
+	 * validator errors become hard analytical failures.
 	 */
 	const reasons = [...validation.errors];
 
@@ -87,57 +98,22 @@ export function assessModelObservationEligibility(
 		);
 	}
 
-	/**
-	 * Planning restrictions are qualifications here,
-	 * not analytical failures.
-	 *
-	 * Whether an interpreted insight may actually create
-	 * PlanningExposure[] will be enforced separately by
-	 * the planning eligibility layer.
-	 */
-	if (
-		observation.source.type === "consumer_raw_data" &&
-		!model.inputRequirements.planning.consumerRawDataPermitted
-	) {
-		warnings.push(
-			`Consumer raw genotype data is not permitted for planning use by model ${model.id}.`,
-		);
-	}
-
-	if (
-		model.inputRequirements.planning.clinicalConfirmationRequired &&
-		observation.confirmationStatus !== "confirmed"
-	) {
-		warnings.push(
-			`Clinical confirmation is required before model ${model.id} may contribute to planning scenarios.`,
-		);
-	}
-
-	/**
-	 * Clinical confirmation is deliberately separate
-	 * from analytical interpretation and financial
-	 * risk-resilience planning.
-	 */
-	if (
-		model.inputRequirements.clinical.confirmationRequired &&
-		observation.confirmationStatus !== "confirmed"
-	) {
-		warnings.push("This result requires confirmation before clinical or medical action.");
-	}
-
 	return {
 		eligible: reasons.length === 0,
+
 		reasons,
+
 		warnings,
 	};
 }
 
 /**
- * Existing compatibility API.
+ * Compatibility API for callers that require generic
+ * observation validation without model-specific build
+ * or strand requirements.
  *
- * FVL and APOE currently call this function. We retain
- * its original return contract while the interpreters
- * are migrated deliberately to model-aware eligibility.
+ * This function deliberately performs no planning,
+ * clinical or release-governance assessment.
  */
 export function assessInterpretationEligibility(
 	observation: GenotypeObservation,
@@ -155,7 +131,9 @@ export function assessInterpretationEligibility(
 
 	return {
 		eligible: reasons.length === 0,
+
 		reasons,
+
 		warnings,
 	};
 }
