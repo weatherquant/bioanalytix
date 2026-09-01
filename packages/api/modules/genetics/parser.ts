@@ -1,19 +1,56 @@
 // packages/api/modules/genetics/parser.ts
 
 /**
- * Parse a 23andMe-style raw genotype file.
+ * A structurally valid genotype record parsed from a
+ * 23andMe-style raw genotype file.
+ *
+ * This is deliberately a transport/parser representation.
+ * It does not imply biological or clinical validity.
+ */
+export interface Parsed23andMeGenotype {
+	rsid: string;
+	chromosome: string;
+	position: string;
+	genotype: string;
+
+	/**
+	 * One-based source line number within the uploaded file.
+	 */
+	lineNumber: number;
+
+	/**
+	 * Original unmodified source record.
+	 *
+	 * Retained so that downstream provenance can identify
+	 * exactly which file record produced an observation.
+	 */
+	sourceRecord: string;
+}
+
+/**
+ * Parse structurally valid genotype records from a
+ * 23andMe-style raw genotype file.
  *
  * Expected tab-separated columns:
+ *
  * rsid | chromosome | position | genotype
  *
  * This parser performs structural validation only.
- * It does NOT interpret clinical or biological significance.
+ * It does NOT:
+ *
+ * - infer genome build
+ * - infer strand orientation
+ * - infer clinical confirmation
+ * - interpret biological significance
+ * - silently repair malformed genotypes
  */
-export function parse23andMe(raw: string): Record<string, string> {
+export function parse23andMeRecords(raw: string): Parsed23andMeGenotype[] {
 	const lines = raw.split(/\r?\n/);
-	const snps: Record<string, string> = {};
 
-	for (const rawLine of lines) {
+	const records: Parsed23andMeGenotype[] = [];
+
+	for (let index = 0; index < lines.length; index += 1) {
+		const rawLine = lines[index] ?? "";
 		const line = rawLine.trim();
 
 		// Ignore blank lines and metadata/comments.
@@ -30,9 +67,14 @@ export function parse23andMe(raw: string): Record<string, string> {
 		}
 
 		const rsid = parts[0]?.trim();
+
+		const chromosome = parts[1]?.trim();
+
+		const position = parts[2]?.trim();
+
 		const genotype = parts[3]?.trim().toUpperCase();
 
-		if (!rsid || !genotype) {
+		if (!rsid || !chromosome || !position || !genotype) {
 			continue;
 		}
 
@@ -41,21 +83,52 @@ export function parse23andMe(raw: string): Record<string, string> {
 			continue;
 		}
 
-		// Exclude explicit no-calls / missing genotypes.
+		// Exclude explicit no-calls / missing calls.
 		if (genotype === "--" || genotype === "00") {
 			continue;
 		}
 
-		// Accept standard diploid SNP calls only.
-		// Examples: AA, AG, CT.
-		//
-		// We can broaden this later if the audited
-		// ingestion specification requires it.
+		/**
+		 * Accept only canonical diploid SNP calls.
+		 *
+		 * Provider-specific representations, haploid
+		 * calls, indels and other encodings require an
+		 * explicitly audited parser extension.
+		 *
+		 * Do not strip or repair invalid characters here.
+		 */
 		if (!/^[ACGT]{2}$/.test(genotype)) {
 			continue;
 		}
 
-		snps[rsid.toLowerCase()] = genotype;
+		records.push({
+			rsid: rsid.toLowerCase(),
+			chromosome,
+			position,
+			genotype,
+			lineNumber: index + 1,
+			sourceRecord: rawLine,
+		});
+	}
+
+	return records;
+}
+
+/**
+ * Backwards-compatible representation used by
+ * existing Bioanalytix code.
+ *
+ * New scientific interpretation code should prefer
+ * parse23andMeRecords(), because this Record form
+ * deliberately discards source-record provenance.
+ */
+export function parse23andMe(raw: string): Record<string, string> {
+	const records = parse23andMeRecords(raw);
+
+	const snps: Record<string, string> = {};
+
+	for (const record of records) {
+		snps[record.rsid] = record.genotype;
 	}
 
 	return snps;
