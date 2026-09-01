@@ -20,6 +20,16 @@ function factorVObservation(genotype: string) {
 	});
 }
 
+function apoeObservation(rsid: "rs429358" | "rs7412", genotype: string) {
+	return createGenotypeObservation({
+		rsid,
+		genotype,
+		sourceType: "consumer_raw_data",
+		provider: "23andMe",
+		parserVersion: "genetics-parser-v1",
+	});
+}
+
 describe("genetics model governance policy", () => {
 	it("has a policy for Factor V Leiden", () => {
 		const policy = requireModelPolicy("f5-factor-v-leiden-vte");
@@ -44,17 +54,22 @@ describe("genetics model governance policy", () => {
 	});
 
 	it("blocks APOE from direct longevity adjustment", () => {
-		const insight = interpretApoe("CT", "CC");
+		const insight = interpretApoe(
+			apoeObservation("rs429358", "CT"),
+			apoeObservation("rs7412", "CC"),
+		);
 
 		expect(() => assertMayUseInLongevityModel(insight)).toThrow();
 	});
 
 	it("blocks APOE personal absolute-risk calculation", () => {
-		const insight = interpretApoe("CC", "CC");
+		const insight = interpretApoe(
+			apoeObservation("rs429358", "CT"),
+			apoeObservation("rs7412", "CC"),
+		);
 
 		expect(() => assertMayUseAbsoluteRisk(insight)).toThrow();
 	});
-
 	it("blocks Factor V Leiden from silently changing financial parameters", () => {
 		const insight = interpretFactorVLeiden(factorVObservation("AG"));
 

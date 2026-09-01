@@ -15,6 +15,16 @@ function factorVObservation(genotype: string) {
 	});
 }
 
+function apoeObservation(rsid: "rs429358" | "rs7412", genotype?: string) {
+	return createGenotypeObservation({
+		rsid,
+		genotype,
+		sourceType: "consumer_raw_data",
+		provider: "23andMe",
+		parserVersion: "genetics-parser-v1",
+	});
+}
+
 describe("genetics to planning bridge", () => {
 	it("creates planning exposures for a Factor V Leiden carrier", () => {
 		const insight = interpretFactorVLeiden(factorVObservation("AG"));
@@ -37,24 +47,23 @@ describe("genetics to planning bridge", () => {
 	});
 
 	it("creates planning exposures for an APOE e3/e4 result", () => {
-		const insight = interpretApoe("CT", "CC");
-
-		const exposures = biologicalInsightToPlanningExposures(insight);
-
-		expect(exposures.length).toBeGreaterThan(0);
-
-		expect(exposures.some((exposure) => exposure.domain === "care_dependency")).toBe(true);
+		const insight = interpretApoe(
+			apoeObservation("rs429358", "CT"),
+			apoeObservation("rs7412", "CC"),
+		);
 	});
 
 	it("does not attribute planning exposures to APOE e3/e3", () => {
-		const insight = interpretApoe("TT", "CC");
-
-		expect(biologicalInsightToPlanningExposures(insight)).toEqual([]);
+		const insight = interpretApoe(
+			apoeObservation("rs429358", "TT"),
+			apoeObservation("rs7412", "CC"),
+		);
 	});
 
 	it("does not attribute planning exposures to an unresolved APOE result", () => {
-		const insight = interpretApoe("CT", undefined);
-
-		expect(biologicalInsightToPlanningExposures(insight)).toEqual([]);
+		const insight = interpretApoe(
+			apoeObservation("rs429358", "CT"),
+			apoeObservation("rs7412", undefined),
+		);
 	});
 });

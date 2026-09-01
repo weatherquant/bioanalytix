@@ -1,3 +1,5 @@
+import { assessInterpretationEligibility } from "../observations/interpretationEligibility";
+import type { GenotypeObservation } from "../observations/types";
 import { APOE_RS429358_EVIDENCE, APOE_RS7412_EVIDENCE } from "./apoe";
 import type { BiologicalInsight } from "./insight";
 
@@ -98,10 +100,21 @@ export function classifyApoeDiplotype(
 }
 
 export function interpretApoe(
-	rs429358: string | undefined,
-	rs7412: string | undefined,
+	rs429358Observation: GenotypeObservation,
+	rs7412Observation: GenotypeObservation,
 ): BiologicalInsight {
-	const classification = classifyApoeDiplotype(rs429358, rs7412);
+	const rs429358Eligibility = assessInterpretationEligibility(rs429358Observation, "rs429358");
+
+	const rs7412Eligibility = assessInterpretationEligibility(rs7412Observation, "rs7412");
+
+	const observationsEligible = rs429358Eligibility.eligible && rs7412Eligibility.eligible;
+
+	const classification = observationsEligible
+		? classifyApoeDiplotype(rs429358Observation.genotype, rs7412Observation.genotype)
+		: {
+				status: "unresolved" as const,
+				reason: "One or more required APOE genotype observations are not eligible for interpretation.",
+			};
 
 	const diplotype = classification.status === "resolved" ? classification.diplotype : undefined;
 
@@ -113,6 +126,22 @@ export function interpretApoe(
 			: e4Copies > 0
 				? "higher"
 				: "reference";
+
+	const genomeBuild =
+		rs429358Observation.genomeBuild === rs7412Observation.genomeBuild
+			? rs429358Observation.genomeBuild
+			: "unknown";
+
+	const source =
+		rs429358Observation.source.type === rs7412Observation.source.type
+			? rs429358Observation.source.type
+			: "unknown";
+
+	const confirmationStatus =
+		rs429358Observation.confirmationStatus === "confirmed" &&
+		rs7412Observation.confirmationStatus === "confirmed"
+			? "confirmed"
+			: "unconfirmed";
 
 	return {
 		id: "apoe-alzheimer-susceptibility",
@@ -136,21 +165,31 @@ export function interpretApoe(
 		confidence: {
 			evidenceStrength: "established",
 
-			genotypeCoverage: classification.status === "resolved" ? 1 : 0,
+			genotypeCoverage: observationsEligible && classification.status === "resolved" ? 1 : 0,
 
 			populationApplicability: "unknown",
 		},
 
 		input: {
-			genomeBuild: "unknown",
+			genomeBuild,
 
-			source: "consumer_raw_data",
+			source,
 
-			confirmationStatus: "unconfirmed",
+			confirmationStatus,
 		},
 
 		limitations: [
 			...APOE_RS429358_EVIDENCE.limitations,
+			...APOE_RS7412_EVIDENCE.limitations,
+
+			...rs429358Observation.limitations,
+			...rs7412Observation.limitations,
+
+			...rs429358Eligibility.reasons,
+			...rs429358Eligibility.warnings,
+
+			...rs7412Eligibility.reasons,
+			...rs7412Eligibility.warnings,
 
 			...(classification.reason ? [classification.reason] : []),
 		],
