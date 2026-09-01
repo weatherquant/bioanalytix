@@ -1,8 +1,9 @@
-import { assessInterpretationEligibility } from "../observations/interpretationEligibility";
+import { assessModelObservationEligibility } from "../observations/interpretationEligibility";
 import type { GenotypeObservation } from "../observations/types";
 import { FACTOR_V_LEIDEN_EVIDENCE } from "./factorVLeiden";
 import type { BiologicalInsight } from "./insight";
 import { assertMayCalculate } from "./modelPolicyGuards";
+import { FACTOR_V_LEIDEN_MODEL } from "./modelRegistry";
 
 export type FactorVLeidenGenotypeState =
 	| "non_carrier"
@@ -41,9 +42,13 @@ export function classifyFactorVLeidenGenotype(
 }
 
 export function interpretFactorVLeiden(observation: GenotypeObservation): BiologicalInsight {
-	assertMayCalculate(FACTOR_V_LEIDEN_EVIDENCE.id);
+	assertMayCalculate(FACTOR_V_LEIDEN_MODEL.id);
 
-	const eligibility = assessInterpretationEligibility(observation, "rs6025");
+	const eligibility = assessModelObservationEligibility(
+		observation,
+		"rs6025",
+		FACTOR_V_LEIDEN_MODEL,
+	);
 
 	const state = eligibility.eligible
 		? classifyFactorVLeidenGenotype(observation.genotype)
@@ -64,9 +69,9 @@ export function interpretFactorVLeiden(observation: GenotypeObservation): Biolog
 		title: "Factor V Leiden and venous thrombosis susceptibility",
 
 		model: {
-			id: FACTOR_V_LEIDEN_EVIDENCE.id,
-			version: FACTOR_V_LEIDEN_EVIDENCE.version,
-			evidenceClass: FACTOR_V_LEIDEN_EVIDENCE.evidenceClass,
+			id: FACTOR_V_LEIDEN_MODEL.id,
+			version: FACTOR_V_LEIDEN_MODEL.version,
+			evidenceClass: FACTOR_V_LEIDEN_MODEL.evidenceClass,
 		},
 
 		result: {
@@ -92,8 +97,11 @@ export function interpretFactorVLeiden(observation: GenotypeObservation): Biolog
 
 		limitations: [
 			...FACTOR_V_LEIDEN_EVIDENCE.limitations,
+
 			...observation.limitations,
+
 			...eligibility.reasons,
+
 			...eligibility.warnings,
 		],
 

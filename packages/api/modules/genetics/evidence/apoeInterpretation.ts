@@ -1,7 +1,9 @@
-import { assessInterpretationEligibility } from "../observations/interpretationEligibility";
+import { assessModelObservationEligibility } from "../observations/interpretationEligibility";
 import type { GenotypeObservation } from "../observations/types";
 import { APOE_RS429358_EVIDENCE, APOE_RS7412_EVIDENCE } from "./apoe";
 import type { BiologicalInsight } from "./insight";
+import { assertMayCalculate } from "./modelPolicyGuards";
+import { APOE_COMMON_DIPLOTYPE_MODEL } from "./modelRegistry";
 
 export type ApoeAllele = "e2" | "e3" | "e4";
 
@@ -48,6 +50,7 @@ export function classifyApoeDiplotype(
 	rs7412: string | undefined,
 ): ApoeClassification {
 	const g429358 = normalizeGenotype(rs429358);
+
 	const g7412 = normalizeGenotype(rs7412);
 
 	if (!g429358 || !g7412) {
@@ -76,10 +79,11 @@ export function classifyApoeDiplotype(
 		};
 	}
 
-	/*
-	 * CT at rs429358 together with CT at rs7412
-	 * cannot be safely reduced to a common APOE
-	 * diplotype from unphased calls alone.
+	/**
+	 * CT at rs429358 together with CT at
+	 * rs7412 cannot be safely reduced to a
+	 * common APOE diplotype from unphased
+	 * calls alone.
 	 */
 	if (key === "CT:CT") {
 		return {
@@ -88,10 +92,11 @@ export function classifyApoeDiplotype(
 		};
 	}
 
-	/*
+	/**
 	 * Other combinations may represent rare
 	 * haplotypes, assay/orientation issues or
-	 * combinations outside this common-allele model.
+	 * combinations outside this common-allele
+	 * model.
 	 */
 	return {
 		status: "unresolved",
@@ -103,9 +108,23 @@ export function interpretApoe(
 	rs429358Observation: GenotypeObservation,
 	rs7412Observation: GenotypeObservation,
 ): BiologicalInsight {
-	const rs429358Eligibility = assessInterpretationEligibility(rs429358Observation, "rs429358");
+	/**
+	 * Governance applies before scientific
+	 * interpretation is attempted.
+	 */
+	assertMayCalculate(APOE_COMMON_DIPLOTYPE_MODEL.id);
 
-	const rs7412Eligibility = assessInterpretationEligibility(rs7412Observation, "rs7412");
+	const rs429358Eligibility = assessModelObservationEligibility(
+		rs429358Observation,
+		"rs429358",
+		APOE_COMMON_DIPLOTYPE_MODEL,
+	);
+
+	const rs7412Eligibility = assessModelObservationEligibility(
+		rs7412Observation,
+		"rs7412",
+		APOE_COMMON_DIPLOTYPE_MODEL,
+	);
 
 	const observationsEligible = rs429358Eligibility.eligible && rs7412Eligibility.eligible;
 
@@ -151,15 +170,21 @@ export function interpretApoe(
 		title: "APOE and late-onset Alzheimer disease susceptibility",
 
 		model: {
-			id: "apoe-common-diplotype-v1",
-			version: "1.0.0",
-			evidenceClass: "susceptibility_haplotype",
+			id: APOE_COMMON_DIPLOTYPE_MODEL.id,
+
+			version: APOE_COMMON_DIPLOTYPE_MODEL.version,
+
+			evidenceClass: APOE_COMMON_DIPLOTYPE_MODEL.evidenceClass,
 		},
 
 		result: {
 			direction,
 
-			...(diplotype ? { haplotype: diplotype } : {}),
+			...(diplotype
+				? {
+						haplotype: diplotype,
+					}
+				: {}),
 		},
 
 		confidence: {
@@ -180,15 +205,19 @@ export function interpretApoe(
 
 		limitations: [
 			...APOE_RS429358_EVIDENCE.limitations,
+
 			...APOE_RS7412_EVIDENCE.limitations,
 
 			...rs429358Observation.limitations,
+
 			...rs7412Observation.limitations,
 
 			...rs429358Eligibility.reasons,
+
 			...rs429358Eligibility.warnings,
 
 			...rs7412Eligibility.reasons,
+
 			...rs7412Eligibility.warnings,
 
 			...(classification.reason ? [classification.reason] : []),
