@@ -37,16 +37,22 @@ export type FinancialGoalType =
 	| "care"
 	| "other";
 
+export type GoalPriority = "low" | "medium" | "high";
+
 export interface Person {
 	id: string;
 
 	role: PersonRole;
 
+	/**
+	 * ISO date in YYYY-MM-DD format.
+	 *
+	 * Age is derived from dateOfBirth and the relevant
+	 * projection date. Age itself is not stored.
+	 */
 	dateOfBirth: string;
 
 	employmentStatus: EmploymentStatus;
-
-	expectedRetirementAge?: number;
 
 	isFinanciallyDependent?: boolean;
 }
@@ -54,26 +60,41 @@ export interface Person {
 export interface IncomeSource {
 	id: string;
 
+	/**
+	 * Required for employment income.
+	 *
+	 * Other income may be household-level where there
+	 * is no meaningful individual owner for planning.
+	 */
 	personId?: string;
 
 	type: IncomeType;
 
 	description?: string;
 
+	/**
+	 * Current annualised amount as at the household
+	 * as-of date.
+	 */
 	annualAmount: number;
 
 	taxable: boolean;
-
-	startAge?: number;
-
-	endAge?: number;
 }
 
 export interface ExpenseProfile {
+	/**
+	 * Current recurring annual household expenditure.
+	 */
 	essentialAnnual: number;
 
 	discretionaryAnnual: number;
 
+	/**
+	 * Known one-off expenditure expected during the
+	 * first projection year.
+	 *
+	 * It is not treated as recurring expenditure.
+	 */
 	oneOffAnnual?: number;
 }
 
@@ -86,6 +107,10 @@ export interface Asset {
 
 	value: number;
 
+	/**
+	 * Undefined means household-level or currently
+	 * unallocated ownership.
+	 */
 	ownerPersonIds?: string[];
 
 	liquid: boolean;
@@ -102,6 +127,12 @@ export interface SuperAccount {
 
 	balance: number;
 
+	/**
+	 * Current recurring contribution arrangement.
+	 *
+	 * Contribution source and tax treatment are not
+	 * inferred here.
+	 */
 	annualContribution?: number;
 
 	preserved: boolean;
@@ -116,8 +147,14 @@ export interface Liability {
 
 	balance: number;
 
+	/**
+	 * Current contractual or observed rate.
+	 */
 	annualInterestRate?: number;
 
+	/**
+	 * Current recurring annual repayment arrangement.
+	 */
 	annualRepayment?: number;
 
 	ownerPersonIds?: string[];
@@ -136,6 +173,9 @@ export interface InsuranceCover {
 
 	annualPremium: number;
 
+	/**
+	 * Current contractual expiry age where known.
+	 */
 	endAge?: number;
 }
 
@@ -145,10 +185,6 @@ export interface EstatePosition {
 	hasEnduringPowerOfAttorney?: boolean;
 
 	hasSuperBeneficiaryNomination?: boolean;
-
-	intendedEstateValue?: number;
-
-	immediateLiquidityTarget?: number;
 }
 
 export interface FinancialGoal {
@@ -156,32 +192,27 @@ export interface FinancialGoal {
 
 	type: FinancialGoalType;
 
+	/**
+	 * Optional because some objectives are household
+	 * level while others relate to a specific person.
+	 */
+	personId?: string;
+
 	description?: string;
 
 	targetAmount?: number;
 
 	targetAge?: number;
 
-	priority?: "low" | "medium" | "high";
-}
-
-export interface FinancialAssumptions {
-	inflationRate: number;
-
-	wageGrowthRate: number;
-
-	investmentReturnRate: number;
-
-	cashReturnRate: number;
-
-	superReturnRate: number;
-
-	projectionEndAge: number;
+	priority: GoalPriority;
 }
 
 export interface HouseholdFinancialState {
 	id: string;
 
+	/**
+	 * Date on which this household state is measured.
+	 */
 	asOfDate: string;
 
 	currency: string;
@@ -205,6 +236,4 @@ export interface HouseholdFinancialState {
 	estate: EstatePosition;
 
 	goals: FinancialGoal[];
-
-	assumptions: FinancialAssumptions;
 }

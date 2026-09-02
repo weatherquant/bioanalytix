@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { HouseholdFinancialState } from "./types";
 import { calculateAgeOnDate, validateHouseholdFinancialState } from "./validation";
 
-function validHousehold(): HouseholdFinancialState {
+function household(): HouseholdFinancialState {
 	return {
 		id: "household-1",
 
@@ -22,8 +22,6 @@ function validHousehold(): HouseholdFinancialState {
 				dateOfBirth: "1970-09-02",
 
 				employmentStatus: "employed",
-
-				expectedRetirementAge: 65,
 			},
 		],
 
@@ -35,21 +33,21 @@ function validHousehold(): HouseholdFinancialState {
 
 				type: "employment",
 
-				annualAmount: 150000,
+				annualAmount: 100000,
 
 				taxable: true,
 			},
 		],
 
 		expenses: {
-			essentialAnnual: 60000,
+			essentialAnnual: 40000,
 
-			discretionaryAnnual: 25000,
+			discretionaryAnnual: 10000,
 		},
 
 		assets: [
 			{
-				id: "asset-1",
+				id: "cash-1",
 
 				type: "cash",
 
@@ -71,9 +69,9 @@ function validHousehold(): HouseholdFinancialState {
 
 				personId: "person-1",
 
-				balance: 500000,
+				balance: 300000,
 
-				annualContribution: 18000,
+				annualContribution: 10000,
 
 				preserved: true,
 			},
@@ -81,15 +79,15 @@ function validHousehold(): HouseholdFinancialState {
 
 		liabilities: [
 			{
-				id: "liability-1",
+				id: "mortgage-1",
 
 				type: "mortgage",
 
-				balance: 300000,
+				balance: 100000,
 
-				annualInterestRate: 0.06,
+				annualInterestRate: 0.05,
 
-				annualRepayment: 30000,
+				annualRepayment: 20000,
 
 				ownerPersonIds: ["person-1"],
 			},
@@ -97,7 +95,7 @@ function validHousehold(): HouseholdFinancialState {
 
 		insurance: [
 			{
-				id: "insurance-1",
+				id: "life-1",
 
 				personId: "person-1",
 
@@ -105,7 +103,7 @@ function validHousehold(): HouseholdFinancialState {
 
 				sumInsured: 500000,
 
-				annualPremium: 1800,
+				annualPremium: 1000,
 
 				endAge: 65,
 			},
@@ -113,162 +111,174 @@ function validHousehold(): HouseholdFinancialState {
 
 		estate: {
 			hasWill: true,
-
-			intendedEstateValue: 750000,
 		},
 
 		goals: [
 			{
-				id: "goal-1",
+				id: "retirement-person-1",
 
 				type: "retirement",
 
-				targetAge: 65,
+				personId: "person-1",
+
+				targetAge: 60,
 
 				priority: "high",
 			},
 		],
-
-		assumptions: {
-			inflationRate: 0.025,
-
-			wageGrowthRate: 0.03,
-
-			investmentReturnRate: 0.06,
-
-			cashReturnRate: 0.03,
-
-			superReturnRate: 0.06,
-
-			projectionEndAge: 100,
-		},
 	};
 }
 
 describe("validateHouseholdFinancialState", () => {
 	it("accepts a coherent household financial state", () => {
-		const result = validateHouseholdFinancialState(validHousehold());
+		const result = validateHouseholdFinancialState(household());
 
 		expect(result.valid).toBe(true);
 
 		expect(result.errors).toHaveLength(0);
 	});
 
-	it("requires at least one household member", () => {
-		const household = validHousehold();
+	it("requires at least one person and exactly one primary person", () => {
+		const empty = household();
 
-		household.people = [];
+		empty.people = [];
 
-		const result = validateHouseholdFinancialState(household);
+		const emptyResult = validateHouseholdFinancialState(empty);
 
-		expect(result.valid).toBe(false);
+		expect(emptyResult.errors.some((item) => item.code === "missing_people")).toBe(true);
 
-		expect(result.errors.some((issue) => issue.code === "missing_people")).toBe(true);
-	});
+		const twoPrimary = household();
 
-	it("rejects negative financial balances and cash flows", () => {
-		const household = validHousehold();
+		twoPrimary.people.push({
+			id: "person-2",
 
-		household.assets[0]!.value = -1;
+			role: "primary",
 
-		household.expenses.essentialAnnual = -500;
+			dateOfBirth: "1980-01-01",
 
-		household.liabilities[0]!.balance = -100;
-
-		const result = validateHouseholdFinancialState(household);
-
-		expect(result.valid).toBe(false);
-
-		expect(result.errors.map((issue) => issue.code)).toEqual(
-			expect.arrayContaining([
-				"invalid_asset_value",
-				"invalid_expense_amount",
-				"invalid_liability_balance",
-			]),
-		);
-	});
-
-	it("rejects references to unknown household members", () => {
-		const household = validHousehold();
-
-		household.income[0]!.personId = "missing-person";
-
-		household.superannuation[0]!.personId = "missing-person";
-
-		household.insurance[0]!.personId = "missing-person";
-
-		const result = validateHouseholdFinancialState(household);
-
-		expect(result.valid).toBe(false);
-
-		expect(
-			result.errors.filter((issue) => issue.code === "unknown_person_reference").length,
-		).toBeGreaterThanOrEqual(3);
-	});
-
-	it("rejects duplicate identifiers within a financial collection", () => {
-		const household = validHousehold();
-
-		household.assets.push({
-			...household.assets[0]!,
+			employmentStatus: "employed",
 		});
 
-		const result = validateHouseholdFinancialState(household);
+		const primaryResult = validateHouseholdFinancialState(twoPrimary);
 
-		expect(result.valid).toBe(false);
-
-		expect(result.errors.some((issue) => issue.code === "duplicate_id")).toBe(true);
-	});
-
-	it("rejects a projection horizon that does not extend beyond current age", () => {
-		const household = validHousehold();
-
-		household.assumptions.projectionEndAge = 55;
-
-		const result = validateHouseholdFinancialState(household);
-
-		expect(result.valid).toBe(false);
-
-		expect(result.errors.some((issue) => issue.code === "projection_horizon_not_future")).toBe(
+		expect(primaryResult.errors.some((item) => item.code === "invalid_primary_count")).toBe(
 			true,
 		);
 	});
 
-	it("rejects reversed income age ranges", () => {
-		const household = validHousehold();
+	it("rejects invalid dates and future dates of birth", () => {
+		const invalid = household();
 
-		household.income[0]!.startAge = 60;
+		invalid.people[0]!.dateOfBirth = "1970-13-99";
 
-		household.income[0]!.endAge = 50;
+		const invalidResult = validateHouseholdFinancialState(invalid);
 
-		const result = validateHouseholdFinancialState(household);
-
-		expect(result.errors.some((issue) => issue.code === "income_age_range_reversed")).toBe(
+		expect(invalidResult.errors.some((item) => item.code === "invalid_date_of_birth")).toBe(
 			true,
 		);
+
+		const future = household();
+
+		future.people[0]!.dateOfBirth = "2030-01-01";
+
+		const futureResult = validateHouseholdFinancialState(future);
+
+		expect(futureResult.errors.some((item) => item.code === "future_date_of_birth")).toBe(true);
 	});
 
-	it("treats a past expected retirement age as a warning rather than corrupting the household", () => {
-		const household = validHousehold();
+	it("rejects duplicate identifiers within entity collections", () => {
+		const input = household();
 
-		household.people[0]!.expectedRetirementAge = 50;
+		input.assets.push({
+			...input.assets[0]!,
 
-		const result = validateHouseholdFinancialState(household);
+			value: 50000,
+		});
+
+		const result = validateHouseholdFinancialState(input);
+
+		expect(result.errors.some((item) => item.code === "duplicate_id")).toBe(true);
+	});
+
+	it("rejects negative and non-finite financial amounts", () => {
+		const input = household();
+
+		input.income[0]!.annualAmount = -1;
+
+		input.assets[0]!.value = Number.NaN;
+
+		const result = validateHouseholdFinancialState(input);
+
+		expect(result.errors.some((item) => item.code === "invalid_income_amount")).toBe(true);
+
+		expect(result.errors.some((item) => item.code === "invalid_asset_value")).toBe(true);
+	});
+
+	it("rejects references to people who do not exist", () => {
+		const input = household();
+
+		input.superannuation[0]!.personId = "unknown-person";
+
+		input.goals[0]!.personId = "unknown-person";
+
+		const result = validateHouseholdFinancialState(input);
+
+		expect(
+			result.errors.filter((item) => item.code === "unknown_person_reference").length,
+		).toBeGreaterThanOrEqual(2);
+	});
+
+	it("rejects duplicate ownership references", () => {
+		const input = household();
+
+		input.assets[0]!.ownerPersonIds = ["person-1", "person-1"];
+
+		const result = validateHouseholdFinancialState(input);
+
+		expect(result.errors.some((item) => item.code === "duplicate_person_reference")).toBe(true);
+	});
+
+	it("validates insurance and goal age fields", () => {
+		const input = household();
+
+		input.insurance[0]!.endAge = 121;
+
+		input.goals[0]!.targetAge = 55.5;
+
+		const result = validateHouseholdFinancialState(input);
+
+		expect(result.errors.filter((item) => item.code === "invalid_age")).toHaveLength(2);
+	});
+
+	it("requires employment income to reference a person", () => {
+		const input = household();
+
+		delete input.income[0]!.personId;
+
+		const result = validateHouseholdFinancialState(input);
+
+		expect(
+			result.errors.some((item) => item.code === "employment_income_requires_person"),
+		).toBe(true);
+	});
+
+	it("returns review warnings without making an otherwise valid household invalid", () => {
+		const input = household();
+
+		input.people[0]!.dateOfBirth = "1900-01-01";
+
+		input.liabilities[0]!.annualInterestRate = 1.2;
+
+		const result = validateHouseholdFinancialState(input);
 
 		expect(result.valid).toBe(true);
 
-		expect(
-			result.warnings.some((issue) => issue.code === "retirement_age_before_current_age"),
-		).toBe(true);
-	});
-});
+		expect(result.warnings.some((item) => item.code === "unusually_high_age")).toBe(true);
 
-describe("calculateAgeOnDate", () => {
-	it("calculates age without rounding before a birthday", () => {
+		expect(result.warnings.some((item) => item.code === "unusually_high_interest_rate")).toBe(
+			true,
+		);
+
 		expect(calculateAgeOnDate("1970-09-02", "2026-09-01")).toBe(55);
-	});
-
-	it("increments age on the birthday", () => {
-		expect(calculateAgeOnDate("1970-09-02", "2026-09-02")).toBe(56);
 	});
 });

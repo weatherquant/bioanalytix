@@ -1,4 +1,12 @@
-import type { HouseholdFinancialState, Person } from "./types";
+import type {
+	Asset,
+	FinancialGoal,
+	HouseholdFinancialState,
+	InsuranceCover,
+	Liability,
+	Person,
+	SuperAccount,
+} from "./types";
 
 export type FinancialValidationSeverity = "error" | "warning";
 
@@ -22,110 +30,186 @@ export interface HouseholdValidationResult {
 	issues: FinancialValidationIssue[];
 }
 
-function error(code: string, path: string, message: string): FinancialValidationIssue {
+function issue(
+	severity: FinancialValidationSeverity,
+	code: string,
+	path: string,
+	message: string,
+): FinancialValidationIssue {
 	return {
-		severity: "error",
+		severity,
 		code,
 		path,
 		message,
 	};
+}
+
+function error(code: string, path: string, message: string): FinancialValidationIssue {
+	return issue("error", code, path, message);
 }
 
 function warning(code: string, path: string, message: string): FinancialValidationIssue {
-	return {
-		severity: "warning",
-		code,
-		path,
-		message,
-	};
+	return issue("warning", code, path, message);
 }
 
-function isFiniteNumber(value: number): boolean {
-	return Number.isFinite(value);
+function isNonEmptyString(value: string): boolean {
+	return value.trim().length > 0;
 }
 
-function isNonNegativeFiniteNumber(value: number): boolean {
-	return isFiniteNumber(value) && value >= 0;
-}
-
-function isValidIsoDate(value: string): boolean {
+export function isValidIsoDate(value: string): boolean {
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
 		return false;
 	}
 
 	const parsed = new Date(`${value}T00:00:00Z`);
 
-	if (Number.isNaN(parsed.getTime())) {
-		return false;
-	}
-
-	return parsed.toISOString().slice(0, 10) === value;
+	return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
-export function calculateAgeOnDate(dateOfBirth: string, asOfDate: string): number | undefined {
-	if (!isValidIsoDate(dateOfBirth) || !isValidIsoDate(asOfDate)) {
+export function calculateAgeOnDate(dateOfBirth: string, onDate: string): number | undefined {
+	if (!isValidIsoDate(dateOfBirth) || !isValidIsoDate(onDate)) {
 		return undefined;
 	}
 
-	const birthDate = new Date(`${dateOfBirth}T00:00:00Z`);
+	const [birthYear, birthMonth, birthDay] = dateOfBirth.split("-").map(Number);
 
-	const referenceDate = new Date(`${asOfDate}T00:00:00Z`);
+	const [currentYear, currentMonth, currentDay] = onDate.split("-").map(Number);
 
-	if (birthDate.getTime() > referenceDate.getTime()) {
+	if (
+		birthYear === undefined ||
+		birthMonth === undefined ||
+		birthDay === undefined ||
+		currentYear === undefined ||
+		currentMonth === undefined ||
+		currentDay === undefined
+	) {
 		return undefined;
 	}
 
-	let age = referenceDate.getUTCFullYear() - birthDate.getUTCFullYear();
+	let age = currentYear - birthYear;
 
-	const birthdayHasOccurred =
-		referenceDate.getUTCMonth() > birthDate.getUTCMonth() ||
-		(referenceDate.getUTCMonth() === birthDate.getUTCMonth() &&
-			referenceDate.getUTCDate() >= birthDate.getUTCDate());
-
-	if (!birthdayHasOccurred) {
+	if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
 		age -= 1;
 	}
 
 	return age;
 }
 
-function validateUniqueIds(
-	items: readonly {
-		id: string;
-	}[],
+function validateNonNegativeFinite(
+	value: number | undefined,
 	path: string,
-	issues: FinancialValidationIssue[],
-): void {
+	code: string,
+	label: string,
+): FinancialValidationIssue[] {
+	if (value === undefined) {
+		return [];
+	}
+
+	if (!Number.isFinite(value)) {
+		return [error(code, path, `${label} must be a finite number.`)];
+	}
+
+	if (value < 0) {
+		return [error(code, path, `${label} must not be negative.`)];
+	}
+
+	return [];
+}
+
+function validateAgeField(
+	value: number | undefined,
+	path: string,
+	label: string,
+): FinancialValidationIssue[] {
+	if (value === undefined) {
+		return [];
+	}
+
+	if (!Number.isInteger(value) || value < 0 || value > 120) {
+		return [error("invalid_age", path, `${label} must be an integer between 0 and 120.`)];
+	}
+
+	return [];
+}
+
+function validateUniqueIds<
+	T extends {
+		id: string;
+	},
+>(items: readonly T[], path: string): FinancialValidationIssue[] {
+	const issues: FinancialValidationIssue[] = [];
+
 	const seen = new Set<string>();
 
 	items.forEach((item, index) => {
-		const itemPath = `${path}[${index}].id`;
-
-		if (item.id.trim().length === 0) {
-			issues.push(error("missing_id", itemPath, "An identifier is required."));
+		if (!isNonEmptyString(item.id)) {
+			issues.push(
+				error("missing_id", `${path}[${index}].id`, "Identifier must not be empty."),
+			);
 
 			return;
 		}
 
 		if (seen.has(item.id)) {
-			issues.push(error("duplicate_id", itemPath, `Duplicate identifier "${item.id}".`));
-
-			return;
+			issues.push(
+				error("duplicate_id", `${path}[${index}].id`, `Duplicate identifier "${item.id}".`),
+			);
 		}
 
 		seen.add(item.id);
 	});
+
+	return issues;
+}
+
+function validateOwnerReferences(
+	item: Asset | Liability,
+	path: string,
+	personIds: ReadonlySet<string>,
+): FinancialValidationIssue[] {
+	const issues: FinancialValidationIssue[] = [];
+
+	if (item.ownerPersonIds === undefined) {
+		return issues;
+	}
+
+	const seenOwners = new Set<string>();
+
+	item.ownerPersonIds.forEach((personId, index) => {
+		if (seenOwners.has(personId)) {
+			issues.push(
+				error(
+					"duplicate_person_reference",
+					`${path}.ownerPersonIds[${index}]`,
+					`Person "${personId}" is listed more than once.`,
+				),
+			);
+		}
+
+		seenOwners.add(personId);
+
+		if (!personIds.has(personId)) {
+			issues.push(
+				error(
+					"unknown_person_reference",
+					`${path}.ownerPersonIds[${index}]`,
+					`Person "${personId}" does not exist in the household.`,
+				),
+			);
+		}
+	});
+
+	return issues;
 }
 
 function validatePerson(
 	person: Person,
 	index: number,
 	asOfDate: string,
-	issues: FinancialValidationIssue[],
-): void {
-	const path = `people[${index}]`;
+): FinancialValidationIssue[] {
+	const issues: FinancialValidationIssue[] = [];
 
-	const age = calculateAgeOnDate(person.dateOfBirth, asOfDate);
+	const path = `people[${index}]`;
 
 	if (!isValidIsoDate(person.dateOfBirth)) {
 		issues.push(
@@ -136,10 +220,10 @@ function validatePerson(
 			),
 		);
 
-		return;
+		return issues;
 	}
 
-	if (age === undefined) {
+	if (isValidIsoDate(asOfDate) && person.dateOfBirth > asOfDate) {
 		issues.push(
 			error(
 				"future_date_of_birth",
@@ -148,40 +232,183 @@ function validatePerson(
 			),
 		);
 
-		return;
+		return issues;
 	}
 
-	if (age > 120) {
+	const age = calculateAgeOnDate(person.dateOfBirth, asOfDate);
+
+	if (age !== undefined && age > 110) {
 		issues.push(
 			warning(
-				"unusual_age",
+				"unusually_high_age",
 				`${path}.dateOfBirth`,
-				"The calculated age is unusually high and should be reviewed.",
+				"Calculated age is unusually high and should be reviewed.",
 			),
 		);
 	}
 
-	if (person.expectedRetirementAge !== undefined) {
-		const retirementAge = person.expectedRetirementAge;
+	return issues;
+}
 
-		if (!Number.isInteger(retirementAge) || retirementAge < 18 || retirementAge > 100) {
-			issues.push(
-				error(
-					"invalid_retirement_age",
-					`${path}.expectedRetirementAge`,
-					"Expected retirement age must be an integer between 18 and 100.",
-				),
-			);
-		} else if (person.employmentStatus !== "retired" && retirementAge < age) {
-			issues.push(
-				warning(
-					"retirement_age_before_current_age",
-					`${path}.expectedRetirementAge`,
-					"Expected retirement age is earlier than the person's current age.",
-				),
-			);
-		}
+function validateSuperAccount(
+	account: SuperAccount,
+	index: number,
+	personIds: ReadonlySet<string>,
+): FinancialValidationIssue[] {
+	const path = `superannuation[${index}]`;
+
+	const issues: FinancialValidationIssue[] = [
+		...validateNonNegativeFinite(
+			account.balance,
+			`${path}.balance`,
+			"invalid_super_balance",
+			"Superannuation balance",
+		),
+
+		...validateNonNegativeFinite(
+			account.annualContribution,
+			`${path}.annualContribution`,
+			"invalid_super_contribution",
+			"Annual superannuation contribution",
+		),
+	];
+
+	if (!personIds.has(account.personId)) {
+		issues.push(
+			error(
+				"unknown_person_reference",
+				`${path}.personId`,
+				`Person "${account.personId}" does not exist in the household.`,
+			),
+		);
 	}
+
+	return issues;
+}
+
+function validateLiability(
+	liability: Liability,
+	index: number,
+	personIds: ReadonlySet<string>,
+): FinancialValidationIssue[] {
+	const path = `liabilities[${index}]`;
+
+	const issues: FinancialValidationIssue[] = [
+		...validateNonNegativeFinite(
+			liability.balance,
+			`${path}.balance`,
+			"invalid_liability_balance",
+			"Liability balance",
+		),
+
+		...validateNonNegativeFinite(
+			liability.annualInterestRate,
+			`${path}.annualInterestRate`,
+			"invalid_interest_rate",
+			"Annual interest rate",
+		),
+
+		...validateNonNegativeFinite(
+			liability.annualRepayment,
+			`${path}.annualRepayment`,
+			"invalid_liability_repayment",
+			"Annual repayment",
+		),
+
+		...validateOwnerReferences(liability, path, personIds),
+	];
+
+	if (
+		liability.annualInterestRate !== undefined &&
+		Number.isFinite(liability.annualInterestRate) &&
+		liability.annualInterestRate > 1
+	) {
+		issues.push(
+			warning(
+				"unusually_high_interest_rate",
+				`${path}.annualInterestRate`,
+				"Annual interest rate exceeds 100% and should be reviewed.",
+			),
+		);
+	}
+
+	return issues;
+}
+
+function validateInsuranceCover(
+	cover: InsuranceCover,
+	index: number,
+	personIds: ReadonlySet<string>,
+): FinancialValidationIssue[] {
+	const path = `insurance[${index}]`;
+
+	const issues: FinancialValidationIssue[] = [
+		...validateNonNegativeFinite(
+			cover.sumInsured,
+			`${path}.sumInsured`,
+			"invalid_sum_insured",
+			"Sum insured",
+		),
+
+		...validateNonNegativeFinite(
+			cover.annualBenefit,
+			`${path}.annualBenefit`,
+			"invalid_annual_benefit",
+			"Annual benefit",
+		),
+
+		...validateNonNegativeFinite(
+			cover.annualPremium,
+			`${path}.annualPremium`,
+			"invalid_insurance_premium",
+			"Annual premium",
+		),
+
+		...validateAgeField(cover.endAge, `${path}.endAge`, "Insurance end age"),
+	];
+
+	if (!personIds.has(cover.personId)) {
+		issues.push(
+			error(
+				"unknown_person_reference",
+				`${path}.personId`,
+				`Person "${cover.personId}" does not exist in the household.`,
+			),
+		);
+	}
+
+	return issues;
+}
+
+function validateGoal(
+	goal: FinancialGoal,
+	index: number,
+	personIds: ReadonlySet<string>,
+): FinancialValidationIssue[] {
+	const path = `goals[${index}]`;
+
+	const issues: FinancialValidationIssue[] = [
+		...validateNonNegativeFinite(
+			goal.targetAmount,
+			`${path}.targetAmount`,
+			"invalid_goal_target_amount",
+			"Goal target amount",
+		),
+
+		...validateAgeField(goal.targetAge, `${path}.targetAge`, "Goal target age"),
+	];
+
+	if (goal.personId !== undefined && !personIds.has(goal.personId)) {
+		issues.push(
+			error(
+				"unknown_person_reference",
+				`${path}.personId`,
+				`Person "${goal.personId}" does not exist in the household.`,
+			),
+		);
+	}
+
+	return issues;
 }
 
 export function validateHouseholdFinancialState(
@@ -189,8 +416,8 @@ export function validateHouseholdFinancialState(
 ): HouseholdValidationResult {
 	const issues: FinancialValidationIssue[] = [];
 
-	if (household.id.trim().length === 0) {
-		issues.push(error("missing_household_id", "id", "Household identifier is required."));
+	if (!isNonEmptyString(household.id)) {
+		issues.push(error("missing_household_id", "id", "Household identifier must not be empty."));
 	}
 
 	if (!isValidIsoDate(household.asOfDate)) {
@@ -203,55 +430,74 @@ export function validateHouseholdFinancialState(
 		);
 	}
 
-	if (household.currency.trim().length !== 3) {
+	if (!/^[A-Z]{3}$/.test(household.currency)) {
 		issues.push(
 			error(
 				"invalid_currency",
 				"currency",
-				"Currency must use a three-character currency code.",
+				"Currency must be a three-letter uppercase code.",
 			),
 		);
 	}
 
 	if (household.people.length === 0) {
 		issues.push(
+			error("missing_people", "people", "Household must contain at least one person."),
+		);
+	}
+
+	const primaryCount = household.people.filter((person) => person.role === "primary").length;
+
+	if (primaryCount !== 1) {
+		issues.push(
 			error(
-				"missing_people",
+				"invalid_primary_count",
 				"people",
-				"A valid household must contain at least one person.",
+				`Household must contain exactly one primary person; found ${primaryCount}.`,
 			),
 		);
 	}
 
-	validateUniqueIds(household.people, "people", issues);
+	issues.push(
+		...validateUniqueIds(household.people, "people"),
 
-	validateUniqueIds(household.income, "income", issues);
+		...validateUniqueIds(household.income, "income"),
 
-	validateUniqueIds(household.assets, "assets", issues);
+		...validateUniqueIds(household.assets, "assets"),
 
-	validateUniqueIds(household.superannuation, "superannuation", issues);
+		...validateUniqueIds(household.superannuation, "superannuation"),
 
-	validateUniqueIds(household.liabilities, "liabilities", issues);
+		...validateUniqueIds(household.liabilities, "liabilities"),
 
-	validateUniqueIds(household.insurance, "insurance", issues);
+		...validateUniqueIds(household.insurance, "insurance"),
 
-	validateUniqueIds(household.goals, "goals", issues);
-
-	household.people.forEach((person, index) => {
-		validatePerson(person, index, household.asOfDate, issues);
-	});
+		...validateUniqueIds(household.goals, "goals"),
+	);
 
 	const personIds = new Set(household.people.map((person) => person.id));
+
+	household.people.forEach((person, index) => {
+		issues.push(...validatePerson(person, index, household.asOfDate));
+	});
 
 	household.income.forEach((source, index) => {
 		const path = `income[${index}]`;
 
-		if (!isNonNegativeFiniteNumber(source.annualAmount)) {
+		issues.push(
+			...validateNonNegativeFinite(
+				source.annualAmount,
+				`${path}.annualAmount`,
+				"invalid_income_amount",
+				"Annual income",
+			),
+		);
+
+		if (source.type === "employment" && source.personId === undefined) {
 			issues.push(
 				error(
-					"invalid_income_amount",
-					`${path}.annualAmount`,
-					"Annual income must be a finite non-negative amount.",
+					"employment_income_requires_person",
+					`${path}.personId`,
+					"Employment income must reference a household person.",
 				),
 			);
 		}
@@ -261,311 +507,67 @@ export function validateHouseholdFinancialState(
 				error(
 					"unknown_person_reference",
 					`${path}.personId`,
-					`Income source references unknown person "${source.personId}".`,
-				),
-			);
-		}
-
-		if (
-			source.startAge !== undefined &&
-			(!Number.isInteger(source.startAge) || source.startAge < 0 || source.startAge > 120)
-		) {
-			issues.push(
-				error(
-					"invalid_income_start_age",
-					`${path}.startAge`,
-					"Income start age must be an integer between 0 and 120.",
-				),
-			);
-		}
-
-		if (
-			source.endAge !== undefined &&
-			(!Number.isInteger(source.endAge) || source.endAge < 0 || source.endAge > 120)
-		) {
-			issues.push(
-				error(
-					"invalid_income_end_age",
-					`${path}.endAge`,
-					"Income end age must be an integer between 0 and 120.",
-				),
-			);
-		}
-
-		if (
-			source.startAge !== undefined &&
-			source.endAge !== undefined &&
-			source.endAge < source.startAge
-		) {
-			issues.push(
-				error(
-					"income_age_range_reversed",
-					path,
-					"Income end age cannot be earlier than income start age.",
+					`Person "${source.personId}" does not exist in the household.`,
 				),
 			);
 		}
 	});
 
-	const expenseEntries = [
-		["essentialAnnual", household.expenses.essentialAnnual],
-		["discretionaryAnnual", household.expenses.discretionaryAnnual],
-		["oneOffAnnual", household.expenses.oneOffAnnual],
-	] as const;
+	issues.push(
+		...validateNonNegativeFinite(
+			household.expenses.essentialAnnual,
+			"expenses.essentialAnnual",
+			"invalid_essential_expenses",
+			"Essential annual expenses",
+		),
 
-	expenseEntries.forEach(([field, value]) => {
-		if (value !== undefined && !isNonNegativeFiniteNumber(value)) {
-			issues.push(
-				error(
-					"invalid_expense_amount",
-					`expenses.${field}`,
-					"Expense amounts must be finite and non-negative.",
-				),
-			);
-		}
-	});
+		...validateNonNegativeFinite(
+			household.expenses.discretionaryAnnual,
+			"expenses.discretionaryAnnual",
+			"invalid_discretionary_expenses",
+			"Discretionary annual expenses",
+		),
+
+		...validateNonNegativeFinite(
+			household.expenses.oneOffAnnual,
+			"expenses.oneOffAnnual",
+			"invalid_one_off_expenses",
+			"One-off annual expenses",
+		),
+	);
 
 	household.assets.forEach((asset, index) => {
-		const path = `assets[${index}]`;
+		issues.push(
+			...validateNonNegativeFinite(
+				asset.value,
+				`assets[${index}].value`,
+				"invalid_asset_value",
+				"Asset value",
+			),
 
-		if (!isNonNegativeFiniteNumber(asset.value)) {
-			issues.push(
-				error(
-					"invalid_asset_value",
-					`${path}.value`,
-					"Asset value must be finite and non-negative.",
-				),
-			);
-		}
-
-		asset.ownerPersonIds?.forEach((personId) => {
-			if (!personIds.has(personId)) {
-				issues.push(
-					error(
-						"unknown_person_reference",
-						`${path}.ownerPersonIds`,
-						`Asset references unknown person "${personId}".`,
-					),
-				);
-			}
-		});
+			...validateOwnerReferences(asset, `assets[${index}]`, personIds),
+		);
 	});
 
 	household.superannuation.forEach((account, index) => {
-		const path = `superannuation[${index}]`;
-
-		if (!personIds.has(account.personId)) {
-			issues.push(
-				error(
-					"unknown_person_reference",
-					`${path}.personId`,
-					`Superannuation account references unknown person "${account.personId}".`,
-				),
-			);
-		}
-
-		if (!isNonNegativeFiniteNumber(account.balance)) {
-			issues.push(
-				error(
-					"invalid_super_balance",
-					`${path}.balance`,
-					"Superannuation balance must be finite and non-negative.",
-				),
-			);
-		}
-
-		if (
-			account.annualContribution !== undefined &&
-			!isNonNegativeFiniteNumber(account.annualContribution)
-		) {
-			issues.push(
-				error(
-					"invalid_super_contribution",
-					`${path}.annualContribution`,
-					"Annual superannuation contribution must be finite and non-negative.",
-				),
-			);
-		}
+		issues.push(...validateSuperAccount(account, index, personIds));
 	});
 
 	household.liabilities.forEach((liability, index) => {
-		const path = `liabilities[${index}]`;
-
-		if (!isNonNegativeFiniteNumber(liability.balance)) {
-			issues.push(
-				error(
-					"invalid_liability_balance",
-					`${path}.balance`,
-					"Liability balance must be finite and non-negative.",
-				),
-			);
-		}
-
-		if (
-			liability.annualInterestRate !== undefined &&
-			(!isFiniteNumber(liability.annualInterestRate) || liability.annualInterestRate < 0)
-		) {
-			issues.push(
-				error(
-					"invalid_interest_rate",
-					`${path}.annualInterestRate`,
-					"Liability interest rate must be finite and non-negative.",
-				),
-			);
-		}
-
-		if (
-			liability.annualRepayment !== undefined &&
-			!isNonNegativeFiniteNumber(liability.annualRepayment)
-		) {
-			issues.push(
-				error(
-					"invalid_repayment",
-					`${path}.annualRepayment`,
-					"Annual liability repayment must be finite and non-negative.",
-				),
-			);
-		}
-
-		liability.ownerPersonIds?.forEach((personId) => {
-			if (!personIds.has(personId)) {
-				issues.push(
-					error(
-						"unknown_person_reference",
-						`${path}.ownerPersonIds`,
-						`Liability references unknown person "${personId}".`,
-					),
-				);
-			}
-		});
+		issues.push(...validateLiability(liability, index, personIds));
 	});
 
 	household.insurance.forEach((cover, index) => {
-		const path = `insurance[${index}]`;
-
-		if (!personIds.has(cover.personId)) {
-			issues.push(
-				error(
-					"unknown_person_reference",
-					`${path}.personId`,
-					`Insurance cover references unknown person "${cover.personId}".`,
-				),
-			);
-		}
-
-		if (!isNonNegativeFiniteNumber(cover.annualPremium)) {
-			issues.push(
-				error(
-					"invalid_insurance_premium",
-					`${path}.annualPremium`,
-					"Insurance premium must be finite and non-negative.",
-				),
-			);
-		}
-
-		if (cover.sumInsured !== undefined && !isNonNegativeFiniteNumber(cover.sumInsured)) {
-			issues.push(
-				error(
-					"invalid_sum_insured",
-					`${path}.sumInsured`,
-					"Sum insured must be finite and non-negative.",
-				),
-			);
-		}
-
-		if (cover.annualBenefit !== undefined && !isNonNegativeFiniteNumber(cover.annualBenefit)) {
-			issues.push(
-				error(
-					"invalid_annual_benefit",
-					`${path}.annualBenefit`,
-					"Annual insurance benefit must be finite and non-negative.",
-				),
-			);
-		}
+		issues.push(...validateInsuranceCover(cover, index, personIds));
 	});
 
 	household.goals.forEach((goal, index) => {
-		const path = `goals[${index}]`;
-
-		if (goal.targetAmount !== undefined && !isNonNegativeFiniteNumber(goal.targetAmount)) {
-			issues.push(
-				error(
-					"invalid_goal_amount",
-					`${path}.targetAmount`,
-					"Goal target amount must be finite and non-negative.",
-				),
-			);
-		}
-
-		if (
-			goal.targetAge !== undefined &&
-			(!Number.isInteger(goal.targetAge) || goal.targetAge < 0 || goal.targetAge > 120)
-		) {
-			issues.push(
-				error(
-					"invalid_goal_age",
-					`${path}.targetAge`,
-					"Goal target age must be an integer between 0 and 120.",
-				),
-			);
-		}
+		issues.push(...validateGoal(goal, index, personIds));
 	});
 
-	const assumptionRates = [
-		["inflationRate", household.assumptions.inflationRate],
-		["wageGrowthRate", household.assumptions.wageGrowthRate],
-		["investmentReturnRate", household.assumptions.investmentReturnRate],
-		["cashReturnRate", household.assumptions.cashReturnRate],
-		["superReturnRate", household.assumptions.superReturnRate],
-	] as const;
+	const errors = issues.filter((item) => item.severity === "error");
 
-	assumptionRates.forEach(([field, value]) => {
-		if (!isFiniteNumber(value) || value <= -1 || value > 1) {
-			issues.push(
-				error(
-					"invalid_projection_rate",
-					`assumptions.${field}`,
-					"Projection rates must be finite decimal rates greater than -100% and no greater than 100%.",
-				),
-			);
-		}
-	});
-
-	if (
-		!Number.isInteger(household.assumptions.projectionEndAge) ||
-		household.assumptions.projectionEndAge < 1 ||
-		household.assumptions.projectionEndAge > 130
-	) {
-		issues.push(
-			error(
-				"invalid_projection_end_age",
-				"assumptions.projectionEndAge",
-				"Projection end age must be an integer between 1 and 130.",
-			),
-		);
-	}
-
-	const currentAges = household.people
-		.map((person) => calculateAgeOnDate(person.dateOfBirth, household.asOfDate))
-		.filter((age): age is number => age !== undefined);
-
-	if (currentAges.length > 0) {
-		const oldestCurrentAge = Math.max(...currentAges);
-
-		if (household.assumptions.projectionEndAge <= oldestCurrentAge) {
-			issues.push(
-				error(
-					"projection_horizon_not_future",
-					"assumptions.projectionEndAge",
-					"Projection end age must extend beyond the current age of every household member.",
-				),
-			);
-		}
-	}
-
-	const errors = issues.filter((issue) => issue.severity === "error");
-
-	const warnings = issues.filter((issue) => issue.severity === "warning");
+	const warnings = issues.filter((item) => item.severity === "warning");
 
 	return {
 		valid: errors.length === 0,
