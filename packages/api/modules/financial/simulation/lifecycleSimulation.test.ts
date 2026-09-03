@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { HouseholdFinancialState } from "../household/types";
 import type { ProjectionAssumptions } from "../projection/types";
+import type { LifecycleRetirementSafetyNet } from "../retirement/lifecycleSafetyNet";
 import { runLifecycleSimulation } from "./lifecycleSimulation";
 import { LifecycleSimulationError, type LifecyclePlan } from "./lifecycleTypes";
 import type { MarketPath, PortfolioStrategy } from "./types";
@@ -629,5 +630,249 @@ describe("runLifecycleSimulation", () => {
 		 * only the second 5% return.
 		 */
 		expect(result.years[1]?.cashAssets).toBeCloseTo(105000, 8);
+	});
+
+	it("includes retirement safety-net income in retired household cash flow", () => {
+		const safetyNet: LifecycleRetirementSafetyNet = {
+			policy: {
+				id: "TEST_SAFETY_NET",
+
+				countryCode: "TEST",
+
+				calculate: () => ({
+					policyId: "TEST_SAFETY_NET",
+
+					countryCode: "TEST",
+
+					annualIncome: 30000,
+
+					eligible: true,
+
+					source: "Test retirement benefit",
+
+					qualifications: [],
+				}),
+			},
+
+			mapAssessmentInput: (context) => ({
+				assessmentDate: context.projectionDate,
+
+				age: context.primaryAge,
+
+				householdType: "single",
+
+				assessableAssets:
+					context.cashAssets + context.nonSuperInvestableWealth + context.superannuation,
+
+				financialAssets:
+					context.cashAssets + context.nonSuperInvestableWealth + context.superannuation,
+
+				otherAssessableAnnualIncome: context.afterTaxIncomeBeforeSafetyNet,
+			}),
+		};
+
+		const testHousehold = household();
+
+		testHousehold.income = [];
+
+		testHousehold.expenses = {
+			essentialAnnual: 0,
+			discretionaryAnnual: 0,
+		};
+
+		const result = runLifecycleSimulation({
+			household: testHousehold,
+
+			assumptions: {
+				...assumptions(),
+
+				projectionEndDate: "2031-09-01",
+			},
+
+			plan: {
+				retirementAge: 55,
+
+				annualRetirementSpending: 50000,
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(5),
+
+			retirementSafetyNet: safetyNet,
+		});
+
+		expect(result.years[1]?.retirementSafetyNetIncome).toBe(30000);
+
+		expect(result.summary.totalRetirementSafetyNetIncome).toBe(150000);
+	});
+
+	it("does not invoke the retirement safety net before retirement", () => {
+		let calls = 0;
+
+		const safetyNet: LifecycleRetirementSafetyNet = {
+			policy: {
+				id: "TEST_SAFETY_NET",
+
+				countryCode: "TEST",
+
+				calculate: () => {
+					calls += 1;
+
+					return {
+						policyId: "TEST_SAFETY_NET",
+
+						countryCode: "TEST",
+
+						annualIncome: 30000,
+
+						eligible: true,
+
+						source: "Test retirement benefit",
+
+						qualifications: [],
+					};
+				},
+			},
+
+			mapAssessmentInput: (context) => ({
+				assessmentDate: context.projectionDate,
+
+				age: context.primaryAge,
+
+				householdType: "single",
+
+				assessableAssets: 0,
+
+				financialAssets: 0,
+
+				otherAssessableAnnualIncome: context.afterTaxIncomeBeforeSafetyNet,
+			}),
+		};
+
+		const result = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: {
+				...assumptions(),
+
+				projectionEndDate: "2028-09-01",
+			},
+
+			plan: {
+				retirementAge: 65,
+
+				annualRetirementSpending: 70000,
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(2),
+
+			retirementSafetyNet: safetyNet,
+		});
+
+		expect(calls).toBe(0);
+
+		expect(result.summary.totalRetirementSafetyNetIncome).toBe(0);
+	});
+
+	it("reduces unfunded retirement cash flow when safety-net income is available", () => {
+		const safetyNet: LifecycleRetirementSafetyNet = {
+			policy: {
+				id: "TEST_SAFETY_NET",
+
+				countryCode: "TEST",
+
+				calculate: () => ({
+					policyId: "TEST_SAFETY_NET",
+
+					countryCode: "TEST",
+
+					annualIncome: 30000,
+
+					eligible: true,
+
+					source: "Test retirement benefit",
+
+					qualifications: [],
+				}),
+			},
+
+			mapAssessmentInput: (context) => ({
+				assessmentDate: context.projectionDate,
+
+				age: context.primaryAge,
+
+				householdType: "single",
+
+				assessableAssets:
+					context.cashAssets + context.nonSuperInvestableWealth + context.superannuation,
+
+				financialAssets:
+					context.cashAssets + context.nonSuperInvestableWealth + context.superannuation,
+
+				otherAssessableAnnualIncome: context.afterTaxIncomeBeforeSafetyNet,
+			}),
+		};
+
+		const depletedHousehold = household();
+
+		depletedHousehold.income = [];
+
+		depletedHousehold.assets = [];
+
+		depletedHousehold.superannuation = [];
+
+		depletedHousehold.expenses = {
+			essentialAnnual: 0,
+			discretionaryAnnual: 0,
+		};
+
+		const withoutSafetyNet = runLifecycleSimulation({
+			household: depletedHousehold,
+
+			assumptions: {
+				...assumptions(),
+
+				projectionEndDate: "2027-09-01",
+			},
+
+			plan: {
+				retirementAge: 55,
+
+				annualRetirementSpending: 50000,
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(1),
+		});
+
+		const withSafetyNet = runLifecycleSimulation({
+			household: depletedHousehold,
+
+			assumptions: {
+				...assumptions(),
+
+				projectionEndDate: "2027-09-01",
+			},
+
+			plan: {
+				retirementAge: 55,
+
+				annualRetirementSpending: 50000,
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(1),
+
+			retirementSafetyNet: safetyNet,
+		});
+
+		expect(withoutSafetyNet.summary.totalUnfundedCashFlow).toBe(50000);
+
+		expect(withSafetyNet.summary.totalUnfundedCashFlow).toBe(20000);
 	});
 });

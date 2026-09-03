@@ -1,6 +1,7 @@
 import type { Asset, HouseholdFinancialState, IncomeSource, Person } from "../household/types";
 import { calculateAgeOnDate, validateHouseholdFinancialState } from "../household/validation";
 import { isValidIsoDate } from "../household/validation";
+import { assessLifecycleSafetyNet } from "../retirement/lifecycleSafetyNet";
 import {
 	LifecycleSimulationError,
 	type LifecycleSimulationInput,
@@ -218,6 +219,8 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 
 	let totalUnfundedCashFlow = 0;
 
+	let totalRetirementSafetyNetIncome = 0;
+
 	let firstUnfundedDate: string | undefined;
 
 	const years: LifecycleYear[] = [];
@@ -257,6 +260,8 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 		inflationRate: 0,
 
 		afterTaxIncome: 0,
+
+		retirementSafetyNetIncome: 0,
 
 		livingExpenses: 0,
 
@@ -353,6 +358,30 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 		const afterTaxIncome =
 			income.taxable * (1 - assumptions.effectiveTaxRate) + income.nonTaxable;
 
+		let retirementSafetyNetIncome = 0;
+
+		if (input.retirementSafetyNet && phase === "retired") {
+			const assessment = assessLifecycleSafetyNet(input.retirementSafetyNet, {
+				projectionDate: periodEndDate,
+
+				primaryAge: phaseAge,
+
+				cashAssets,
+
+				nonSuperInvestableWealth,
+
+				superannuation,
+
+				liabilities,
+
+				afterTaxIncomeBeforeSafetyNet: afterTaxIncome,
+			});
+
+			retirementSafetyNetIncome = assessment.result.annualIncome;
+
+			totalRetirementSafetyNetIncome += retirementSafetyNetIncome;
+		}
+
 		const livingExpenses =
 			phase === "retired"
 				? 0
@@ -409,7 +438,7 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 			insurancePremiums +
 			debtRepayments;
 
-		const netCashFlow = afterTaxIncome - spending;
+		const netCashFlow = afterTaxIncome + retirementSafetyNetIncome - spending;
 
 		let unfundedCashFlow = 0;
 
@@ -498,6 +527,8 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 
 			retirementSpending,
 
+			retirementSafetyNetIncome,
+
 			insurancePremiums,
 
 			debtRepayments,
@@ -569,6 +600,8 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 			endingSuperannuation: finalYear.superannuation,
 
 			endingNonSuperInvestableWealth: finalYear.nonSuperInvestableWealth,
+
+			totalRetirementSafetyNetIncome,
 		},
 	};
 }

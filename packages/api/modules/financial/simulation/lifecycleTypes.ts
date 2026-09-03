@@ -1,5 +1,6 @@
 import type { HouseholdFinancialState } from "../household/types";
 import type { ProjectionAssumptions } from "../projection/types";
+import type { LifecycleRetirementSafetyNet } from "../retirement/lifecycleSafetyNet";
 import type { MarketPath, PortfolioStrategy, AssetClassAllocation } from "./types";
 
 export type LifecyclePhase = "working" | "retirement_transition" | "retired";
@@ -44,6 +45,8 @@ export interface LifecycleYear {
 
 	afterTaxIncome: number;
 
+	retirementSafetyNetIncome: number;
+
 	livingExpenses: number;
 
 	retirementSpending: number;
@@ -79,6 +82,15 @@ export interface LifecycleSimulationInput {
 	strategy: PortfolioStrategy;
 
 	marketPath: MarketPath;
+
+	/**
+	 * Optional public retirement-income safety net.
+	 *
+	 * The lifecycle engine consumes only the generic interface.
+	 * Country-specific eligibility and assessment rules remain
+	 * outside the simulation engine.
+	 */
+	retirementSafetyNet?: LifecycleRetirementSafetyNet;
 }
 
 export interface LifecycleSimulationResult {
@@ -108,6 +120,8 @@ export interface LifecycleSimulationResult {
 		endingSuperannuation: number;
 
 		endingNonSuperInvestableWealth: number;
+
+		totalRetirementSafetyNetIncome: number;
 	};
 }
 
