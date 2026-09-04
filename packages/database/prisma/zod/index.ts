@@ -88,6 +88,42 @@ export const FeedbackScalarFieldEnumSchema = z.enum(['id', 'userId', 'email', 'n
 
 export type FeedbackScalarFieldEnum = z.infer<typeof FeedbackScalarFieldEnumSchema>;
 
+// File: BioHouseholdScalarFieldEnum.schema.ts
+
+export const BioHouseholdScalarFieldEnumSchema = z.enum(['id', 'ownerUserId', 'organizationId', 'name', 'status', 'schemaVersion', 'financialState', 'onboardingStep', 'onboardingComplete', 'createdAt', 'updatedAt'])
+
+export type BioHouseholdScalarFieldEnum = z.infer<typeof BioHouseholdScalarFieldEnumSchema>;
+
+// File: BioLicenseScalarFieldEnum.schema.ts
+
+export const BioLicenseScalarFieldEnumSchema = z.enum(['id', 'userId', 'organizationId', 'planKey', 'status', 'entitlements', 'startsAt', 'expiresAt', 'metadata', 'createdAt', 'updatedAt'])
+
+export type BioLicenseScalarFieldEnum = z.infer<typeof BioLicenseScalarFieldEnumSchema>;
+
+// File: BioConsentScalarFieldEnum.schema.ts
+
+export const BioConsentScalarFieldEnumSchema = z.enum(['id', 'userId', 'type', 'documentVersion', 'granted', 'grantedAt', 'withdrawnAt', 'metadata', 'createdAt', 'updatedAt'])
+
+export type BioConsentScalarFieldEnum = z.infer<typeof BioConsentScalarFieldEnumSchema>;
+
+// File: BioGeneticUploadScalarFieldEnum.schema.ts
+
+export const BioGeneticUploadScalarFieldEnumSchema = z.enum(['id', 'householdId', 'storageKey', 'originalFileName', 'provider', 'fileFormat', 'sha256', 'status', 'parserVersion', 'pipelineVersion', 'errorMessage', 'processingMetadata', 'createdAt', 'updatedAt'])
+
+export type BioGeneticUploadScalarFieldEnum = z.infer<typeof BioGeneticUploadScalarFieldEnumSchema>;
+
+// File: BioPlanningProfileScalarFieldEnum.schema.ts
+
+export const BioPlanningProfileScalarFieldEnumSchema = z.enum(['id', 'householdId', 'geneticUploadId', 'profileVersion', 'profile', 'current', 'createdAt', 'updatedAt'])
+
+export type BioPlanningProfileScalarFieldEnum = z.infer<typeof BioPlanningProfileScalarFieldEnumSchema>;
+
+// File: BioScenarioRunScalarFieldEnum.schema.ts
+
+export const BioScenarioRunScalarFieldEnumSchema = z.enum(['id', 'householdId', 'scenarioQuestionId', 'source', 'planningExposureId', 'parameters', 'result', 'engineVersion', 'createdAt'])
+
+export type BioScenarioRunScalarFieldEnum = z.infer<typeof BioScenarioRunScalarFieldEnumSchema>;
+
 // File: SortOrder.schema.ts
 
 export const SortOrderSchema = z.enum(['asc', 'desc'])
@@ -99,6 +135,12 @@ export type SortOrder = z.infer<typeof SortOrderSchema>;
 export const JsonNullValueInputSchema = z.enum(['JsonNull'])
 
 export type JsonNullValueInput = z.infer<typeof JsonNullValueInputSchema>;
+
+// File: NullableJsonNullValueInput.schema.ts
+
+export const NullableJsonNullValueInputSchema = z.enum(['DbNull', 'JsonNull'])
+
+export type NullableJsonNullValueInput = z.infer<typeof NullableJsonNullValueInputSchema>;
 
 // File: QueryMode.schema.ts
 
@@ -135,6 +177,30 @@ export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 export const NotificationTargetSchema = z.enum(['IN_APP', 'EMAIL'])
 
 export type NotificationTarget = z.infer<typeof NotificationTargetSchema>;
+
+// File: BioHouseholdStatus.schema.ts
+
+export const BioHouseholdStatusSchema = z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED'])
+
+export type BioHouseholdStatus = z.infer<typeof BioHouseholdStatusSchema>;
+
+// File: BioLicenseStatus.schema.ts
+
+export const BioLicenseStatusSchema = z.enum(['TRIAL', 'ACTIVE', 'EXPIRED', 'SUSPENDED', 'CANCELLED'])
+
+export type BioLicenseStatus = z.infer<typeof BioLicenseStatusSchema>;
+
+// File: BioGeneticUploadStatus.schema.ts
+
+export const BioGeneticUploadStatusSchema = z.enum(['UPLOADED', 'PARSING', 'INTERPRETING', 'READY', 'FAILED', 'DELETED'])
+
+export type BioGeneticUploadStatus = z.infer<typeof BioGeneticUploadStatusSchema>;
+
+// File: BioScenarioSource.schema.ts
+
+export const BioScenarioSourceSchema = z.enum(['GENETIC_PROFILE', 'LONGEVITY_PROFILE', 'HOUSEHOLD', 'USER_SELECTED'])
+
+export type BioScenarioSource = z.infer<typeof BioScenarioSourceSchema>;
 
 // File: User.schema.ts
 
@@ -351,4 +417,115 @@ export const FeedbackSchema = z.object({
 });
 
 export type FeedbackType = z.infer<typeof FeedbackSchema>;
+
+
+// File: BioHousehold.schema.ts
+
+export const BioHouseholdSchema = z.object({
+  id: z.string(),
+  ownerUserId: z.string(),
+  organizationId: z.string().nullish(),
+  name: z.string().default("My household"),
+  status: BioHouseholdStatusSchema.default("DRAFT"),
+  schemaVersion: z.string().default("1.0.0"),
+  financialState: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  onboardingStep: z.number().int(),
+  onboardingComplete: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type BioHouseholdType = z.infer<typeof BioHouseholdSchema>;
+
+
+// File: BioLicense.schema.ts
+
+export const BioLicenseSchema = z.object({
+  id: z.string(),
+  userId: z.string().nullish(),
+  organizationId: z.string().nullish(),
+  planKey: z.string(),
+  status: BioLicenseStatusSchema.default("TRIAL"),
+  entitlements: z.array(z.string()),
+  startsAt: z.date(),
+  expiresAt: z.date().nullish(),
+  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type BioLicenseType = z.infer<typeof BioLicenseSchema>;
+
+
+// File: BioConsent.schema.ts
+
+export const BioConsentSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  type: z.string(),
+  documentVersion: z.string(),
+  granted: z.boolean(),
+  grantedAt: z.date().nullish(),
+  withdrawnAt: z.date().nullish(),
+  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type BioConsentType = z.infer<typeof BioConsentSchema>;
+
+
+// File: BioGeneticUpload.schema.ts
+
+export const BioGeneticUploadSchema = z.object({
+  id: z.string(),
+  householdId: z.string(),
+  storageKey: z.string(),
+  originalFileName: z.string(),
+  provider: z.string().nullish(),
+  fileFormat: z.string().nullish(),
+  sha256: z.string().nullish(),
+  status: BioGeneticUploadStatusSchema.default("UPLOADED"),
+  parserVersion: z.string().nullish(),
+  pipelineVersion: z.string().nullish(),
+  errorMessage: z.string().nullish(),
+  processingMetadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type BioGeneticUploadType = z.infer<typeof BioGeneticUploadSchema>;
+
+
+// File: BioPlanningProfile.schema.ts
+
+export const BioPlanningProfileSchema = z.object({
+  id: z.string(),
+  householdId: z.string(),
+  geneticUploadId: z.string().nullish(),
+  profileVersion: z.string(),
+  profile: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10"),
+  current: z.boolean().default(true),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type BioPlanningProfileType = z.infer<typeof BioPlanningProfileSchema>;
+
+
+// File: BioScenarioRun.schema.ts
+
+export const BioScenarioRunSchema = z.object({
+  id: z.string(),
+  householdId: z.string(),
+  scenarioQuestionId: z.string(),
+  source: BioScenarioSourceSchema,
+  planningExposureId: z.string().nullish(),
+  parameters: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10"),
+  result: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10"),
+  engineVersion: z.string(),
+  createdAt: z.date(),
+});
+
+export type BioScenarioRunType = z.infer<typeof BioScenarioRunSchema>;
 

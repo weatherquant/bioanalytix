@@ -43,6 +43,11 @@ model User {
   notifications            Notification[]
   notificationPreferences  UserNotificationPreference[]
   feedbacks                Feedback[]
+  
+  bioHouseholds            BioHousehold[]
+  bioLicenses              BioLicense[]
+  bioConsents              BioConsent[]
+  
   @@unique([email])
   @@unique([username])
   @@map("user")
@@ -146,6 +151,9 @@ model Organization {
   members            Member[]
   invitations        Invitation[]
   purchases          Purchase[]
+
+  bioHouseholds      BioHousehold[]
+  bioLicenses        BioLicense[]
 
   @@unique([slug])
   @@map("organization")
@@ -259,4 +267,197 @@ model Feedback {
     updatedAt DateTime @updatedAt
 
     @@map("feedback")
+}
+
+enum BioHouseholdStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum BioLicenseStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
+
+enum BioGeneticUploadStatus {
+  UPLOADED
+  PARSING
+  INTERPRETING
+  READY
+  FAILED
+  DELETED
+}
+
+enum BioScenarioSource {
+  GENETIC_PROFILE
+  LONGEVITY_PROFILE
+  HOUSEHOLD
+  USER_SELECTED
+}
+
+model BioHousehold {
+  id                   String             @id @default(cuid())
+
+  ownerUserId          String
+  ownerUser            User               @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  organizationId       String?
+  organization         Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  name                 String             @default("My household")
+  status               BioHouseholdStatus @default(DRAFT)
+
+  schemaVersion        String             @default("1.0.0")
+  financialState       Json?
+
+  onboardingStep       Int                @default(0)
+  onboardingComplete   Boolean            @default(false)
+
+  geneticUploads       BioGeneticUpload[]
+  planningProfiles     BioPlanningProfile[]
+  scenarioRuns         BioScenarioRun[]
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([ownerUserId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("bio_household")
+}
+
+model BioLicense {
+  id             String           @id @default(cuid())
+
+  userId         String?
+  user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String?
+  organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  planKey        String
+  status         BioLicenseStatus @default(TRIAL)
+
+  entitlements   String[]
+
+  startsAt       DateTime         @default(now())
+  expiresAt      DateTime?
+
+  metadata       Json?
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("bio_license")
+}
+
+model BioConsent {
+  id              String   @id @default(cuid())
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type            String
+  documentVersion String
+
+  granted         Boolean
+  grantedAt       DateTime?
+  withdrawnAt     DateTime?
+
+  metadata        Json?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@map("bio_consent")
+}
+
+model BioGeneticUpload {
+  id                 String                 @id @default(cuid())
+
+  householdId        String
+  household          BioHousehold           @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  storageKey         String
+  originalFileName   String
+
+  provider           String?
+  fileFormat         String?
+
+  sha256             String?
+
+  status             BioGeneticUploadStatus @default(UPLOADED)
+
+  parserVersion      String?
+  pipelineVersion    String?
+
+  errorMessage       String?
+
+  processingMetadata Json?
+
+  planningProfiles   BioPlanningProfile[]
+
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([householdId])
+  @@index([status])
+  @@map("bio_genetic_upload")
+}
+
+model BioPlanningProfile {
+  id               String            @id @default(cuid())
+
+  householdId      String
+  household        BioHousehold      @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  geneticUploadId  String?
+  geneticUpload    BioGeneticUpload? @relation(fields: [geneticUploadId], references: [id], onDelete: SetNull)
+
+  profileVersion   String
+  profile          Json
+
+  current          Boolean           @default(true)
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([householdId])
+  @@index([geneticUploadId])
+  @@index([current])
+  @@map("bio_planning_profile")
+}
+
+model BioScenarioRun {
+  id                 String            @id @default(cuid())
+
+  householdId        String
+  household          BioHousehold      @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  scenarioQuestionId String
+
+  source             BioScenarioSource
+
+  planningExposureId String?
+
+  parameters         Json
+  result             Json
+
+  engineVersion      String
+
+  createdAt          DateTime          @default(now())
+
+  @@index([householdId])
+  @@index([scenarioQuestionId])
+  @@index([source])
+  @@map("bio_scenario_run")
 }
