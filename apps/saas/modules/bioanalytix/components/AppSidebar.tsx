@@ -8,6 +8,7 @@ import {
 	Dna,
 	FlaskConical,
 	HeartPulse,
+	Landmark,
 	Settings,
 } from "lucide-react";
 import Link from "next/link";
@@ -45,6 +46,11 @@ const navigation = [
 		title: "Health",
 		href: "/v2/health",
 		icon: Brain,
+	},
+	{
+		title: "Estate",
+		href: "/v2/estate",
+		icon: Landmark,
 	},
 	{
 		title: "Research",
