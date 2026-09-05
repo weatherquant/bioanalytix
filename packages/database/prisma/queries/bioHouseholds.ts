@@ -94,6 +94,27 @@ async function updateOwnedBioHousehold({
 	});
 }
 
+export async function saveBioHouseholdOnboardingDraft({
+	householdId,
+	userId,
+	onboardingDraft,
+	onboardingStep,
+}: {
+	householdId: string;
+	userId: string;
+	onboardingDraft: Prisma.InputJsonValue;
+	onboardingStep: number;
+}) {
+	return updateOwnedBioHousehold({
+		householdId,
+		userId,
+		data: {
+			onboardingDraft,
+			onboardingStep,
+		},
+	});
+}
+
 export async function updateBioHouseholdFinancialState({
 	householdId,
 	userId,
@@ -133,15 +154,22 @@ export async function updateBioHouseholdOnboardingProgress({
 export async function completeBioHouseholdOnboarding({
 	householdId,
 	userId,
+	financialState,
 }: {
 	householdId: string;
 	userId: string;
+	financialState: Prisma.InputJsonValue;
 }) {
 	return updateOwnedBioHousehold({
 		householdId,
 		userId,
 		data: {
 			status: "ACTIVE",
+			financialState,
+			onboardingDraft: {
+				unset: true,
+			},
+			onboardingStep: 4,
 			onboardingComplete: true,
 		},
 	});

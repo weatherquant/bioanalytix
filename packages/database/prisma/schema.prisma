@@ -314,6 +314,7 @@ model BioHousehold {
   schemaVersion        String             @default("1.0.0")
   financialState       Json?
 
+  onboardingDraft      Json?
   onboardingStep       Int                @default(0)
   onboardingComplete   Boolean            @default(false)
 

@@ -90,7 +90,7 @@ export type FeedbackScalarFieldEnum = z.infer<typeof FeedbackScalarFieldEnumSche
 
 // File: BioHouseholdScalarFieldEnum.schema.ts
 
-export const BioHouseholdScalarFieldEnumSchema = z.enum(['id', 'ownerUserId', 'organizationId', 'name', 'status', 'schemaVersion', 'financialState', 'onboardingStep', 'onboardingComplete', 'createdAt', 'updatedAt'])
+export const BioHouseholdScalarFieldEnumSchema = z.enum(['id', 'ownerUserId', 'organizationId', 'name', 'status', 'schemaVersion', 'financialState', 'onboardingDraft', 'onboardingStep', 'onboardingComplete', 'createdAt', 'updatedAt'])
 
 export type BioHouseholdScalarFieldEnum = z.infer<typeof BioHouseholdScalarFieldEnumSchema>;
 
@@ -429,6 +429,7 @@ export const BioHouseholdSchema = z.object({
   status: BioHouseholdStatusSchema.default("DRAFT"),
   schemaVersion: z.string().default("1.0.0"),
   financialState: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  onboardingDraft: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
   onboardingStep: z.number().int(),
   onboardingComplete: z.boolean(),
   createdAt: z.date(),
