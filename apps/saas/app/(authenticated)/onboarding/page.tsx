@@ -24,7 +24,7 @@ export default async function OnboardingPage() {
 	}
 
 	if (!config.users.enableOnboarding || session.user.onboardingComplete) {
-		redirect("/");
+		redirect("/v2/overview");
 	}
 
 	return (
