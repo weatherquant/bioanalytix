@@ -321,6 +321,7 @@ model BioHousehold {
   geneticUploads       BioGeneticUpload[]
   planningProfiles     BioPlanningProfile[]
   scenarioRuns         BioScenarioRun[]
+  plan                 BioPlan?
 
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
@@ -436,6 +437,28 @@ model BioPlanningProfile {
   @@index([geneticUploadId])
   @@index([current])
   @@map("bio_planning_profile")
+}
+
+model BioPlan {
+  id          String       @id @default(cuid())
+
+  householdId String       @unique
+  household   BioHousehold @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  planVersion String       @default("1.0.0")
+
+  /*
+   * User-controlled persistent planning state.
+   *
+   * This is deliberately separate from BioPlanningProfile,
+   * which is generated from genetics + household context.
+   */
+  plan        Json
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("bio_plan")
 }
 
 model BioScenarioRun {

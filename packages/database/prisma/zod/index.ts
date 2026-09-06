@@ -118,6 +118,12 @@ export const BioPlanningProfileScalarFieldEnumSchema = z.enum(['id', 'householdI
 
 export type BioPlanningProfileScalarFieldEnum = z.infer<typeof BioPlanningProfileScalarFieldEnumSchema>;
 
+// File: BioPlanScalarFieldEnum.schema.ts
+
+export const BioPlanScalarFieldEnumSchema = z.enum(['id', 'householdId', 'planVersion', 'plan', 'createdAt', 'updatedAt'])
+
+export type BioPlanScalarFieldEnum = z.infer<typeof BioPlanScalarFieldEnumSchema>;
+
 // File: BioScenarioRunScalarFieldEnum.schema.ts
 
 export const BioScenarioRunScalarFieldEnumSchema = z.enum(['id', 'householdId', 'scenarioQuestionId', 'source', 'planningExposureId', 'parameters', 'result', 'engineVersion', 'createdAt'])
@@ -512,6 +518,20 @@ export const BioPlanningProfileSchema = z.object({
 });
 
 export type BioPlanningProfileType = z.infer<typeof BioPlanningProfileSchema>;
+
+
+// File: BioPlan.schema.ts
+
+export const BioPlanSchema = z.object({
+  id: z.string(),
+  householdId: z.string(),
+  planVersion: z.string().default("1.0.0"),
+  plan: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10"),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type BioPlanType = z.infer<typeof BioPlanSchema>;
 
 
 // File: BioScenarioRun.schema.ts

@@ -1,14 +1,18 @@
 import { createHash } from "node:crypto";
 
 import { auth } from "@repo/auth/auth";
-import { db } from "@repo/database";
-import { createClient } from "@supabase/supabase-js";
+import { db, replaceCurrentBioPlanningProfile } from "@repo/database";
 import { NextResponse } from "next/server";
 
+import type { HouseholdFinancialState } from "../../../../../../packages/api/modules/financial/household/types";
 import { interpretAvailableModels } from "../../../../../../packages/api/modules/genetics/evidence/interpretationDispatcher";
 import { observationsFrom23andMeRaw } from "../../../../../../packages/api/modules/genetics/observations/from23andMe";
 import { SNP_REFERENCE } from "../../../../../../packages/api/modules/genetics/snp-reference";
 import { biologicalInsightToPlanningExposures } from "../../../../../../packages/api/modules/planning/geneticsBridge";
+import {
+	buildPlanningProfileV1,
+	PLANNING_PROFILE_VERSION,
+} from "../../../../../../packages/api/modules/planning/planningProfile";
 
 const PARSER_VERSION = "23andme-parser-v1";
 const PIPELINE_VERSION = "genetics-evidence-v1";
@@ -155,45 +159,35 @@ export async function POST(req: Request) {
 			},
 		});
 
-		/*
-		 * TEMPORARY COMPATIBILITY PROJECTION
-		 *
-		 * DnaProfileClient currently reads /api/genetic-profile, which in turn
-		 * reads user_genetic_profile from Supabase.
-		 *
-		 * Keep that screen working while BioGeneticUpload becomes the
-		 * authoritative genetics processing record.
-		 *
-		 * This block will be removed when the read route is migrated.
-		 */
-		const supabase = createClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!,
-		);
+		if (household.financialState) {
+			const planningProfile = buildPlanningProfileV1({
+				household: household.financialState as unknown as HouseholdFinancialState,
 
-		const legacyDiseaseRisks = insights
+				geneticUploadId: upload.id,
+
+				modelIds: insights.map((insight) => insight.model.id),
+
+				exposures: planningExposures,
+			});
+
+			await replaceCurrentBioPlanningProfile({
+				householdId: household.id,
+				geneticUploadId: upload.id,
+				profileVersion: PLANNING_PROFILE_VERSION,
+				profile: planningProfile,
+			});
+		}
+
+		const diseaseRisks = insights
 			.filter((insight) => insight.result.direction === "higher")
 			.map((insight) => ({
-				name: insight.model.id,
-				risk: insight.result.direction,
+				disease: insight.model.id,
+				score: 0,
+				label: "moderate" as const,
+				explanation:
+					"An evidence-backed genetic association was identified. This does not establish that the condition is present or will occur.",
+				contributingMarkers: [],
 			}));
-
-		const { error: legacyError } = await supabase.from("user_genetic_profile").upsert({
-			user_id: userId,
-			snps,
-			longevity_score: 0,
-			suggested_retirement_age: null,
-			retirement_years: null,
-			risk_posture: null,
-			disease_risks: legacyDiseaseRisks,
-			trait_insights: [],
-			genetic_strengths: [],
-			longevity_factors: [],
-		});
-
-		if (legacyError) {
-			console.error("Legacy genetic profile projection failed:", legacyError);
-		}
 
 		return NextResponse.json({
 			data: {
@@ -216,7 +210,7 @@ export async function POST(req: Request) {
 				 * Temporary GeneticProfile-compatible fields.
 				 */
 				longevityScore: 0,
-				diseaseRisks: legacyDiseaseRisks,
+				diseaseRisks: diseaseRisks,
 				traitInsights: [],
 				geneticStrengths: [],
 				longevityFactors: [],

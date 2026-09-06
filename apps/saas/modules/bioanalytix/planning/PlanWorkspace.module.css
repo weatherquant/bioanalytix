@@ -1,0 +1,617 @@
+.workspace {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.intro {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 32px;
+
+	padding: 28px;
+
+	background: #ffffff;
+	border: 1px solid #e4e4e4;
+	border-radius: 14px;
+}
+
+.eyebrow {
+	margin: 0 0 8px;
+
+	color: #777777;
+
+	font-size: 12px;
+	font-weight: 650;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.title {
+	margin: 0;
+
+	font-size: 28px;
+	line-height: 34px;
+	font-weight: 650;
+
+	letter-spacing: -0.025em;
+}
+
+.description {
+	max-width: 690px;
+
+	margin: 10px 0 0;
+
+	color: #6f6f6f;
+
+	font-size: 14px;
+	line-height: 22px;
+}
+
+.status {
+	min-width: 180px;
+
+	padding-left: 26px;
+
+	border-left: 1px solid #ececec;
+}
+
+.statusValue {
+	font-size: 32px;
+	line-height: 36px;
+	font-weight: 650;
+}
+
+.statusLabel {
+	margin-top: 2px;
+
+	color: #777777;
+
+	font-size: 12px;
+}
+
+.savedAt {
+	margin-top: 12px;
+
+	color: #999999;
+
+	font-size: 11px;
+	line-height: 16px;
+}
+
+.section {
+	padding: 26px;
+
+	background: #ffffff;
+	border: 1px solid #e4e4e4;
+	border-radius: 14px;
+}
+
+.sectionHeader {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+
+	margin-bottom: 20px;
+}
+
+.sectionTitle {
+	margin: 0;
+
+	font-size: 16px;
+	font-weight: 650;
+}
+
+.sectionDescription {
+	max-width: 720px;
+
+	margin: 5px 0 0;
+
+	color: #777777;
+
+	font-size: 13px;
+	line-height: 20px;
+}
+
+.questionGrid {
+	display: grid;
+
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+
+	gap: 12px;
+}
+
+.questionCard {
+	display: flex;
+	flex-direction: column;
+
+	min-height: 230px;
+
+	padding: 20px;
+
+	text-align: left;
+
+	color: inherit;
+	background: #ffffff;
+
+	border: 1px solid #e5e5e5;
+	border-radius: 12px;
+
+	cursor: pointer;
+
+	transition:
+		border-color 120ms ease,
+		background-color 120ms ease,
+		box-shadow 120ms ease,
+		transform 120ms ease;
+}
+
+.questionCard:hover {
+	border-color: #cccccc;
+
+	transform: translateY(-1px);
+
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.035);
+}
+
+.questionCardSelected {
+	border-color: #aeaeae;
+	background: #fafafa;
+}
+
+.questionTop {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.questionIcon {
+	width: 38px;
+	height: 38px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	background: #f8f8f8;
+
+	border: 1px solid #e5e5e5;
+	border-radius: 9px;
+}
+
+.checkbox {
+	width: 22px;
+	height: 22px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	border: 1px solid #d4d4d4;
+	border-radius: 6px;
+
+	background: #ffffff;
+}
+
+.checkboxSelected {
+	color: #ffffff;
+	background: #171717;
+	border-color: #171717;
+}
+
+.questionBody {
+	margin-top: 20px;
+}
+
+.questionLabels {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.questionDomain {
+	font-size: 12px;
+	font-weight: 650;
+}
+
+.geneticBadge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+
+	padding: 3px 7px;
+
+	color: #555555;
+	background: #f5f5f5;
+
+	border: 1px solid #e4e4e4;
+	border-radius: 999px;
+
+	font-size: 10px;
+	font-weight: 600;
+}
+
+.questionText {
+	margin: 8px 0 0;
+
+	font-size: 15px;
+	line-height: 22px;
+	font-weight: 550;
+}
+
+.questionRationale {
+	margin: 10px 0 0;
+
+	color: #777777;
+
+	font-size: 12px;
+	line-height: 18px;
+}
+
+.questionFooter {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+
+	margin-top: auto;
+	padding-top: 18px;
+
+	color: #999999;
+
+	font-size: 10px;
+	text-transform: capitalize;
+}
+
+.geneticNotice {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+
+	margin-top: 16px;
+	padding: 16px;
+
+	background: #fafafa;
+	border: 1px solid #e7e7e7;
+	border-radius: 10px;
+
+	color: #555555;
+}
+
+.geneticNotice strong {
+	display: block;
+
+	font-size: 12px;
+	font-weight: 650;
+}
+
+.geneticNotice p {
+	margin: 4px 0 0;
+
+	color: #777777;
+
+	font-size: 12px;
+	line-height: 18px;
+}
+
+.twoColumnGrid {
+	display: grid;
+
+	grid-template-columns:
+		minmax(0, 1.2fr)
+		minmax(320px, 0.8fr);
+
+	gap: 16px;
+}
+
+.panel {
+	padding: 26px;
+
+	background: #ffffff;
+	border: 1px solid #e4e4e4;
+	border-radius: 14px;
+}
+
+.fieldGrid {
+	display: grid;
+
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+
+	gap: 16px;
+
+	margin-top: 22px;
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+}
+
+.field > span,
+.notesField > span {
+	color: #666666;
+
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.inputWithSuffix,
+.inputWithPrefix {
+	height: 42px;
+
+	display: flex;
+	align-items: center;
+
+	overflow: hidden;
+
+	background: #ffffff;
+
+	border: 1px solid #dddddd;
+	border-radius: 8px;
+}
+
+.inputWithSuffix input,
+.inputWithPrefix input {
+	flex: 1;
+	min-width: 0;
+
+	height: 100%;
+
+	padding: 0 12px;
+
+	border: 0;
+	outline: none;
+
+	background: transparent;
+
+	color: #171717;
+
+	font: inherit;
+	font-size: 13px;
+}
+
+.inputWithSuffix > span {
+	padding: 0 12px;
+
+	color: #888888;
+
+	font-size: 11px;
+
+	border-left: 1px solid #eeeeee;
+}
+
+.inputWithPrefix > span {
+	padding-left: 12px;
+
+	color: #888888;
+
+	font-size: 12px;
+}
+
+.priorityList {
+	display: flex;
+	flex-wrap: wrap;
+
+	gap: 8px;
+
+	margin-top: 20px;
+}
+
+.priorityButton {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+
+	padding: 8px 10px;
+
+	color: #666666;
+	background: #ffffff;
+
+	border: 1px solid #dddddd;
+	border-radius: 8px;
+
+	font-size: 11px;
+
+	cursor: pointer;
+}
+
+.priorityButtonSelected {
+	color: #171717;
+	background: #f4f4f4;
+	border-color: #bcbcbc;
+}
+
+.notesField {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+
+	margin-top: 22px;
+}
+
+.notesField textarea {
+	width: 100%;
+
+	resize: vertical;
+
+	padding: 12px;
+
+	color: #171717;
+	background: #ffffff;
+
+	border: 1px solid #dddddd;
+	border-radius: 8px;
+	outline: none;
+
+	font: inherit;
+	font-size: 13px;
+	line-height: 20px;
+}
+
+.saveBar {
+	position: sticky;
+	bottom: 18px;
+
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+
+	padding: 18px 20px;
+
+	background: rgba(255, 255, 255, 0.96);
+
+	border: 1px solid #dddddd;
+	border-radius: 12px;
+
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+
+	backdrop-filter: blur(10px);
+
+	z-index: 20;
+}
+
+.saveBar strong {
+	font-size: 12px;
+	font-weight: 650;
+}
+
+.saveBar p {
+	margin: 3px 0 0;
+
+	color: #777777;
+
+	font-size: 11px;
+}
+
+.saveActions {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.savedMessage {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+
+	color: #555555;
+
+	font-size: 11px;
+}
+
+.saveButton {
+	height: 40px;
+
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+
+	padding: 0 16px;
+
+	color: #ffffff;
+	background: #171717;
+
+	border: 1px solid #171717;
+	border-radius: 8px;
+
+	font-size: 12px;
+	font-weight: 600;
+
+	cursor: pointer;
+}
+
+.saveButton:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.error {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+
+	padding: 12px 14px;
+
+	color: #7b3030;
+	background: #fff8f8;
+
+	border: 1px solid #eedada;
+	border-radius: 9px;
+
+	font-size: 12px;
+}
+
+.loadingCard {
+	min-height: 240px;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+
+	background: #ffffff;
+
+	border: 1px solid #e4e4e4;
+	border-radius: 14px;
+
+	color: #777777;
+
+	font-size: 12px;
+}
+
+.loadingPulse {
+	width: 34px;
+	height: 34px;
+
+	border: 3px solid #ededed;
+	border-top-color: #777777;
+	border-radius: 999px;
+
+	animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (max-width: 1050px) {
+	.questionGrid,
+	.fieldGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.twoColumnGrid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 760px) {
+	.intro,
+	.saveBar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.status {
+		padding-top: 18px;
+		padding-left: 0;
+
+		border-top: 1px solid #ececec;
+		border-left: 0;
+	}
+
+	.questionGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.saveActions {
+		justify-content: space-between;
+	}
+}
