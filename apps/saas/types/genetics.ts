@@ -90,4 +90,13 @@ export interface GeneticProfile {
 	snps?: Record<string, string>;
 
 	updatedAt?: string | null;
+
+	upload?: {
+		id: string;
+		fileName: string;
+		provider?: string | null;
+		status: string;
+		parserVersion?: string | null;
+		pipelineVersion?: string | null;
+	};
 }

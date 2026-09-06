@@ -87,7 +87,9 @@ export function DnaProfileClient() {
 		);
 	}
 
-	const hasDnaData = profile && profile.snps && Object.keys(profile.snps).length > 0;
+	const hasDnaData =
+		profile?.upload?.status === "READY" ||
+		Boolean(profile?.snps && Object.keys(profile.snps).length > 0);
 
 	if (!hasDnaData) {
 		return (

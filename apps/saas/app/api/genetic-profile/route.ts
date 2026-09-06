@@ -1,128 +1,109 @@
 import { auth } from "@repo/auth/auth";
+import { db } from "@repo/database";
 import { NextResponse } from "next/server";
 
-import { createClient } from "@/utils/supabase/server";
+type ProcessingMetadata = {
+	relevantSnps?: Record<string, string>;
+	insights?: Array<{
+		model?: {
+			id?: string;
+		};
+		result?: {
+			direction?: string;
+		};
+	}>;
+	planningExposures?: unknown[];
+};
 
-// -------------------------
-// GET: Return camelCase data
-// -------------------------
 export async function GET(req: Request) {
-	const session = await auth.api.getSession({ headers: req.headers });
+	const session = await auth.api.getSession({
+		headers: req.headers,
+	});
 
 	if (!session?.user) {
 		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
-	const userId = session.user.id;
-	const supabase = await createClient();
+	const household = await db.bioHousehold.findFirst({
+		where: {
+			ownerUserId: session.user.id,
+		},
+		orderBy: {
+			createdAt: "asc",
+		},
+	});
 
-	const { data, error } = await supabase
-		.from("user_genetic_profile")
-		.select("*")
-		.eq("user_id", userId)
-		.maybeSingle();
-
-	if (error) {
-		return NextResponse.json({ error }, { status: 500 });
+	if (!household) {
+		return NextResponse.json({
+			data: null,
+		});
 	}
 
-	if (!data) {
-		return NextResponse.json({ data: null });
+	const upload = await db.bioGeneticUpload.findFirst({
+		where: {
+			householdId: household.id,
+			status: "READY",
+		},
+		orderBy: {
+			createdAt: "desc",
+		},
+	});
+
+	if (!upload) {
+		return NextResponse.json({
+			data: null,
+		});
 	}
 
-	// Normalize snake_case → camelCase
-	const normalized = {
-		longevityScore: data.longevity_score ?? 0,
+	const metadata = (upload.processingMetadata ?? {}) as ProcessingMetadata;
 
-		diseaseRisks: data.disease_risks ?? [],
-		traitInsights: data.trait_insights ?? [],
-		geneticStrengths: data.genetic_strengths ?? [],
-		longevityFactors: data.longevity_factors ?? [],
+	const insights = metadata.insights ?? [];
 
-		suggestedRetirementAge: data.suggested_retirement_age ?? null,
+	const diseaseRisks = insights
+		.filter((insight) => insight.result?.direction === "higher")
+		.map((insight) => ({
+			disease: insight.model?.id ?? "Genetic association",
 
-		retirementYears: data.retirement_years ?? null,
+			score: 0,
 
-		riskPosture: data.risk_posture ?? null,
+			label: "moderate" as const,
 
-		// Important:
-		// lets the UI distinguish a real DNA upload
-		// from a placeholder/default profile.
-		snps: data.snps ?? {},
-	};
+			explanation:
+				"An evidence-backed genetic association was identified. This does not establish that the condition is present or will occur.",
 
-	return NextResponse.json({ data: normalized });
-}
+			contributingMarkers: [],
+		}));
 
-// -------------------------
-// POST: Accept camelCase,
-// store snake_case,
-// return camelCase
-// -------------------------
-export async function POST(req: Request) {
-	const session = await auth.api.getSession({ headers: req.headers });
+	return NextResponse.json({
+		data: {
+			longevityScore: 0,
 
-	if (!session?.user) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	}
+			diseaseRisks,
 
-	const userId = session.user.id;
-	const supabase = await createClient();
-	const body = await req.json();
+			traitInsights: [],
 
-	// Body is camelCase from the UI
-	const payload = {
-		user_id: userId,
+			geneticStrengths: [],
 
-		longevity_score: body.longevityScore,
+			longevityFactors: [],
 
-		disease_risks: body.diseaseRisks ?? [],
+			suggestedRetirementAge: null,
 
-		trait_insights: body.traitInsights ?? [],
+			retirementYears: null,
 
-		genetic_strengths: body.geneticStrengths ?? [],
+			riskPosture: null,
 
-		longevity_factors: body.longevityFactors ?? [],
+			snps: metadata.relevantSnps ?? {},
 
-		suggested_retirement_age: body.suggestedRetirementAge ?? null,
+			updatedAt: upload.updatedAt.toISOString(),
 
-		retirement_years: body.retirementYears ?? null,
-
-		risk_posture: body.riskPosture ?? null,
-
-		snps: body.snps ?? {},
-	};
-
-	const { data, error } = await supabase
-		.from("user_genetic_profile")
-		.upsert(payload)
-		.select()
-		.single();
-
-	if (error) {
-		return NextResponse.json({ error }, { status: 500 });
-	}
-
-	// Normalize response to camelCase
-	const normalized = {
-		longevityScore: data.longevity_score ?? 0,
-
-		diseaseRisks: data.disease_risks ?? [],
-
-		traitInsights: data.trait_insights ?? [],
-
-		geneticStrengths: data.genetic_strengths ?? [],
-
-		longevityFactors: data.longevity_factors ?? [],
-
-		suggestedRetirementAge: data.suggested_retirement_age ?? null,
-
-		retirementYears: data.retirement_years ?? null,
-
-		riskPosture: data.risk_posture ?? null,
-
-		snps: data.snps ?? {},
-	};
-
-	return NextResponse.json({ data: normalized });
+			upload: {
+				id: upload.id,
+				fileName: upload.originalFileName,
+				provider: upload.provider,
+				status: upload.status,
+				parserVersion: upload.parserVersion,
+				pipelineVersion: upload.pipelineVersion,
+			},
+		},
+	});
 }
