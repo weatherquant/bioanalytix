@@ -8,7 +8,9 @@ import type { HouseholdFinancialState } from "../../../../../../packages/api/mod
 import { interpretAvailableModels } from "../../../../../../packages/api/modules/genetics/evidence/interpretationDispatcher";
 import { observationsFrom23andMeRaw } from "../../../../../../packages/api/modules/genetics/observations/from23andMe";
 import { SNP_REFERENCE } from "../../../../../../packages/api/modules/genetics/snp-reference";
+import { buildGeneticHighlights } from "../../../../../../packages/api/modules/planning/geneticHighlightEngine";
 import { biologicalInsightToPlanningExposures } from "../../../../../../packages/api/modules/planning/geneticsBridge";
+import { buildPlanningInsights } from "../../../../../../packages/api/modules/planning/planningInsightEngine";
 import {
 	buildPlanningProfileV1,
 	PLANNING_PROFILE_VERSION,
@@ -114,9 +116,17 @@ export async function POST(req: Request) {
 
 		const insights = interpretAvailableModels(observations);
 
+		const geneticHighlights = buildGeneticHighlights(insights);
+
 		const planningExposures = insights.flatMap((insight) =>
 			biologicalInsightToPlanningExposures(insight),
 		);
+
+		const planningInsights = buildPlanningInsights({
+			insights,
+			geneticUploadId: upload.id,
+			governanceContext: "development",
+		});
 
 		/*
 		 * Keep only called observations in the temporary legacy projection.
@@ -168,6 +178,10 @@ export async function POST(req: Request) {
 				modelIds: insights.map((insight) => insight.model.id),
 
 				exposures: planningExposures,
+
+				geneticHighlights,
+
+				planningInsights,
 			});
 
 			await replaceCurrentBioPlanningProfile({

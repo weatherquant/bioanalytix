@@ -54,6 +54,10 @@ const savedPlanSchema = z.object({
 		earlierDeathAge: z.number().nonnegative().optional(),
 
 		insuranceShortfall: z.number().nonnegative().optional(),
+
+		healthCostDurationYears: z.number().positive().optional(),
+
+		careCostDurationYears: z.number().positive().optional(),
 	}),
 
 	priorities: z.array(z.string()),

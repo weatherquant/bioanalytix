@@ -36,8 +36,10 @@ export interface PlanScenarioAssumptions {
 	essentialSpendingIncreasePercent?: number;
 
 	additionalAnnualHealthCosts?: number;
+	healthCostDurationYears?: number;
 
 	additionalAnnualCareCosts?: number;
+	careCostDurationYears?: number;
 
 	retirementYearsExtension?: number;
 

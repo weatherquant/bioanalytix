@@ -64,6 +64,21 @@ export const getBioanalytixPlan = protectedProcedure
 		 * must never silently overwrite user-selected Plan
 		 * state.
 		 */
+		const planningProfileData = planningProfileRecord?.profile as
+			| {
+					geneticHighlights?: unknown[];
+
+					planningInsights?: unknown[];
+
+					geneticPlanningCoverage?: {
+						modelsEvaluated: number;
+						elevatedFindings: number;
+						planningExposureCount: number;
+						planningInsightCount: number;
+					};
+			  }
+			| undefined;
+
 		return {
 			householdId: household.id,
 
@@ -77,9 +92,19 @@ export const getBioanalytixPlan = protectedProcedure
 			planningProfile: planningProfileRecord
 				? {
 						id: planningProfileRecord.id,
+
 						version: planningProfileRecord.profileVersion,
+
 						geneticUploadId: planningProfileRecord.geneticUploadId,
+
 						updatedAt: planningProfileRecord.updatedAt.toISOString(),
+
+						geneticHighlights: planningProfileData?.geneticHighlights ?? [],
+
+						planningInsights: planningProfileData?.planningInsights ?? [],
+
+						geneticPlanningCoverage:
+							planningProfileData?.geneticPlanningCoverage ?? null,
 					}
 				: null,
 

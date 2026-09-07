@@ -8,10 +8,75 @@ import { getGeneticProfile, uploadGeneticFile } from "./api";
 
 import styles from "../components/BioanalytixShell.module.css";
 
+interface GeneticHighlight {
+	id: string;
+
+	model: {
+		id: string;
+		version: string;
+	};
+
+	title: string;
+	domain: string;
+
+	summary: string;
+
+	direction: "higher" | "reference" | "lower" | "indeterminate";
+
+	evidenceStrength: "established" | "strong" | "moderate" | "limited" | "insufficient";
+
+	explanation: string;
+
+	limitations: string[];
+
+	provenance: {
+		evidenceIds: string[];
+		generatedAt: string;
+		engineVersion: string;
+	};
+}
+
+interface GeneticPlanningCoverage {
+	modelsEvaluated: number;
+	elevatedFindings: number;
+	planningExposureCount: number;
+	planningInsightCount: number;
+}
+
+interface BioanalytixPlanResponse {
+	planningProfile: {
+		geneticHighlights?: GeneticHighlight[];
+		geneticPlanningCoverage?: GeneticPlanningCoverage | null;
+	} | null;
+}
+
+async function getGeneticHighlights() {
+	const response = await fetch("/api/bioanalytix/plan", {
+		method: "GET",
+		credentials: "include",
+	});
+
+	if (!response.ok) {
+		throw new Error("Unable to load genetics highlights.");
+	}
+
+	const result = (await response.json()) as BioanalytixPlanResponse;
+
+	return {
+		highlights: result.planningProfile?.geneticHighlights ?? [],
+
+		coverage: result.planningProfile?.geneticPlanningCoverage ?? null,
+	};
+}
+
 export function DnaProfileClient() {
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	const [profile, setProfile] = useState<GeneticProfile | null>(null);
+
+	const [geneticHighlights, setGeneticHighlights] = useState<GeneticHighlight[]>([]);
+
+	const [geneticCoverage, setGeneticCoverage] = useState<GeneticPlanningCoverage | null>(null);
 
 	const [loading, setLoading] = useState(true);
 	const [uploading, setUploading] = useState(false);
@@ -23,10 +88,17 @@ export function DnaProfileClient() {
 
 		async function load() {
 			try {
-				const result = await getGeneticProfile();
+				const [profileResult, geneticsResult] = await Promise.all([
+					getGeneticProfile(),
+					getGeneticHighlights(),
+				]);
 
 				if (active) {
-					setProfile(result);
+					setProfile(profileResult);
+
+					setGeneticHighlights(geneticsResult.highlights);
+
+					setGeneticCoverage(geneticsResult.coverage);
 				}
 			} catch {
 				if (active) {
@@ -63,9 +135,16 @@ export function DnaProfileClient() {
 			 * Reload the canonical profile after processing.
 			 * This avoids coupling the UI to the exact upload-response shape.
 			 */
-			const refreshed = await getGeneticProfile();
+			const [refreshed, geneticsResult] = await Promise.all([
+				getGeneticProfile(),
+				getGeneticHighlights(),
+			]);
 
 			setProfile(refreshed ?? result);
+
+			setGeneticHighlights(geneticsResult.highlights);
+
+			setGeneticCoverage(geneticsResult.coverage);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Unable to process your DNA file.");
 		} finally {
@@ -141,52 +220,134 @@ export function DnaProfileClient() {
 		);
 	}
 
-	const longevityPercent = Math.max(
-		0,
-		Math.min(
-			100,
-			Math.round(
-				profile.longevityScore <= 1 ? profile.longevityScore * 100 : profile.longevityScore,
-			),
-		),
-	);
-
 	return (
 		<>
 			<div style={profileSummaryGrid}>
 				<div style={summaryPanelStyle}>
-					<div style={summaryLabelStyle}>Genetic longevity signal</div>
+					<div style={summaryLabelStyle}>Genetic models assessed</div>
 
 					<div style={largeValueStyle}>
-						{longevityPercent}
-						<span style={unitStyle}> / 100</span>
+						{geneticCoverage?.modelsEvaluated ?? geneticHighlights.length}
 					</div>
 
 					<p style={summaryTextStyle}>
-						A composite signal derived from the genetic markers currently included in
-						your Bioanalytix profile.
+						Evidence models successfully evaluated against your uploaded genetic data.
 					</p>
 				</div>
 
 				<div style={summaryPanelStyle}>
-					<div style={summaryLabelStyle}>Health signals</div>
+					<div style={summaryLabelStyle}>Elevated findings</div>
 
-					<div style={largeValueStyle}>{profile.diseaseRisks.length}</div>
+					<div style={largeValueStyle}>
+						{geneticCoverage?.elevatedFindings ??
+							geneticHighlights.filter(
+								(highlight) => highlight.direction === "higher",
+							).length}
+					</div>
 
 					<p style={summaryTextStyle}>
-						Health-related genetic signals currently identified in your profile.
+						Genetic findings currently showing a higher susceptibility signal.
 					</p>
 				</div>
 
 				<div style={summaryPanelStyle}>
-					<div style={summaryLabelStyle}>Genetic strengths</div>
+					<div style={summaryLabelStyle}>Planning-linked findings</div>
 
-					<div style={largeValueStyle}>{profile.geneticStrengths.length}</div>
+					<div style={largeValueStyle}>{geneticCoverage?.planningInsightCount ?? 0}</div>
 
 					<p style={summaryTextStyle}>
-						Potentially favourable genetic signals detected in the available data.
+						Findings that currently meet the additional threshold for financial planning
+						relevance.
 					</p>
 				</div>
+			</div>
+
+			<div style={highlightsPanelStyle}>
+				<div style={highlightsHeaderStyle}>
+					<div>
+						<h2 style={panelTitleStyle}>Genetic highlights</h2>
+
+						<p style={panelDescriptionStyle}>
+							Genetic findings currently supported by the Bioanalytix evidence
+							library.
+						</p>
+					</div>
+
+					<div style={modelsAssessedStyle}>
+						<Dna size={16} />
+						{geneticHighlights.length}{" "}
+						{geneticHighlights.length === 1 ? "result" : "results"}
+					</div>
+				</div>
+
+				{geneticHighlights.length === 0 ? (
+					<div style={noHighlightsStyle}>
+						<strong>No supported genetic results are currently available.</strong>
+
+						<p style={highlightExplanationStyle}>
+							Bioanalytix only displays findings from genetic models that are
+							currently included in its evidence library.
+						</p>
+					</div>
+				) : (
+					<div style={highlightsGridStyle}>
+						{geneticHighlights.map((highlight) => {
+							const uniqueLimitations = [...new Set(highlight.limitations)];
+
+							return (
+								<div key={highlight.id} style={highlightCardStyle}>
+									<div style={highlightTopStyle}>
+										<div style={highlightDomainStyle}>{highlight.domain}</div>
+
+										<div style={resultBadgeStyle(highlight.direction)}>
+											{highlight.direction === "reference"
+												? "Reference result"
+												: highlight.direction === "higher"
+													? "Higher signal"
+													: highlight.direction === "lower"
+														? "Lower signal"
+														: "Indeterminate"}
+										</div>
+									</div>
+
+									<h3 style={highlightTitleStyle}>{highlight.title}</h3>
+
+									<p style={highlightSummaryStyle}>{highlight.summary}</p>
+
+									<div style={evidenceRowStyle}>
+										<span>Evidence strength</span>
+
+										<strong>{highlight.evidenceStrength}</strong>
+									</div>
+
+									<div style={meaningBlockStyle}>
+										<strong>What this means</strong>
+
+										<p style={highlightExplanationStyle}>
+											{highlight.explanation}
+										</p>
+									</div>
+
+									{uniqueLimitations.length > 0 && (
+										<details style={limitationsStyle}>
+											<summary>Important limitations</summary>
+
+											<ul style={limitationsListStyle}>
+												{uniqueLimitations.map((limitation) => (
+													<li key={limitation}>{limitation}</li>
+												))}
+											</ul>
+										</details>
+									)}
+
+									<div style={modelFooterStyle}>
+										Model {highlight.model.version}
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				)}
 			</div>
 
 			<div style={profilePanelStyle}>
@@ -401,4 +562,136 @@ const statusStyle: React.CSSProperties = {
 	gap: 7,
 	color: "#555555",
 	fontSize: 13,
+};
+
+const highlightsPanelStyle: React.CSSProperties = {
+	marginTop: 16,
+	padding: 24,
+	background: "#ffffff",
+	border: "1px solid #e4e4e4",
+	borderRadius: 14,
+};
+
+const highlightsHeaderStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "flex-start",
+	justifyContent: "space-between",
+	gap: 24,
+	marginBottom: 20,
+};
+
+const modelsAssessedStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "center",
+	gap: 7,
+	color: "#666666",
+	fontSize: 12,
+};
+
+const highlightsGridStyle: React.CSSProperties = {
+	display: "grid",
+	gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+	gap: 14,
+};
+
+const highlightCardStyle: React.CSSProperties = {
+	padding: 22,
+	background: "#fafafa",
+	border: "1px solid #e3e3e3",
+	borderRadius: 12,
+};
+
+const highlightTopStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "center",
+	justifyContent: "space-between",
+	gap: 12,
+};
+
+const highlightDomainStyle: React.CSSProperties = {
+	color: "#888888",
+	fontSize: 11,
+	fontWeight: 650,
+	letterSpacing: "0.05em",
+	textTransform: "uppercase",
+};
+
+function resultBadgeStyle(direction: GeneticHighlight["direction"]): React.CSSProperties {
+	return {
+		padding: "5px 8px",
+		border: direction === "higher" ? "1px solid #d9b3b3" : "1px solid #dddddd",
+		borderRadius: 999,
+		background: direction === "higher" ? "#fff7f7" : "#ffffff",
+		color: direction === "higher" ? "#873f3f" : "#666666",
+		fontSize: 10,
+		fontWeight: 650,
+	};
+}
+
+const highlightTitleStyle: React.CSSProperties = {
+	margin: "18px 0 0",
+	fontSize: 18,
+	lineHeight: "24px",
+	fontWeight: 650,
+	letterSpacing: "-0.015em",
+};
+
+const highlightSummaryStyle: React.CSSProperties = {
+	margin: "8px 0 0",
+	color: "#666666",
+	fontSize: 13,
+	lineHeight: "20px",
+};
+
+const evidenceRowStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "center",
+	justifyContent: "space-between",
+	marginTop: 18,
+	padding: "10px 12px",
+	background: "#ffffff",
+	border: "1px solid #e4e4e4",
+	borderRadius: 8,
+	fontSize: 12,
+	textTransform: "capitalize",
+};
+
+const meaningBlockStyle: React.CSSProperties = {
+	marginTop: 18,
+};
+
+const highlightExplanationStyle: React.CSSProperties = {
+	margin: "5px 0 0",
+	color: "#707070",
+	fontSize: 12,
+	lineHeight: "19px",
+};
+
+const limitationsStyle: React.CSSProperties = {
+	marginTop: 18,
+	color: "#666666",
+	fontSize: 11,
+};
+
+const limitationsListStyle: React.CSSProperties = {
+	margin: "10px 0 0",
+	paddingLeft: 18,
+	color: "#777777",
+	lineHeight: "18px",
+};
+
+const modelFooterStyle: React.CSSProperties = {
+	marginTop: 18,
+	paddingTop: 12,
+	borderTop: "1px solid #e3e3e3",
+	color: "#999999",
+	fontSize: 10,
+};
+
+const noHighlightsStyle: React.CSSProperties = {
+	padding: 18,
+	background: "#fafafa",
+	border: "1px solid #e5e5e5",
+	borderRadius: 10,
+	fontSize: 12,
 };

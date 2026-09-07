@@ -2,6 +2,7 @@ import { publicProcedure } from "../../orpc/procedures";
 import { completeBioanalytixOnboarding } from "./procedures/complete-onboarding";
 import { getBioanalytixOnboarding } from "./procedures/get-onboarding";
 import { getBioanalytixPlan } from "./procedures/get-plan";
+import { runBioanalytixPlanScenario } from "./procedures/run-plan-scenario";
 import { saveBioanalytixOnboardingDraft } from "./procedures/save-onboarding-draft";
 import { saveBioanalytixPlan } from "./procedures/save-plan";
 
@@ -15,5 +16,6 @@ export const bioanalytixRouter = publicProcedure.router({
 	plan: publicProcedure.router({
 		get: getBioanalytixPlan,
 		save: saveBioanalytixPlan,
+		runScenario: runBioanalytixPlanScenario,
 	}),
 });

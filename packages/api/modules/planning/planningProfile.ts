@@ -1,4 +1,6 @@
 import type { HouseholdFinancialState } from "../financial/household/types";
+import type { GeneticHighlight } from "./geneticHighlight";
+import type { PlanningInsight } from "./planningInsight";
 import type { PlanningExposure, PlanningExposureDomain, PlanningSignificance } from "./types";
 
 export const PLANNING_PROFILE_VERSION = "1.0.0";
@@ -58,6 +60,12 @@ export interface BioanalytixPlanningProfileV1 {
 
 	exposures: PlanningExposure[];
 
+	geneticHighlights: GeneticHighlight[];
+
+	planningInsights: PlanningInsight[];
+
+	geneticPlanningCoverage: GeneticPlanningCoverage;
+
 	questions: PlanningProfileQuestion[];
 
 	guardrails: {
@@ -66,6 +74,16 @@ export interface BioanalytixPlanningProfileV1 {
 		consumerGeneticsIsDiagnostic: false;
 		absoluteDiseaseRiskCalculated: false;
 	};
+}
+
+export interface GeneticPlanningCoverage {
+	modelsEvaluated: number;
+
+	elevatedFindings: number;
+
+	planningExposureCount: number;
+
+	planningInsightCount: number;
 }
 
 function questionForExposure(exposure: PlanningExposure, index: number): PlanningProfileQuestion {
@@ -189,12 +207,16 @@ export function buildPlanningProfileV1({
 	geneticUploadId,
 	modelIds,
 	exposures,
+	geneticHighlights = [],
+	planningInsights = [],
 	now = new Date(),
 }: {
 	household: HouseholdFinancialState;
 	geneticUploadId: string;
 	modelIds: string[];
 	exposures: PlanningExposure[];
+	geneticHighlights?: GeneticHighlight[];
+	planningInsights?: PlanningInsight[];
 	now?: Date;
 }): BioanalytixPlanningProfileV1 {
 	return {
@@ -210,6 +232,22 @@ export function buildPlanningProfileV1({
 		householdContext: householdContext(household),
 
 		exposures,
+
+		geneticHighlights,
+
+		planningInsights,
+
+		geneticPlanningCoverage: {
+			modelsEvaluated: new Set(modelIds).size,
+
+			elevatedFindings: geneticHighlights.filter(
+				(highlight) => highlight.direction === "higher",
+			).length,
+
+			planningExposureCount: exposures.length,
+
+			planningInsightCount: planningInsights.length,
+		},
 
 		questions: exposures.map(questionForExposure),
 
