@@ -158,7 +158,9 @@ export async function POST(req: Request) {
 
 					observationCount: observations.length,
 					insightCount: insights.length,
+					geneticHighlightCount: geneticHighlights.length,
 					planningExposureCount: planningExposures.length,
+					planningInsightCount: planningInsights.length,
 
 					modelIds: insights.map((insight) => insight.model.id),
 
@@ -212,9 +214,17 @@ export async function POST(req: Request) {
 
 				processingSummary: {
 					observationCount: observations.length,
+
 					insightCount: insights.length,
+
+					geneticHighlightCount: geneticHighlights.length,
+
 					planningExposureCount: planningExposures.length,
+
+					planningInsightCount: planningInsights.length,
+
 					modelIds: insights.map((insight) => insight.model.id),
+
 					planningDomains: [
 						...new Set(planningExposures.map((exposure) => exposure.domain)),
 					],

@@ -6,8 +6,6 @@ import { useEffect, useRef, useState } from "react";
 import type { GeneticProfile } from "../../../types/genetics";
 import { getGeneticProfile, uploadGeneticFile } from "./api";
 
-import styles from "../components/BioanalytixShell.module.css";
-
 interface GeneticHighlight {
 	id: string;
 
@@ -33,6 +31,22 @@ interface GeneticHighlight {
 		evidenceIds: string[];
 		generatedAt: string;
 		engineVersion: string;
+	};
+
+	planningRelevance?: {
+		level: "informational" | "potential" | "material";
+
+		label: string;
+
+		meaning: string;
+
+		whyItMatters: string;
+
+		planningDomains: string[];
+
+		suggestedQuestion?: string;
+
+		scenarioEligible: boolean;
 	};
 }
 
@@ -294,6 +308,22 @@ export function DnaProfileClient() {
 						{geneticHighlights.map((highlight) => {
 							const uniqueLimitations = [...new Set(highlight.limitations)];
 
+							const planningRelevance = highlight.planningRelevance ?? {
+								level: "informational" as const,
+
+								label: "For your awareness",
+
+								meaning:
+									"This genetic result is part of your Bioanalytix profile. Its planning relevance has not yet been assessed using the current planning model.",
+
+								whyItMatters:
+									"No specific financial-plan change is suggested from this result at present.",
+
+								planningDomains: [] as string[],
+
+								scenarioEligible: false,
+							};
+
 							return (
 								<div key={highlight.id} style={highlightCardStyle}>
 									<div style={highlightTopStyle}>
@@ -326,6 +356,59 @@ export function DnaProfileClient() {
 										<p style={highlightExplanationStyle}>
 											{highlight.explanation}
 										</p>
+									</div>
+
+									<div style={planningRelevanceStyle}>
+										<div style={planningRelevanceHeaderStyle}>
+											<span
+												style={planningRelevanceBadgeStyle(
+													planningRelevance.level,
+												)}
+											>
+												{planningRelevance.label}
+											</span>
+										</div>
+
+										<p style={planningMeaningStyle}>
+											{planningRelevance.meaning}
+										</p>
+
+										<div style={soWhatStyle}>
+											<strong>Why this matters to your plan</strong>
+
+											<p style={highlightExplanationStyle}>
+												{planningRelevance.whyItMatters}
+											</p>
+										</div>
+
+										{planningRelevance.planningDomains.length > 0 && (
+											<div style={planningDomainsStyle}>
+												<span>Potentially affected areas</span>
+
+												<div style={planningDomainListStyle}>
+													{planningRelevance.planningDomains.map(
+														(domain) => (
+															<span
+																key={domain}
+																style={planningDomainBadgeStyle}
+															>
+																{domain.replaceAll("_", " ")}
+															</span>
+														),
+													)}
+												</div>
+											</div>
+										)}
+
+										{planningRelevance.suggestedQuestion && (
+											<div style={suggestedQuestionStyle}>
+												<span>Worth asking</span>
+
+												<strong>
+													{planningRelevance.suggestedQuestion}
+												</strong>
+											</div>
+										)}
 									</div>
 
 									{uniqueLimitations.length > 0 && (
@@ -515,12 +598,6 @@ const largeValueStyle: React.CSSProperties = {
 	letterSpacing: "-0.03em",
 };
 
-const unitStyle: React.CSSProperties = {
-	fontSize: 15,
-	color: "#888888",
-	fontWeight: 500,
-};
-
 const summaryTextStyle: React.CSSProperties = {
 	margin: "auto 0 0",
 	color: "#777777",
@@ -694,4 +771,80 @@ const noHighlightsStyle: React.CSSProperties = {
 	border: "1px solid #e5e5e5",
 	borderRadius: 10,
 	fontSize: 12,
+};
+
+const planningRelevanceStyle: React.CSSProperties = {
+	marginTop: 18,
+	padding: 16,
+	background: "#ffffff",
+	border: "1px solid #e2e2e2",
+	borderRadius: 10,
+};
+
+const planningRelevanceHeaderStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "center",
+	marginBottom: 10,
+};
+
+function planningRelevanceBadgeStyle(
+	level: "informational" | "potential" | "material",
+): React.CSSProperties {
+	return {
+		padding: "5px 8px",
+		borderRadius: 999,
+		border:
+			level === "material"
+				? "1px solid #c9aaaa"
+				: level === "potential"
+					? "1px solid #d9c7a3"
+					: "1px solid #dddddd",
+		background:
+			level === "material" ? "#fff6f6" : level === "potential" ? "#fffaf1" : "#fafafa",
+		fontSize: 10,
+		fontWeight: 700,
+	};
+}
+
+const planningMeaningStyle: React.CSSProperties = {
+	margin: 0,
+	color: "#666666",
+	fontSize: 12,
+	lineHeight: "19px",
+};
+
+const soWhatStyle: React.CSSProperties = {
+	marginTop: 14,
+};
+
+const planningDomainsStyle: React.CSSProperties = {
+	marginTop: 14,
+};
+
+const planningDomainListStyle: React.CSSProperties = {
+	display: "flex",
+	flexWrap: "wrap",
+	gap: 6,
+	marginTop: 7,
+};
+
+const planningDomainBadgeStyle: React.CSSProperties = {
+	padding: "4px 7px",
+	background: "#fafafa",
+	border: "1px solid #dddddd",
+	borderRadius: 7,
+	color: "#666666",
+	fontSize: 10,
+	textTransform: "capitalize",
+};
+
+const suggestedQuestionStyle: React.CSSProperties = {
+	display: "flex",
+	flexDirection: "column",
+	gap: 5,
+	marginTop: 14,
+	paddingTop: 14,
+	borderTop: "1px solid #e8e8e8",
+	fontSize: 12,
+	lineHeight: "19px",
 };

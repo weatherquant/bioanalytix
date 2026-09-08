@@ -1,6 +1,7 @@
 import type { GenotypeObservation } from "../observations/types";
 import { interpretApoe } from "./apoeInterpretation";
 import { interpretFactorVLeiden } from "./factorVLeidenInterpretation";
+import { interpretHfe } from "./hfeInterpretation";
 import type { BiologicalInsight } from "./insight";
 import type { GeneticsModelDefinition } from "./modelRegistry";
 
@@ -40,6 +41,18 @@ const interpretApoeModel: ModelInterpreter = (model, observations) => {
 	);
 };
 
+const interpretHfeModel: ModelInterpreter = (model, observations) => {
+	if (model.id !== "hfe-common-genotype-v1") {
+		throw new Error(`HFE interpreter received incompatible model: ${model.id}`);
+	}
+
+	return interpretHfe(
+		requireObservation(observations, "rs1800562"),
+
+		requireObservation(observations, "rs1799945"),
+	);
+};
+
 /**
  * Registry of exact scientific model implementations.
  *
@@ -54,6 +67,8 @@ export const MODEL_INTERPRETER_REGISTRY = {
 	"f5-factor-v-leiden-vte": interpretFactorVLeidenModel,
 
 	"apoe-common-diplotype-v1": interpretApoeModel,
+
+	"hfe-common-genotype-v1": interpretHfeModel,
 } as const satisfies Record<string, ModelInterpreter>;
 
 export function getModelInterpreter(modelId: string): ModelInterpreter | undefined {

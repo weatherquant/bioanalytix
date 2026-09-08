@@ -174,6 +174,66 @@ export const MODEL_POLICIES: Record<string, ModelGovernance> = {
 			"The result must not directly alter survival probabilities or financial-plan parameters.",
 		],
 	},
+
+	"hfe-common-genotype-v1": {
+		modelId: "hfe-common-genotype-v1",
+
+		modelVersion: "1.0.0",
+
+		evidenceClass: "established_risk_variant",
+
+		evidenceStrength: "established",
+
+		lifecycle: {
+			implementation: "implemented",
+
+			release: "development",
+		},
+
+		confirmationRequirement: "required_before_medical_action",
+
+		permissions: {
+			calculateResult: true,
+
+			displayResult: true,
+
+			describeRelativeRisk: true,
+
+			calculateAbsoluteRisk: false,
+
+			useInLongevityModel: false,
+
+			generatePlanningExposures: true,
+
+			modifyFinancialParameters: false,
+		},
+
+		review: {
+			status: "pending",
+
+			notes: "Reference HFE C282Y/H63D consumer-genotype implementation pending formal Bioanalytix scientific review and production-release approval.",
+		},
+
+		licensing: {
+			status: "not_applicable",
+
+			source: "Public scientific and clinical reference sources",
+
+			notes: "This interpretation uses public HFE variant definitions and clinical evidence rather than a proprietary genetic scoring algorithm.",
+		},
+
+		limitations: [
+			"Consumer raw genotype data is not equivalent to clinically confirmed molecular testing.",
+
+			"The model assesses only the common HFE C282Y and H63D variants.",
+
+			"HFE genotype does not establish that iron overload or clinical haemochromatosis is present.",
+
+			"Unphased consumer genotype data cannot prove whether two different HFE variants occur in trans.",
+
+			"The result must not directly alter longevity, mortality or financial-plan parameters.",
+		],
+	},
 };
 
 export function getModelPolicy(modelId: string): ModelGovernance | undefined {
