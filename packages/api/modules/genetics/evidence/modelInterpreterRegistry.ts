@@ -4,6 +4,7 @@ import { interpretFactorVLeiden } from "./factorVLeidenInterpretation";
 import { interpretHfe } from "./hfeInterpretation";
 import type { BiologicalInsight } from "./insight";
 import type { GeneticsModelDefinition } from "./modelRegistry";
+import { interpretSerpina1 } from "./serpina1Interpretation";
 
 export type ObservationIndex = ReadonlyMap<string, GenotypeObservation>;
 
@@ -53,6 +54,18 @@ const interpretHfeModel: ModelInterpreter = (model, observations) => {
 	);
 };
 
+const interpretSerpina1Model: ModelInterpreter = (model, observations) => {
+	if (model.id !== "serpina1-common-genotype-v1") {
+		throw new Error(`SERPINA1 interpreter received incompatible model: ${model.id}`);
+	}
+
+	return interpretSerpina1(
+		requireObservation(observations, "rs28929474"),
+
+		requireObservation(observations, "rs17580"),
+	);
+};
+
 /**
  * Registry of exact scientific model implementations.
  *
@@ -69,6 +82,8 @@ export const MODEL_INTERPRETER_REGISTRY = {
 	"apoe-common-diplotype-v1": interpretApoeModel,
 
 	"hfe-common-genotype-v1": interpretHfeModel,
+
+	"serpina1-common-genotype-v1": interpretSerpina1Model,
 } as const satisfies Record<string, ModelInterpreter>;
 
 export function getModelInterpreter(modelId: string): ModelInterpreter | undefined {

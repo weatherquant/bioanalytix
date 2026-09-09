@@ -234,6 +234,59 @@ export const MODEL_POLICIES: Record<string, ModelGovernance> = {
 			"The result must not directly alter longevity, mortality or financial-plan parameters.",
 		],
 	},
+
+	"serpina1-common-genotype-v1": {
+		modelId: "serpina1-common-genotype-v1",
+
+		modelVersion: "1.0.0",
+
+		evidenceClass: "established_risk_variant",
+
+		evidenceStrength: "established",
+
+		lifecycle: {
+			implementation: "implemented",
+			release: "development",
+		},
+
+		confirmationRequirement: "required_before_medical_action",
+
+		permissions: {
+			calculateResult: true,
+			displayResult: true,
+			describeRelativeRisk: true,
+			calculateAbsoluteRisk: false,
+			useInLongevityModel: false,
+			generatePlanningExposures: true,
+			modifyFinancialParameters: false,
+		},
+
+		review: {
+			status: "pending",
+
+			notes: "Reference SERPINA1 S/Z consumer-genotype implementation pending formal Bioanalytix scientific review and production-release approval.",
+		},
+
+		licensing: {
+			status: "not_applicable",
+
+			source: "Public scientific and clinical reference sources",
+
+			notes: "This interpretation uses public SERPINA1 allele definitions and evidence rather than a proprietary scoring algorithm.",
+		},
+
+		limitations: [
+			"Consumer raw genotype data is not equivalent to clinically confirmed molecular testing.",
+
+			"The model assesses only the common SERPINA1 S and Z alleles.",
+
+			"Other pathogenic SERPINA1 alleles are not excluded by a reference S/Z result.",
+
+			"Genotype does not itself establish alpha-1 antitrypsin deficiency.",
+
+			"The result must not directly alter longevity, mortality or financial-plan parameters.",
+		],
+	},
 };
 
 export function getModelPolicy(modelId: string): ModelGovernance | undefined {

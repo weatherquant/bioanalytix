@@ -15,6 +15,64 @@ type ProcessingMetadata = {
 	planningExposures?: unknown[];
 };
 
+type PlanningProfileGeneticHighlight = {
+	id: string;
+
+	title: string;
+
+	domain: string;
+
+	direction: "higher" | "reference" | "lower" | "indeterminate";
+
+	evidenceStrength: "established" | "strong" | "moderate" | "limited" | "insufficient";
+
+	category:
+		| "health_risk"
+		| "carrier"
+		| "protective"
+		| "trait"
+		| "pharmacogenomic"
+		| "nutrition_metabolism"
+		| "ageing_longevity";
+
+	summary: string;
+
+	explanation: string;
+
+	planningRelevance: {
+		level: "informational" | "potential" | "material";
+
+		label: string;
+
+		meaning: string;
+
+		whyItMatters: string;
+
+		planningDomains: string[];
+
+		suggestedQuestion?: string;
+
+		scenarioEligible: boolean;
+	};
+
+	model: {
+		id: string;
+		version: string;
+	};
+
+	limitations: string[];
+
+	provenance: {
+		evidenceIds: string[];
+		engineVersion: string;
+		generatedAt: string;
+	};
+};
+
+type PlanningProfilePayload = {
+	geneticHighlights?: PlanningProfileGeneticHighlight[];
+};
+
 export async function GET(req: Request) {
 	const session = await auth.api.getSession({
 		headers: req.headers,
@@ -55,7 +113,21 @@ export async function GET(req: Request) {
 		});
 	}
 
+	const planningProfileRecord = await db.bioPlanningProfile.findFirst({
+		where: {
+			householdId: household.id,
+			current: true,
+		},
+		orderBy: {
+			updatedAt: "desc",
+		},
+	});
+
 	const metadata = (upload.processingMetadata ?? {}) as ProcessingMetadata;
+
+	const planningProfile = (planningProfileRecord?.profile ?? {}) as PlanningProfilePayload;
+
+	const geneticHighlights = planningProfile.geneticHighlights ?? [];
 
 	const insights = metadata.insights ?? [];
 
@@ -81,6 +153,8 @@ export async function GET(req: Request) {
 			diseaseRisks,
 
 			traitInsights: [],
+
+			geneticHighlights,
 
 			geneticStrengths: [],
 

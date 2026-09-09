@@ -56,6 +56,68 @@ export interface LongevityFactor {
 	description?: string;
 }
 
+export type GeneticHighlightDirection = "higher" | "reference" | "lower" | "indeterminate";
+
+export type GeneticHighlightCategory =
+	| "health_risk"
+	| "carrier"
+	| "protective"
+	| "trait"
+	| "pharmacogenomic"
+	| "nutrition_metabolism"
+	| "ageing_longevity";
+
+export type GeneticPlanningRelevanceLevel = "informational" | "potential" | "material";
+
+export interface GeneticPlanningRelevance {
+	level: GeneticPlanningRelevanceLevel;
+
+	label: string;
+
+	meaning: string;
+
+	whyItMatters: string;
+
+	planningDomains: string[];
+
+	suggestedQuestion?: string;
+
+	scenarioEligible: boolean;
+}
+
+export interface GeneticHighlight {
+	id: string;
+
+	title: string;
+
+	domain: string;
+
+	direction: GeneticHighlightDirection;
+
+	evidenceStrength: "established" | "strong" | "moderate" | "limited" | "insufficient";
+
+	category: GeneticHighlightCategory;
+
+	summary: string;
+
+	explanation: string;
+
+	planningRelevance: GeneticPlanningRelevance;
+
+	model: {
+		id: string;
+		version: string;
+	};
+
+	limitations: string[];
+
+	provenance: {
+		evidenceIds: string[];
+		engineVersion: string;
+		generatedAt: string;
+	};
+}
+
 export interface GeneticProfile {
 	/**
 	 * Experimental genetic longevity signal.
@@ -68,6 +130,11 @@ export interface GeneticProfile {
 	diseaseRisks: DiseaseRisk[];
 	traitInsights: TraitInsight[];
 
+	/**
+	 * Evidence-backed genetic findings generated from
+	 * the current Bioanalytix planning profile.
+	 */
+	geneticHighlights: GeneticHighlight[];
 	geneticStrengths: GeneticStrength[];
 	longevityFactors: LongevityFactor[];
 

@@ -2,6 +2,7 @@ import type { GenomeBuild, StrandOrientation } from "../observations/types";
 import { APOE_RS429358_EVIDENCE, APOE_RS7412_EVIDENCE } from "./apoe";
 import { FACTOR_V_LEIDEN_EVIDENCE } from "./factorVLeiden";
 import { HFE_C282Y_EVIDENCE, HFE_H63D_EVIDENCE } from "./hfe";
+import { SERPINA1_S_EVIDENCE, SERPINA1_Z_EVIDENCE } from "./serpina1";
 import type { EvidenceClass } from "./types";
 
 export type InterpretationEngineKind =
@@ -135,10 +136,33 @@ export const HFE_COMMON_GENOTYPE_MODEL: GeneticsModelDefinition = {
 	},
 };
 
+export const SERPINA1_COMMON_GENOTYPE_MODEL: GeneticsModelDefinition = {
+	id: "serpina1-common-genotype-v1",
+
+	version: "1.0.0",
+
+	evidenceClass: "established_risk_variant",
+
+	engine: "haplotype",
+
+	requiredRsids: ["rs28929474", "rs17580"],
+
+	evidenceIds: [SERPINA1_Z_EVIDENCE.id, SERPINA1_S_EVIDENCE.id],
+
+	analyticalRequirements: {
+		genomeBuild: "any",
+
+		strand: "any",
+
+		minimumCoverage: 1,
+	},
+};
+
 export const GENETICS_MODEL_REGISTRY: readonly GeneticsModelDefinition[] = [
 	FACTOR_V_LEIDEN_MODEL,
 	APOE_COMMON_DIPLOTYPE_MODEL,
 	HFE_COMMON_GENOTYPE_MODEL,
+	SERPINA1_COMMON_GENOTYPE_MODEL,
 ];
 
 export function listGeneticsModels(): readonly GeneticsModelDefinition[] {

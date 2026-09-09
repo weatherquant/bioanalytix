@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { interpretFactorVLeiden } from "../genetics/evidence/factorVLeidenInterpretation";
 import { interpretHfe } from "../genetics/evidence/hfeInterpretation";
+import { interpretSerpina1 } from "../genetics/evidence/serpina1Interpretation";
 import type { GenotypeObservation } from "../genetics/observations/types";
 import { buildGeneticHighlights, GENETIC_HIGHLIGHT_ENGINE_VERSION } from "./geneticHighlightEngine";
 
@@ -35,9 +36,24 @@ function hfeObservation(rsid: string, genotype: string): GenotypeObservation {
 	};
 }
 
+function serpina1Observation(rsid: string, genotype: string): GenotypeObservation {
+	return {
+		rsid,
+		genotype,
+		genomeBuild: "GRCh37",
+		callStatus: "called",
+		source: {
+			type: "consumer_genotype",
+			provider: "23andMe",
+		},
+		confirmationStatus: "unconfirmed",
+		limitations: [],
+	};
+}
+
 describe("geneticHighlightEngine", () => {
 	it("exposes a versioned highlight engine", () => {
-		expect(GENETIC_HIGHLIGHT_ENGINE_VERSION).toBe("1.1.0");
+		expect(GENETIC_HIGHLIGHT_ENGINE_VERSION).toBe("1.2.0");
 	});
 
 	it("classifies a reference Factor V Leiden result as informational", () => {
@@ -159,5 +175,90 @@ describe("geneticHighlightEngine", () => {
 		expect(highlight?.planningRelevance.label).toBe("For your awareness");
 
 		expect(highlight?.planningRelevance.whyItMatters.length).toBeGreaterThan(0);
+	});
+
+	it("surfaces SERPINA1 ZZ as a planning-relevant health-risk finding", () => {
+		const insight = interpretSerpina1(
+			serpina1Observation("rs28929474", "AA"),
+			serpina1Observation("rs17580", "AA"),
+		);
+
+		const [highlight] = buildGeneticHighlights([insight]);
+
+		expect(highlight?.category).toBe("health_risk");
+
+		expect(highlight?.planningRelevance.level).toBe("potential");
+
+		expect(highlight?.planningRelevance.label).toBe("Worth considering");
+
+		expect(highlight?.planningRelevance.scenarioEligible).toBe(true);
+
+		expect(highlight?.planningRelevance.planningDomains).toContain("health_costs");
+
+		expect(highlight?.planningRelevance.planningDomains).toContain("healthy_working_life");
+	});
+
+	it("surfaces SERPINA1 SZ as worth considering", () => {
+		const insight = interpretSerpina1(
+			serpina1Observation("rs28929474", "AG"),
+			serpina1Observation("rs17580", "AT"),
+		);
+
+		const [highlight] = buildGeneticHighlights([insight]);
+
+		expect(highlight?.category).toBe("health_risk");
+
+		expect(highlight?.planningRelevance.level).toBe("potential");
+
+		expect(highlight?.planningRelevance.scenarioEligible).toBe(true);
+	});
+
+	it("surfaces SERPINA1 MZ as an informational carrier finding", () => {
+		const insight = interpretSerpina1(
+			serpina1Observation("rs28929474", "AG"),
+			serpina1Observation("rs17580", "AA"),
+		);
+
+		const [highlight] = buildGeneticHighlights([insight]);
+
+		expect(highlight?.category).toBe("carrier");
+
+		expect(highlight?.planningRelevance.level).toBe("informational");
+
+		expect(highlight?.planningRelevance.label).toBe("Carrier finding");
+
+		expect(highlight?.planningRelevance.planningDomains).toContain("family");
+
+		expect(highlight?.planningRelevance.scenarioEligible).toBe(false);
+	});
+
+	it("keeps SERPINA1 SS informational rather than promoting it into a scenario", () => {
+		const insight = interpretSerpina1(
+			serpina1Observation("rs28929474", "GG"),
+			serpina1Observation("rs17580", "TT"),
+		);
+
+		const [highlight] = buildGeneticHighlights([insight]);
+
+		expect(highlight?.category).toBe("health_risk");
+
+		expect(highlight?.planningRelevance.level).toBe("informational");
+
+		expect(highlight?.planningRelevance.scenarioEligible).toBe(false);
+	});
+
+	it("keeps a SERPINA1 reference result useful rather than hiding it", () => {
+		const insight = interpretSerpina1(
+			serpina1Observation("rs28929474", "GG"),
+			serpina1Observation("rs17580", "AA"),
+		);
+
+		const [highlight] = buildGeneticHighlights([insight]);
+
+		expect(highlight?.planningRelevance.label).toBe("For your awareness");
+
+		expect(highlight?.planningRelevance.whyItMatters.length).toBeGreaterThan(0);
+
+		expect(highlight?.planningRelevance.scenarioEligible).toBe(false);
 	});
 });

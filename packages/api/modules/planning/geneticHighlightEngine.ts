@@ -6,7 +6,7 @@ import type {
 	GeneticPlanningRelevance,
 } from "./geneticHighlight";
 
-export const GENETIC_HIGHLIGHT_ENGINE_VERSION = "1.1.0";
+export const GENETIC_HIGHLIGHT_ENGINE_VERSION = "1.2.0";
 
 function normalizeDirection(insight: BiologicalInsight): GeneticHighlightDirection {
 	switch (insight.result.direction) {
@@ -51,6 +51,34 @@ function summaryForInsight(insight: BiologicalInsight): string {
 			case "unresolved":
 			default:
 				return "The available genotype data was not sufficient to resolve this HFE model reliably.";
+		}
+	}
+
+	if (insight.model.id === "serpina1-common-genotype-v1") {
+		const state = serpina1StateForInsight(insight);
+
+		switch (state) {
+			case "zz":
+				return "Two copies of the SERPINA1 Z variant were identified. This genotype is associated with substantially increased susceptibility to alpha-1 antitrypsin deficiency.";
+
+			case "sz":
+				return "One SERPINA1 S variant and one Z variant were identified. This genotype is associated with increased susceptibility to alpha-1 antitrypsin deficiency, although severity varies substantially.";
+
+			case "ss":
+				return "Two copies of the SERPINA1 S variant were identified. This genotype is generally associated with a milder reduction in alpha-1 antitrypsin than the ZZ genotype.";
+
+			case "mz":
+				return "One copy of the SERPINA1 Z variant was identified. This is a carrier genotype with potential health and family relevance, but it is not equivalent to the higher-risk ZZ genotype.";
+
+			case "ms":
+				return "One copy of the SERPINA1 S variant was identified. This is generally a lower-significance carrier finding.";
+
+			case "reference":
+				return "Neither of the common SERPINA1 S or Z susceptibility patterns assessed by this model was identified.";
+
+			case "unresolved":
+			default:
+				return "The available genotype data was not sufficient to resolve this SERPINA1 model reliably.";
 		}
 	}
 
@@ -106,6 +134,16 @@ function categoryForInsight(insight: BiologicalInsight): GeneticHighlightCategor
 		const state = hfeStateForInsight(insight);
 
 		if (state === "c282y_heterozygous" || state === "h63d_heterozygous") {
+			return "carrier";
+		}
+
+		return "health_risk";
+	}
+
+	if (insight.model.id === "serpina1-common-genotype-v1") {
+		const state = serpina1StateForInsight(insight);
+
+		if (state === "mz" || state === "ms") {
 			return "carrier";
 		}
 
@@ -249,6 +287,30 @@ function hfeStateForInsight(insight: BiologicalInsight): HfeHighlightState | und
 	}
 }
 
+type Serpina1HighlightState = "zz" | "sz" | "ss" | "mz" | "ms" | "reference" | "unresolved";
+
+function serpina1StateForInsight(insight: BiologicalInsight): Serpina1HighlightState | undefined {
+	if (insight.model.id !== "serpina1-common-genotype-v1") {
+		return undefined;
+	}
+
+	const state = insight.result.genotype;
+
+	switch (state) {
+		case "zz":
+		case "sz":
+		case "ss":
+		case "mz":
+		case "ms":
+		case "reference":
+		case "unresolved":
+			return state;
+
+		default:
+			return undefined;
+	}
+}
+
 function hfePlanningRelevance(insight: BiologicalInsight): GeneticPlanningRelevance {
 	const state = hfeStateForInsight(insight);
 
@@ -381,6 +443,143 @@ function hfePlanningRelevance(insight: BiologicalInsight): GeneticPlanningReleva
 	}
 }
 
+function serpina1PlanningRelevance(insight: BiologicalInsight): GeneticPlanningRelevance {
+	const state = serpina1StateForInsight(insight);
+
+	switch (state) {
+		case "zz":
+			return {
+				level: "potential",
+
+				label: "Worth considering",
+
+				meaning:
+					"Two copies of the SERPINA1 Z variant were identified. This genotype is associated with substantially increased susceptibility to alpha-1 antitrypsin deficiency, although genotype alone does not determine whether or when clinically significant disease will occur.",
+
+				whyItMatters:
+					"If clinically significant lung or liver disease developed, it could create recurring healthcare costs, affect working capacity or increase the importance of maintaining financial resilience. Bioanalytix therefore considers health-cost and healthy-working-life scenarios worth exploring rather than assuming that disease will occur.",
+
+				planningDomains: [
+					"health_costs",
+					"healthy_working_life",
+					"income_interruption",
+					"insurance",
+				],
+
+				suggestedQuestion:
+					"Would your household remain financially resilient if a chronic health condition created recurring treatment costs or reduced your capacity to work for a period?",
+
+				scenarioEligible: true,
+			};
+
+		case "sz":
+			return {
+				level: "potential",
+
+				label: "Worth considering",
+
+				meaning:
+					"One SERPINA1 S variant and one Z variant were identified. This genotype is associated with increased susceptibility to alpha-1 antitrypsin deficiency, although clinical effects vary considerably between individuals.",
+
+				whyItMatters:
+					"This result may make health-cost and working-life resilience more relevant to your planning. It does not provide a basis for assuming future illness or automatically changing financial assumptions.",
+
+				planningDomains: ["health_costs", "healthy_working_life", "income_interruption"],
+
+				suggestedQuestion:
+					"Would your financial plan remain resilient if a chronic health condition created additional costs or temporarily reduced your capacity to work?",
+
+				scenarioEligible: true,
+			};
+
+		case "ss":
+			return {
+				level: "informational",
+
+				label: "For your awareness",
+
+				meaning:
+					"Two copies of the SERPINA1 S variant were identified. This genotype is generally associated with a milder reduction in alpha-1 antitrypsin than the ZZ genotype and does not by itself predict clinically significant disease.",
+
+				whyItMatters:
+					"Bioanalytix does not currently consider this result alone sufficient reason to change your financial assumptions. It remains useful genetic information that can be reassessed as evidence and your circumstances develop.",
+
+				planningDomains: ["health_costs"],
+
+				scenarioEligible: false,
+			};
+
+		case "mz":
+			return {
+				level: "informational",
+
+				label: "Carrier finding",
+
+				meaning:
+					"One copy of the SERPINA1 Z variant was identified. This is a carrier genotype rather than the higher-risk ZZ genotype. Its health significance depends on other biological, environmental and lifestyle factors, and it may also have relevance for biological relatives.",
+
+				whyItMatters:
+					"No automatic financial-plan change is suggested from this carrier result. Its principal relevance is genetic and familial, although Bioanalytix can retain it for reassessment as evidence and your planning context evolve.",
+
+				planningDomains: ["family"],
+
+				scenarioEligible: false,
+			};
+
+		case "ms":
+			return {
+				level: "informational",
+
+				label: "Carrier finding",
+
+				meaning:
+					"One copy of the SERPINA1 S variant was identified. This is generally a lower-significance carrier genotype but may still be relevant to your genetic profile and biological relatives.",
+
+				whyItMatters:
+					"No financial-plan change is suggested from this result. Bioanalytix will retain the finding so its interpretation can be revisited as genetic evidence develops.",
+
+				planningDomains: ["family"],
+
+				scenarioEligible: false,
+			};
+
+		case "reference":
+			return {
+				level: "informational",
+
+				label: "For your awareness",
+
+				meaning:
+					"This model did not identify either of the common SERPINA1 S or Z susceptibility patterns assessed by Bioanalytix.",
+
+				whyItMatters:
+					"No change to your financial assumptions is suggested from this SERPINA1 result. This model assesses selected common variants and does not exclude other causes of alpha-1 antitrypsin deficiency or other health conditions.",
+
+				planningDomains: [],
+
+				scenarioEligible: false,
+			};
+
+		case "unresolved":
+		default:
+			return {
+				level: "informational",
+
+				label: "Result not resolved",
+
+				meaning:
+					"The available consumer genotype data was not sufficient for Bioanalytix to resolve this SERPINA1 model reliably.",
+
+				whyItMatters:
+					"No financial-planning conclusion should be drawn from an unresolved genetic result.",
+
+				planningDomains: [],
+
+				scenarioEligible: false,
+			};
+	}
+}
+
 function planningRelevanceForInsight(insight: BiologicalInsight): GeneticPlanningRelevance {
 	/*
 	 * Some models contain useful result-specific states
@@ -390,6 +589,10 @@ function planningRelevanceForInsight(insight: BiologicalInsight): GeneticPlannin
 	 */
 	if (insight.model.id === "hfe-common-genotype-v1") {
 		return hfePlanningRelevance(insight);
+	}
+
+	if (insight.model.id === "serpina1-common-genotype-v1") {
+		return serpina1PlanningRelevance(insight);
 	}
 
 	if (insight.result.direction !== "higher") {
