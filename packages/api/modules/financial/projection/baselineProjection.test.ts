@@ -178,11 +178,11 @@ describe("runBaselineProjection", () => {
 
 		expect(result.years[0]?.projectionDate).toBe("2026-09-01");
 
-		expect(result.years.at(-1)?.projectionDate).toBe("2031-09-01");
+		expect(result.years[result.years.length - 1]?.projectionDate).toBe("2031-09-01");
 
 		expect(result.years[0]?.primaryAge).toBe(55);
 
-		expect(result.years.at(-1)?.primaryAge).toBe(60);
+		expect(result.years[result.years.length - 1]?.primaryAge).toBe(60);
 	});
 
 	it("uses separately supplied assumptions without mutating household state", () => {
@@ -446,9 +446,9 @@ describe("runBaselineProjection", () => {
 			}),
 		});
 
-		expect(result.years.at(-1)?.projectionDate).toBe("2031-09-01");
+		expect(result.years[result.years.length - 1]?.projectionDate).toBe("2031-09-01");
 
-		expect(result.years.at(-1)?.primaryAge).toBe(60);
+		expect(result.years[result.years.length - 1]?.primaryAge).toBe(60);
 
 		expect(result.years).toHaveLength(6);
 	});

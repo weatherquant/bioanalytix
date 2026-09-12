@@ -96,7 +96,12 @@ export function generateInsights(userSnps: Record<string, string>): GeneticsSumm
 
 	const getDisease = (key: string): RiskLevel => {
 		const d = diseaseRisks.find((x) => x.disease === key);
-		return d?.label || "moderate";
+
+		if (!d) {
+			return "moderate";
+		}
+
+		return d.label === "average" ? "moderate" : d.label;
 	};
 
 	const longevityScore = computeLongevityScore(userSnps);

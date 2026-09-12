@@ -2,6 +2,7 @@ export type GenomeBuild = "GRCh37" | "GRCh38" | "unknown";
 
 export type EvidenceClass =
 	| "established_risk_variant"
+	| "established_trait_variant"
 	| "susceptibility_haplotype"
 	| "pharmacogenomic"
 	| "polygenic_score"

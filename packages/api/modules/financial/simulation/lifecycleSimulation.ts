@@ -227,6 +227,12 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 
 	const openingAge = calculateAgeOnDate(primary.dateOfBirth, household.asOfDate);
 
+	if (openingAge === undefined) {
+		throw new Error(
+			"Primary person's age could not be calculated for the household as-of date.",
+		);
+	}
+
 	const openingPhase = lifecyclePhaseForAge(
 		openingAge,
 		plan.retirementAge,
@@ -298,6 +304,12 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 		const ageAtStart = calculateAgeOnDate(primary.dateOfBirth, periodStartDate);
 
 		const ageAtEnd = calculateAgeOnDate(primary.dateOfBirth, periodEndDate);
+
+		if (ageAtStart === undefined || ageAtEnd === undefined) {
+			throw new Error(
+				`Primary person's age could not be calculated for projection year ${yearIndex + 1}.`,
+			);
+		}
 
 		/**
 		 * Lifecycle Simulation v1 uses the age reached during

@@ -115,7 +115,7 @@ function incomeInterruptionIntent({
 
 	const months = assumptions.incomeInterruptionMonths;
 
-	if (!positiveInteger(months)) {
+	if (months === undefined || !positiveInteger(months)) {
 		missingInputs.push("Enter an income interruption period.");
 	} else if (months % 12 !== 0) {
 		/*
@@ -142,6 +142,12 @@ function incomeInterruptionIntent({
 			missingInputs,
 			geneticContext: geneticContext(question),
 		};
+	}
+
+	if (months === undefined) {
+		throw new Error(
+			"Income interruption months must be defined before constructing the scenario.",
+		);
 	}
 
 	return {
@@ -553,6 +559,16 @@ export function buildPlanScenarioIntent({
 				household,
 				assumptions: extendedAssumptions,
 			});
+
+		case "insurance":
+		case "family":
+			return {
+				questionId: question.id,
+				mode: "readiness_review",
+				ready: true,
+				missingInputs: [],
+				geneticContext: geneticContext(question),
+			};
 
 		default: {
 			const exhaustiveCheck: never = question.domain;

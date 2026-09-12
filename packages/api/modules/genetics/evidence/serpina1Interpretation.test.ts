@@ -13,7 +13,11 @@ function observation(rsid: string, genotype: string): GenotypeObservation {
 			type: "consumer_genotype",
 			provider: "23andMe",
 		},
+		strandOrientation: "unknown",
 		confirmationStatus: "unconfirmed",
+		provenance: {
+		parserVersion: "test",
+		},
 		limitations: [],
 	};
 }

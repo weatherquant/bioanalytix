@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { createGenotypeObservation } from "../observations/createObservation";
-import { createGenotypeObservation } from "../observations/createObservation";
 import { interpretAvailableModels, interpretRegisteredModel } from "./interpretationDispatcher";
 
 function observation(rsid: string, genotype: string) {

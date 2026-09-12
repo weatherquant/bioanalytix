@@ -20,6 +20,13 @@ export interface BiologicalInsight {
 		| "thrombosis"
 		| "longevity"
 		| "pharmacogenomic"
+		| "nutrition_metabolism"
+		| "physical_performance"
+		| "sensory_trait"
+		| "iron_metabolism"
+		| "pulmonary_hepatic"
+		| "ophthalmic"
+		| "systemic"
 		| "other";
 
 	title: string;

@@ -71,12 +71,20 @@ function household(): HouseholdFinancialState {
 describe("buildPlanningProfileV1", () => {
 	it("builds a versioned planning profile from household and genetic exposures", () => {
 		const exposure: PlanningExposure = {
+			id: "health-cost-resilience",
 			domain: "health_costs",
 			significance: "moderate",
 			basis: "biological_insight",
 			rationale:
 				"A qualified biological signal may justify testing financial resilience to higher health costs.",
 			sourceInsightIds: ["factor-v-leiden-vte"],
+			qualifications: [],
+			constraints: {
+				diagnosticInferencePermitted: false,
+				absoluteRiskConversionPermitted: false,
+				directLongevityAdjustmentPermitted: false,
+				deterministicFinancialAdjustmentPermitted: false,
+			},
 		};
 
 		const profile = buildPlanningProfileV1({

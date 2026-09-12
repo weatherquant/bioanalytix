@@ -6,11 +6,13 @@ export type PlanningExposureDomain =
 	| "healthy_working_life"
 	| "health_costs"
 	| "care_dependency"
+	| "partner_dependency"
 	| "premature_mortality"
 	| "longevity"
 	| "income_interruption"
 	| "estate"
-	| "partner_dependency";
+	| "insurance"
+	| "family";
 
 export type PlanningSignificance = "low" | "moderate" | "high";
 
@@ -96,6 +98,15 @@ export interface PlanningExposure {
 	significance: PlanningSignificance;
 
 	basis: PlanningExposureBasis;
+
+	/**
+	 * Opaque identifiers for source insights that contributed to this
+	 * planning exposure.
+	 *
+	 * These provide traceability only. They must not encode genotype,
+	 * rsID, allele or haplotype information.
+	 */
+	sourceInsightIds?: string[];
 
 	/**
 	 * Financial-planning rationale for considering the

@@ -92,7 +92,7 @@ function questionForExposure(exposure: PlanningExposure, index: number): Plannin
 		domain: exposure.domain,
 		significance: exposure.significance,
 		rationale: exposure.rationale,
-		sourceInsightIds: exposure.sourceInsightIds,
+		sourceInsightIds: exposure.sourceInsightIds ?? [],
 	};
 
 	switch (exposure.domain) {
@@ -158,6 +158,22 @@ function questionForExposure(exposure: PlanningExposure, index: number): Plannin
 				title: "Partner resilience",
 				question:
 					"How would your partner or dependants be affected financially if your income, health or availability changed?",
+			};
+
+		case "insurance":
+			return {
+				...base,
+				title: "Insurance resilience",
+				question:
+					"Would your current insurance arrangements remain resilient if your household faced illness, disability, care needs or an earlier death?",
+			};
+
+		case "family":
+			return {
+				...base,
+				title: "Family resilience",
+				question:
+					"Would your household and family arrangements remain resilient if health, care, income or dependency needs changed?",
 			};
 	}
 }

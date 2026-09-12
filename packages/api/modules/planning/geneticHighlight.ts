@@ -21,6 +21,7 @@ export type GeneticPlanningRelevanceLevel = "informational" | "potential" | "mat
 export type GeneticPlanningDomain =
 	| "health_costs"
 	| "care_dependency"
+	| "partner_dependency"
 	| "healthy_working_life"
 	| "premature_mortality"
 	| "longevity"

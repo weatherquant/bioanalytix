@@ -1,3 +1,15 @@
+export interface SNPRecord {
+	rsid: string;
+	gene: string;
+	trait: string;
+	category: string;
+	subcategory: string;
+	riskAlleles: string[];
+	effectDirection: string;
+	effectSize: number;
+	description: string;
+}
+
 export const SNP_REFERENCE: SNPRecord[] = [
 	// -----------------------------
 	// Alzheimer’s

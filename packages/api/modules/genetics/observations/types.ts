@@ -2,6 +2,7 @@ export type GenomeBuild = "GRCh37" | "GRCh38" | "unknown";
 
 export type GenotypeSource =
 	| "consumer_raw_data"
+	| "consumer_genotype"
 	| "clinical_test"
 	| "research_dataset"
 	| "manual_entry"

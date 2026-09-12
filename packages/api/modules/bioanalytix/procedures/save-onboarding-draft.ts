@@ -9,7 +9,7 @@ const onboardingDraftSchema = z.object({
 
 	onboardingStep: z.number().int().min(1).max(4),
 
-	draft: z.record(z.string(), z.unknown()),
+	draft: z.record(z.string(), z.json()),
 });
 
 export const saveBioanalytixOnboardingDraft = protectedProcedure
