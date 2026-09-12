@@ -1,10 +1,6 @@
 import type { BiologicalInsight } from "../genetics/evidence/insight";
-import type {
-	GeneticHighlight,
-	GeneticHighlightCategory,
-	GeneticHighlightDirection,
-	GeneticPlanningRelevance,
-} from "./geneticHighlight";
+import type { GeneticHighlight, GeneticPlanningRelevance } from "./geneticHighlight";
+import { categoryForGeneticInsight } from "./geneticHighlightCategory";
 import {
 	deduplicateGeneticLimitations,
 	explanationForGeneticInsight,
@@ -307,66 +303,6 @@ function summaryForInsight(insight: BiologicalInsight): string {
 		case "indeterminate":
 		default:
 			return `This model could not determine a clear susceptibility signal for ${insight.title} from the available genotype data.`;
-	}
-}
-
-function categoryForInsight(insight: BiologicalInsight): GeneticHighlightCategory {
-	switch (insight.model.id) {
-		case "hfe-common-genotype-v1": {
-			const state = hfeStateForInsight(insight);
-
-			if (state === "c282y_heterozygous" || state === "h63d_heterozygous") {
-				return "carrier";
-			}
-
-			return "health_risk";
-		}
-
-		case "serpina1-common-genotype-v1": {
-			const state = serpina1StateForInsight(insight);
-
-			if (state === "mz" || state === "ms") {
-				return "carrier";
-			}
-
-			return "health_risk";
-		}
-
-		case "mutyh-selected-variants-v1": {
-			const state = mutyhStateForInsight(insight);
-
-			if (state === "single_pathogenic_variant") {
-				return "carrier";
-			}
-
-			return "health_risk";
-		}
-
-		case "mcm6-lactase-persistence-v1":
-		case "cyp1a2-caffeine-metabolism-v1":
-		case "aldh2-alcohol-response-v1":
-			return "nutrition_metabolism";
-
-		case "actn3-muscle-performance-v1":
-		case "tas2r38-bitter-taste-v1":
-			return "trait";
-
-		case "apoe-common-diplotype-v1":
-			return "ageing_longevity";
-
-		case "f5-factor-v-leiden-vte":
-		case "lpa-cardiovascular-risk-v1":
-		case "amd-common-susceptibility-v1":
-		case "tcf7l2-type-2-diabetes-v1":
-		case "lrrk2-g2019s-parkinson-v1":
-		case "ttr-v142i-amyloidosis-v1":
-		case "apob-r3527q-fh-v1":
-		case "f2-g20210a-thrombophilia-v1":
-		case "brca-selected-substitution-variants-v1":
-			return "health_risk";
-
-		default:
-			return "health_risk";
 	}
 }
 
@@ -1703,7 +1639,7 @@ export function buildGeneticHighlights(insights: BiologicalInsight[]): GeneticHi
 
 		evidenceStrength: insight.confidence.evidenceStrength,
 
-		category: categoryForInsight(insight),
+		category: categoryForGeneticInsight(insight),
 
 		summary: summaryForInsight(insight),
 
