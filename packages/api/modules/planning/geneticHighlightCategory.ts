@@ -43,7 +43,10 @@ export function categoryForGeneticInsight(insight: BiologicalInsight): GeneticHi
 		return "trait";
 	}
 
-	if (insight.model.id === "aldh2-alcohol-response-v1") {
+	if (
+		insight.model.id === "adh1b-alcohol-metabolism-v1" ||
+		insight.model.id === "aldh2-alcohol-response-v1"
+	) {
 		return "nutrition_metabolism";
 	}
 

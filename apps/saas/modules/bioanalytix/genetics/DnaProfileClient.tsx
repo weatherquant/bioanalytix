@@ -23,6 +23,14 @@ import type {
 } from "../../../types/genetics";
 import { getGeneticProfile, uploadGeneticFile } from "./api";
 
+type PlanningTheme = {
+	id: "resilience" | "protection" | "estate";
+	title: string;
+	status: string;
+	description: string;
+	domains: string[];
+};
+
 function geneticHighlightsFromProfile(profile: GeneticProfile | null): GeneticHighlight[] {
 	return profile?.geneticHighlights ?? [];
 }
@@ -74,8 +82,73 @@ function isKeyFinding(highlight: GeneticHighlight): boolean {
 	return (
 		relevance.level !== "informational" ||
 		highlight.category === "carrier" ||
-		highlight.direction !== "reference"
+		(highlight.direction !== "reference" && highlight.direction !== "indeterminate")
 	);
+}
+
+function buildPlanningThemes(highlights: GeneticHighlight[]): PlanningTheme[] {
+	const planningSensitiveHighlights = highlights.filter((highlight) => {
+		const relevance = relevanceForHighlight(highlight);
+
+		return relevance.level === "potential" || relevance.level === "material";
+	});
+
+	const domains = new Set(
+		planningSensitiveHighlights.flatMap(
+			(highlight) => relevanceForHighlight(highlight).planningDomains,
+		),
+	);
+
+	const themes: PlanningTheme[] = [];
+
+	const resilienceDomains = [
+		"health_costs",
+		"healthy_working_life",
+		"income_interruption",
+		"care_dependency",
+		"partner_dependency",
+		"longevity",
+		"premature_mortality",
+	];
+
+	const relevantResilienceDomains = resilienceDomains.filter((domain) => domains.has(domain));
+
+	if (relevantResilienceDomains.length > 0) {
+		themes.push({
+			id: "resilience",
+			title: "Financial resilience",
+			status: "Worth exploring",
+			description:
+				"Your genetic profile makes it worthwhile to test how comfortably your finances could absorb changes to health, care needs, working life or longevity.",
+			domains: relevantResilienceDomains,
+		});
+	}
+
+	if (domains.has("insurance")) {
+		themes.push({
+			id: "protection",
+			title: "Protection & insurance",
+			status: "Worth reviewing",
+			description:
+				"Your results make it reasonable to review whether your current protection still fits your income, responsibilities and the people who depend on you.",
+			domains: ["insurance"],
+		});
+	}
+
+	const estateDomains = ["estate", "family"].filter((domain) => domains.has(domain));
+
+	if (estateDomains.length > 0) {
+		themes.push({
+			id: "estate",
+			title: "Estate & family",
+			status: "Worth considering",
+			description:
+				"Your genetic profile makes it worthwhile to consider whether your estate and family arrangements would still work well if circumstances changed.",
+			domains: estateDomains,
+		});
+	}
+
+	return themes;
 }
 
 function categoryLabel(highlight: GeneticHighlight): string {
@@ -228,9 +301,18 @@ export function DnaProfileClient() {
 		[geneticHighlights],
 	);
 
-	const keyFindings = sortedHighlights.filter(isKeyFinding);
+	const traitFindings = sortedHighlights.filter(
+		(highlight) =>
+			highlight.category === "trait" || highlight.category === "nutrition_metabolism",
+	);
 
-	const otherFindings = sortedHighlights.filter((highlight) => !isKeyFinding(highlight));
+	const standoutFindings = sortedHighlights.filter(
+		(highlight) => !traitFindings.includes(highlight) && isKeyFinding(highlight),
+	);
+
+	const otherFindings = sortedHighlights.filter(
+		(highlight) => !traitFindings.includes(highlight) && !standoutFindings.includes(highlight),
+	);
 
 	const attentionCount = geneticHighlights.filter(
 		(highlight) =>
@@ -242,12 +324,18 @@ export function DnaProfileClient() {
 		(highlight) => highlight.category === "carrier",
 	).length;
 
-	const healthCount = geneticHighlights.filter(
-		(highlight) => highlight.category === "health_risk",
+	const traitCount = geneticHighlights.filter(
+		(highlight) =>
+			highlight.category === "trait" || highlight.category === "nutrition_metabolism",
 	).length;
 
-	const ageingCount = geneticHighlights.filter(
-		(highlight) => highlight.category === "ageing_longevity",
+	const planningThemes = useMemo(
+		() => buildPlanningThemes(geneticHighlights),
+		[geneticHighlights],
+	);
+
+	const informationalCount = geneticHighlights.filter(
+		(highlight) => relevanceForHighlight(highlight).level === "informational",
 	).length;
 
 	if (loading) {
@@ -341,55 +429,75 @@ export function DnaProfileClient() {
 				</div>
 			</section>
 
-			<div style={metricsGridStyle}>
-				<MetricCard
-					value={geneticHighlights.length}
-					title="Genetic findings"
-					description={`From ${geneticHighlights.length} evaluated models`}
-					icon={<Dna size={22} />}
-				/>
+			<section style={snapshotStyle}>
+				<div style={snapshotHeaderStyle}>
+					<div>
+						<div style={snapshotEyebrowStyle}>Your genetic profile</div>
 
-				<MetricCard
-					value={attentionCount}
-					title="Attention needed"
-					description="Findings that may warrant planning consideration"
-					icon={<AlertTriangle size={22} />}
-				/>
+						<h2 style={snapshotTitleStyle}>
+							A clearer picture of what makes you, you.
+						</h2>
 
-				<MetricCard
-					value={carrierCount}
-					title="Carrier findings"
-					description="Useful information for you and your family"
-					icon={<Users size={22} />}
-				/>
+						<p style={snapshotDescriptionStyle}>
+							Your results include health, carrier, ageing and personal trait
+							findings. Some may be worth considering as you think about your
+							longer-term plans; many are simply useful things to know about yourself.
+						</p>
+					</div>
 
-				<MetricCard
-					value={healthCount}
-					title="Health findings"
-					description="Health-related genetic results"
-					icon={<HeartPulse size={22} />}
-				/>
+					<div style={profileConfidenceStyle}>
+						<ShieldCheck size={17} />
 
-				<MetricCard
-					value={ageingCount}
-					title="Ageing / longevity"
-					description="Ageing-related genetic findings"
-					icon={<Leaf size={22} />}
-				/>
-			</div>
+						<div style={profileConfidenceTextStyle}>
+							<strong>Profile analysed</strong>
+
+							<span>{geneticHighlights.length} evidence models interpreted</span>
+						</div>
+					</div>
+				</div>
+
+				<div style={snapshotMetricsStyle}>
+					<SnapshotMetric
+						value={geneticHighlights.length}
+						label="Findings"
+						description="Results currently interpreted"
+					/>
+
+					<SnapshotMetric
+						value={attentionCount}
+						label="Worth considering"
+						description="May inform future planning"
+						emphasis={attentionCount > 0}
+					/>
+
+					<SnapshotMetric
+						value={carrierCount}
+						label="Carrier findings"
+						description="Potentially relevant to you or family"
+					/>
+
+					<SnapshotMetric
+						value={traitCount}
+						label="Traits & metabolism"
+						description="Personal characteristics"
+					/>
+				</div>
+			</section>
 
 			<section style={sectionStyle}>
 				<div style={sectionHeadingStyle}>
-					<h2 style={sectionTitleStyle}>Key findings</h2>
+					<div style={sectionEyebrowStyle}>What stands out</div>
+
+					<h2 style={sectionTitleStyle}>Results worth knowing about</h2>
 
 					<p style={sectionDescriptionStyle}>
-						Your most relevant results, ordered by potential significance.
+						Health, carrier and other findings that may deserve more of your attention.
 					</p>
 				</div>
 
-				{keyFindings.length > 0 ? (
+				{standoutFindings.length > 0 ? (
 					<div style={findingsStackStyle}>
-						{keyFindings.map((highlight) => (
+						{standoutFindings.map((highlight) => (
 							<FindingRow
 								key={highlight.id}
 								highlight={highlight}
@@ -416,13 +524,128 @@ export function DnaProfileClient() {
 				)}
 			</section>
 
+			{traitFindings.length > 0 && (
+				<section style={sectionStyle}>
+					<div style={sectionHeadingStyle}>
+						<div style={sectionEyebrowStyle}>More about you</div>
+
+						<h2 style={sectionTitleStyle}>Traits & metabolism</h2>
+
+						<p style={sectionDescriptionStyle}>
+							Genetic characteristics that can help you understand some of the ways
+							your body may differ from other people.
+						</p>
+					</div>
+
+					<div style={traitGridStyle}>
+						{traitFindings.map((highlight) => (
+							<TraitCard
+								key={highlight.id}
+								highlight={highlight}
+								expanded={expandedId === highlight.id}
+								onToggle={() =>
+									setExpandedId(expandedId === highlight.id ? null : highlight.id)
+								}
+							/>
+						))}
+					</div>
+				</section>
+			)}
+
+			<section style={futureSectionStyle}>
+				<div style={sectionHeadingStyle}>
+					<div style={sectionEyebrowStyle}>Looking ahead</div>
+
+					<h2 style={sectionTitleStyle}>What this could mean for your future</h2>
+
+					<p style={sectionDescriptionStyle}>
+						Genetics can make some planning questions more relevant, but it does not
+						determine your financial future.
+					</p>
+				</div>
+
+				{planningThemes.length > 0 ? (
+					<>
+						<div style={futureIntroStyle}>
+							<div style={futureIntroIconStyle}>
+								<ShieldCheck size={20} />
+							</div>
+
+							<div>
+								<strong>
+									Your profile highlights a few areas worth thinking about.
+								</strong>
+
+								<p>
+									These are not predictions or recommendations to change your
+									finances. They are areas where testing your resilience may give
+									you useful confidence about the future.
+								</p>
+							</div>
+						</div>
+
+						<div style={planningThemeGridStyle}>
+							{planningThemes.map((theme) => (
+								<PlanningThemeCard key={theme.id} theme={theme} />
+							))}
+						</div>
+					</>
+				) : (
+					<>
+						<div style={reassurancePanelStyle}>
+							<div style={reassuranceIconStyle}>
+								<CheckCircle2 size={21} />
+							</div>
+
+							<div>
+								<strong>
+									Your genetics do not currently suggest changing your financial
+									plan.
+								</strong>
+
+								<p>
+									None of the genetic findings currently interpreted by
+									Bioanalytix meet the threshold for changing your financial
+									planning assumptions. That is useful information: your plan can
+									remain focused on the fundamentals.
+								</p>
+							</div>
+						</div>
+
+						<div style={fundamentalsGridStyle}>
+							<PlanningFundamentalCard
+								title="Financial resilience"
+								description="Would your plan remain comfortable if health, care or work circumstances changed?"
+							/>
+
+							<PlanningFundamentalCard
+								title="Protection"
+								description="Is your current protection appropriate for your income, responsibilities and the people who depend on you?"
+							/>
+
+							<PlanningFundamentalCard
+								title="Estate & family"
+								description="Are your estate arrangements clear, current and appropriate for the people important to you?"
+							/>
+						</div>
+
+						<div style={fundamentalsNoteStyle}>
+							Good planning regardless of genetics
+						</div>
+					</>
+				)}
+			</section>
+
 			{otherFindings.length > 0 && (
 				<section style={sectionStyle}>
 					<div style={sectionHeadingStyle}>
-						<h2 style={sectionTitleStyle}>Other findings</h2>
+						<div style={sectionEyebrowStyle}>Your wider profile</div>
+
+						<h2 style={sectionTitleStyle}>Other genetic results</h2>
 
 						<p style={sectionDescriptionStyle}>
-							Additional results from your genetic analysis, listed for completeness.
+							Reference and informational findings from the genetic models currently
+							included in your profile.
 						</p>
 					</div>
 
@@ -687,28 +910,98 @@ function DnaHeroGraphic() {
 	);
 }
 
-function MetricCard({
+function SnapshotMetric({
 	value,
-	title,
+	label,
 	description,
-	icon,
+	emphasis = false,
 }: {
 	value: number;
-	title: string;
+	label: string;
 	description: string;
-	icon: React.ReactNode;
+	emphasis?: boolean;
 }) {
 	return (
-		<div style={metricCardStyle}>
-			<div style={metricTopStyle}>
-				<div style={metricValueStyle}>{value}</div>
+		<div style={snapshotMetricStyle(emphasis)}>
+			<div style={snapshotMetricValueStyle}>{value}</div>
 
-				<div style={metricIconStyle}>{icon}</div>
+			<div style={snapshotMetricLabelStyle}>{label}</div>
+
+			<div style={snapshotMetricDescriptionStyle}>{description}</div>
+		</div>
+	);
+}
+
+function PlanningThemeCard({ theme }: { theme: PlanningTheme }) {
+	return (
+		<div style={planningThemeCardStyle}>
+			<div style={planningThemeStatusStyle}>{theme.status}</div>
+
+			<h3 style={planningThemeTitleStyle}>{theme.title}</h3>
+
+			<p style={planningThemeDescriptionStyle}>{theme.description}</p>
+		</div>
+	);
+}
+
+function PlanningFundamentalCard({ title, description }: { title: string; description: string }) {
+	return (
+		<div style={fundamentalCardStyle}>
+			<div style={fundamentalIconStyle}>
+				<ShieldCheck size={17} />
 			</div>
 
-			<div style={metricTitleStyle}>{title}</div>
+			<h3 style={fundamentalTitleStyle}>{title}</h3>
 
-			<div style={metricDescriptionStyle}>{description}</div>
+			<p style={fundamentalDescriptionStyle}>{description}</p>
+		</div>
+	);
+}
+
+function TraitCard({
+	highlight,
+	expanded,
+	onToggle,
+}: {
+	highlight: GeneticHighlight;
+	expanded: boolean;
+	onToggle: () => void;
+}) {
+	return (
+		<div style={traitCardStyle}>
+			<div style={traitCardTopStyle}>
+				<div style={traitIconStyle}>
+					{highlight.category === "nutrition_metabolism" ? (
+						<Leaf size={19} />
+					) : (
+						<Dna size={19} />
+					)}
+				</div>
+
+				<div style={traitCategoryStyle}>
+					{highlight.category === "nutrition_metabolism" ? "Metabolism" : "Trait"}
+				</div>
+			</div>
+
+			<h3 style={traitTitleStyle}>{shortTitle(highlight)}</h3>
+
+			<p style={traitSummaryStyle}>{highlight.summary}</p>
+
+			<button type="button" onClick={onToggle} style={traitDetailsButtonStyle}>
+				{expanded ? "Hide details" : "Learn more"}
+
+				{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+			</button>
+
+			{expanded && (
+				<div style={traitExpandedStyle}>
+					<p style={detailTextStyle}>{highlight.explanation}</p>
+
+					<div style={traitEvidenceStyle}>
+						Evidence: <strong>{highlight.evidenceStrength}</strong>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
@@ -912,48 +1205,185 @@ const dnaHeroSvgStyle: React.CSSProperties = {
 	opacity: 0.9,
 };
 
-const metricsGridStyle: React.CSSProperties = {
-	display: "grid",
-	gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-	gap: 12,
-	marginBottom: 34,
-};
-
-const metricCardStyle: React.CSSProperties = {
-	minHeight: 142,
-	padding: 18,
+const snapshotStyle: React.CSSProperties = {
+	marginBottom: 36,
+	padding: "26px 28px",
 	background: "#ffffff",
-	border: "1px solid #e2e7ec",
-	borderRadius: 13,
+	border: "1px solid #e1e7ec",
+	borderRadius: 15,
 };
 
-const metricTopStyle: React.CSSProperties = {
+const snapshotHeaderStyle: React.CSSProperties = {
 	display: "flex",
 	alignItems: "flex-start",
 	justifyContent: "space-between",
+	gap: 36,
+	marginBottom: 24,
 };
 
-const metricValueStyle: React.CSSProperties = {
-	fontSize: 30,
-	fontWeight: 700,
-	letterSpacing: "-0.03em",
-};
-
-const metricIconStyle: React.CSSProperties = {
+const snapshotEyebrowStyle: React.CSSProperties = {
+	marginBottom: 7,
 	color: "#3478bd",
+	fontSize: 10,
+	fontWeight: 750,
+	letterSpacing: "0.12em",
+	textTransform: "uppercase",
 };
 
-const metricTitleStyle: React.CSSProperties = {
-	marginTop: 17,
+const snapshotTitleStyle: React.CSSProperties = {
+	margin: 0,
+	fontSize: 22,
+	lineHeight: "29px",
+	fontWeight: 680,
+	letterSpacing: "-0.025em",
+};
+
+const snapshotDescriptionStyle: React.CSSProperties = {
+	maxWidth: 690,
+	margin: "8px 0 0",
+	color: "#6d7b87",
 	fontSize: 13,
-	fontWeight: 650,
+	lineHeight: "20px",
 };
 
-const metricDescriptionStyle: React.CSSProperties = {
-	marginTop: 6,
-	color: "#7a8792",
+const profileConfidenceStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "flex-start",
+	gap: 9,
+	flexShrink: 0,
+	padding: "10px 13px",
+	color: "#53718b",
+	background: "#f5f9fc",
+	border: "1px solid #deebf4",
+	borderRadius: 10,
+	fontSize: 11,
+};
+
+const snapshotMetricsStyle: React.CSSProperties = {
+	display: "grid",
+	gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+	borderTop: "1px solid #edf0f2",
+};
+
+const sectionEyebrowStyle: React.CSSProperties = {
+	marginBottom: 6,
+	color: "#3478bd",
+	fontSize: 10,
+	fontWeight: 750,
+	letterSpacing: "0.11em",
+	textTransform: "uppercase",
+};
+
+const traitGridStyle: React.CSSProperties = {
+	display: "grid",
+	gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+	gap: 12,
+};
+
+const traitCardStyle: React.CSSProperties = {
+	minHeight: 205,
+	padding: 19,
+	background: "linear-gradient(145deg, #ffffff 0%, #f8fbfe 100%)",
+	border: "1px solid #dfe8ef",
+	borderRadius: 13,
+};
+
+const traitCardTopStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "center",
+	justifyContent: "space-between",
+	marginBottom: 15,
+};
+
+const traitIconStyle: React.CSSProperties = {
+	width: 36,
+	height: 36,
+	display: "flex",
+	alignItems: "center",
+	justifyContent: "center",
+	color: "#477eaa",
+	background: "#eef6fc",
+	border: "1px solid #d9e9f5",
+	borderRadius: 10,
+};
+
+const traitCategoryStyle: React.CSSProperties = {
+	color: "#7290a8",
+	fontSize: 9,
+	fontWeight: 750,
+	letterSpacing: "0.09em",
+	textTransform: "uppercase",
+};
+
+const traitTitleStyle: React.CSSProperties = {
+	margin: 0,
+	fontSize: 15,
+	lineHeight: "20px",
+	fontWeight: 680,
+};
+
+const traitSummaryStyle: React.CSSProperties = {
+	minHeight: 48,
+	margin: "7px 0 15px",
+	color: "#697984",
 	fontSize: 11,
 	lineHeight: "17px",
+};
+
+const traitDetailsButtonStyle: React.CSSProperties = {
+	display: "inline-flex",
+	alignItems: "center",
+	gap: 5,
+	padding: 0,
+	border: 0,
+	background: "transparent",
+	color: "#3478bd",
+	fontSize: 11,
+	fontWeight: 650,
+	cursor: "pointer",
+};
+
+const traitExpandedStyle: React.CSSProperties = {
+	marginTop: 14,
+	paddingTop: 14,
+	borderTop: "1px solid #e5edf3",
+};
+
+const traitEvidenceStyle: React.CSSProperties = {
+	marginTop: 10,
+	color: "#89949d",
+	fontSize: 10,
+};
+
+function snapshotMetricStyle(emphasis: boolean): React.CSSProperties {
+	return {
+		minHeight: 112,
+		padding: "20px 22px 10px 0",
+		borderRight: "1px solid #edf0f2",
+		background: emphasis
+			? "linear-gradient(180deg, rgba(255,249,232,0.42), transparent)"
+			: "transparent",
+	};
+}
+
+const snapshotMetricValueStyle: React.CSSProperties = {
+	fontSize: 30,
+	lineHeight: "34px",
+	fontWeight: 700,
+	letterSpacing: "-0.04em",
+};
+
+const snapshotMetricLabelStyle: React.CSSProperties = {
+	marginTop: 7,
+	fontSize: 12,
+	fontWeight: 680,
+};
+
+const snapshotMetricDescriptionStyle: React.CSSProperties = {
+	marginTop: 4,
+	color: "#89949d",
+	fontSize: 10,
+	lineHeight: "15px",
 };
 
 const sectionStyle: React.CSSProperties = {
@@ -1325,4 +1755,154 @@ const statusStyle: React.CSSProperties = {
 	gap: 7,
 	color: "#555555",
 	fontSize: 13,
+};
+
+const profileConfidenceTextStyle: React.CSSProperties = {
+	display: "flex",
+	flexDirection: "column",
+	gap: 2,
+};
+
+const futureSectionStyle: React.CSSProperties = {
+	marginTop: 42,
+	padding: "28px 30px",
+	background: "linear-gradient(135deg, #f7fbfe 0%, #ffffff 64%)",
+	border: "1px solid #dce8f1",
+	borderRadius: 15,
+};
+
+const futureIntroStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "flex-start",
+	gap: 12,
+	marginBottom: 20,
+	padding: 17,
+	background: "#ffffff",
+	border: "1px solid #e1e9ef",
+	borderRadius: 11,
+	color: "#5e6f7d",
+	fontSize: 12,
+	lineHeight: "19px",
+};
+
+const futureIntroIconStyle: React.CSSProperties = {
+	width: 36,
+	height: 36,
+	display: "flex",
+	alignItems: "center",
+	justifyContent: "center",
+	flexShrink: 0,
+	color: "#3478bd",
+	background: "#eef6fc",
+	borderRadius: 10,
+};
+
+const planningThemeGridStyle: React.CSSProperties = {
+	display: "grid",
+	gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+	gap: 12,
+};
+
+const planningThemeCardStyle: React.CSSProperties = {
+	minHeight: 170,
+	padding: 19,
+	background: "#ffffff",
+	border: "1px solid #dfe7ed",
+	borderRadius: 12,
+};
+
+const planningThemeStatusStyle: React.CSSProperties = {
+	display: "inline-flex",
+	marginBottom: 11,
+	padding: "4px 8px",
+	background: "#fff8e8",
+	border: "1px solid #eadbb7",
+	borderRadius: 999,
+	color: "#725d27",
+	fontSize: 9,
+	fontWeight: 750,
+	letterSpacing: "0.04em",
+	textTransform: "uppercase",
+};
+
+const planningThemeTitleStyle: React.CSSProperties = {
+	margin: 0,
+	fontSize: 15,
+	fontWeight: 680,
+};
+
+const planningThemeDescriptionStyle: React.CSSProperties = {
+	margin: "8px 0 0",
+	color: "#697985",
+	fontSize: 11,
+	lineHeight: "18px",
+};
+
+const reassurancePanelStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "flex-start",
+	gap: 13,
+	padding: 19,
+	background: "#ffffff",
+	border: "1px solid #dce7ee",
+	borderRadius: 12,
+	color: "#5e707e",
+	fontSize: 12,
+	lineHeight: "19px",
+};
+
+const reassuranceIconStyle: React.CSSProperties = {
+	width: 38,
+	height: 38,
+	display: "flex",
+	alignItems: "center",
+	justifyContent: "center",
+	flexShrink: 0,
+	color: "#3f8062",
+	background: "#eef8f2",
+	border: "1px solid #d8ebdf",
+	borderRadius: 999,
+};
+
+const fundamentalsGridStyle: React.CSSProperties = {
+	display: "grid",
+	gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+	gap: 12,
+	marginTop: 14,
+};
+
+const fundamentalCardStyle: React.CSSProperties = {
+	minHeight: 152,
+	padding: 18,
+	background: "#ffffff",
+	border: "1px solid #e2e8ed",
+	borderRadius: 11,
+};
+
+const fundamentalIconStyle: React.CSSProperties = {
+	marginBottom: 12,
+	color: "#5d7f9c",
+};
+
+const fundamentalTitleStyle: React.CSSProperties = {
+	margin: 0,
+	fontSize: 14,
+	fontWeight: 680,
+};
+
+const fundamentalDescriptionStyle: React.CSSProperties = {
+	margin: "7px 0 0",
+	color: "#71808b",
+	fontSize: 11,
+	lineHeight: "18px",
+};
+
+const fundamentalsNoteStyle: React.CSSProperties = {
+	marginTop: 12,
+	color: "#8b969e",
+	fontSize: 9,
+	fontWeight: 700,
+	letterSpacing: "0.1em",
+	textAlign: "right",
+	textTransform: "uppercase",
 };
