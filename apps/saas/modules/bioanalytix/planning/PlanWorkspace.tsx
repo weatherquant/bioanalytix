@@ -41,6 +41,8 @@ type PlanningSignificance = "low" | "moderate" | "high";
 
 type PlanningOutcome = "strong" | "comfortable" | "worth_reviewing" | "exposed";
 
+type PlanningCoverage = "covered" | "review_recommended";
+
 type PlanningArea =
 	| "financial_resilience"
 	| "income_work"
@@ -60,6 +62,7 @@ interface PlanningSummaryArea {
 	area: PlanningArea;
 	title: string;
 	outcome: PlanningOutcome;
+	coverage: PlanningCoverage;
 	summary: string;
 	question: string;
 	geneticContext?: string;
@@ -251,6 +254,23 @@ function planningAreaClass(area: PlanningArea) {
 	}
 }
 
+function reviewHrefForPlanningArea(area: PlanningArea): string | null {
+	switch (area) {
+		case "financial_resilience":
+		case "income_work":
+			return "/v2/wealth";
+
+		case "estate_family":
+			return "/v2/estate";
+
+		case "longevity_later_life":
+			return "/v2/longevity";
+
+		case "protection":
+			return null;
+	}
+}
+
 function outcomeClass(outcome: PlanningOutcome) {
 	switch (outcome) {
 		case "strong":
@@ -388,12 +408,15 @@ export function PlanWorkspace() {
 		[areaReviews],
 	);
 
-	const reviewedCount =
-		planningSummary?.areas.filter((area) => reviewedAreaIds.has(area.area)).length ?? 0;
+	const coveredCount =
+		planningSummary?.areas.filter(
+			(area) => area.coverage === "covered" || reviewedAreaIds.has(area.area),
+		).length ?? 0;
 
-	const reviewTotal = planningSummary?.areas.length ?? 0;
+	const coverageTotal = planningSummary?.areas.length ?? 0;
 
-	const reviewPercent = reviewTotal > 0 ? Math.round((reviewedCount / reviewTotal) * 100) : 0;
+	const coveragePercent =
+		coverageTotal > 0 ? Math.round((coveredCount / coverageTotal) * 100) : 0;
 
 	function markDirty() {
 		setDirty(true);
@@ -559,16 +582,16 @@ export function PlanWorkspace() {
 						<div className={styles.reviewProgress}>
 							<div className={styles.reviewProgressTop}>
 								<strong>
-									{reviewedCount} of {reviewTotal} areas reviewed
+									Your plan covers {coveredCount} of {coverageTotal} areas
 								</strong>
 
-								<span>{reviewPercent}%</span>
+								<span>{coveragePercent}%</span>
 							</div>
 
 							<div className={styles.reviewProgressTrack}>
 								<div
 									className={styles.reviewProgressFill}
-									style={{ width: `${reviewPercent}%` }}
+									style={{ width: `${coveragePercent}%` }}
 								/>
 							</div>
 						</div>
@@ -581,6 +604,8 @@ export function PlanWorkspace() {
 							const review = areaReviews.find((item) => item.area === area.area);
 
 							const reviewed = review?.status === "reviewed";
+
+							const reviewHref = reviewHrefForPlanningArea(area.area);
 
 							return (
 								<div
@@ -632,26 +657,54 @@ export function PlanWorkspace() {
 									<p className={styles.planningQuestion}>{area.question}</p>
 
 									<div className={styles.planningReviewFooter}>
-										<button
-											type="button"
-											className={[
-												styles.reviewButton,
-												reviewed ? styles.reviewButtonReviewed : "",
-											].join(" ")}
-											onClick={() => toggleAreaReview(area.area)}
-											aria-pressed={reviewed}
-										>
-											<span className={styles.reviewCircle}>
-												{reviewed && <Check size={13} />}
-											</span>
+										{reviewed ? (
+											<>
+												<button
+													type="button"
+													className={[
+														styles.reviewButton,
+														styles.reviewButtonReviewed,
+													].join(" ")}
+													onClick={() => toggleAreaReview(area.area)}
+													aria-pressed={true}
+												>
+													<span className={styles.reviewCircle}>
+														<Check size={13} />
+													</span>
+													Reviewed
+												</button>
 
-											{reviewed ? "Reviewed" : "To review"}
-										</button>
+												{review.reviewedAt && (
+													<span className={styles.reviewDate}>
+														Reviewed{" "}
+														{formatReviewDate(review.reviewedAt)}
+													</span>
+												)}
+											</>
+										) : area.coverage === "covered" ? (
+											<div
+												className={[
+													styles.reviewButton,
+													styles.reviewButtonReviewed,
+												].join(" ")}
+											>
+												<span className={styles.reviewCircle}>
+													<Check size={13} />
+												</span>
+												Covered by your plan
+											</div>
+										) : (
+											<div className={styles.reviewButton}>
+												<span className={styles.reviewCircle} />
 
-										{reviewed && review?.reviewedAt && (
-											<span className={styles.reviewDate}>
-												Reviewed {formatReviewDate(review.reviewedAt)}
-											</span>
+												<span>Review recommended</span>
+
+												{reviewHref && (
+													<a href={reviewHref}>
+														Review <ChevronRight size={13} />
+													</a>
+												)}
+											</div>
 										)}
 									</div>
 								</div>

@@ -188,4 +188,24 @@ describe("buildPlanningSummary", () => {
 		expect(summary.priorities.length).toBeLessThanOrEqual(3);
 		expect(summary.priorities.length).toBeGreaterThan(0);
 	});
+
+	it("treats strong and comfortable areas as covered", () => {
+		const summary = buildPlanningSummary(makeProfile());
+
+		for (const area of summary.areas) {
+			if (area.outcome === "strong" || area.outcome === "comfortable") {
+				expect(area.coverage).toBe("covered");
+			}
+		}
+	});
+
+	it("recommends review for exposed and worth-reviewing areas", () => {
+		const summary = buildPlanningSummary(makeProfile());
+
+		for (const area of summary.areas) {
+			if (area.outcome === "exposed" || area.outcome === "worth_reviewing") {
+				expect(area.coverage).toBe("review_recommended");
+			}
+		}
+	});
 });

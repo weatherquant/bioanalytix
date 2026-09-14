@@ -2,6 +2,8 @@ import type { BioanalytixPlanningProfileV1 } from "./planningProfile";
 
 export type PlanningOutcome = "strong" | "comfortable" | "worth_reviewing" | "exposed";
 
+export type PlanningCoverage = "covered" | "review_recommended";
+
 export type PlanningArea =
 	| "financial_resilience"
 	| "income_work"
@@ -13,6 +15,7 @@ export interface PlanningSummaryArea {
 	area: PlanningArea;
 	title: string;
 	outcome: PlanningOutcome;
+	coverage: PlanningCoverage;
 	summary: string;
 	question: string;
 	geneticContext?: string;
@@ -26,6 +29,8 @@ export interface PlanningSummary {
 	areas: PlanningSummaryArea[];
 	priorities: PlanningSummaryArea[];
 }
+
+type PlanningSummaryAreaAssessment = Omit<PlanningSummaryArea, "coverage">;
 
 export const PLANNING_SUMMARY_POLICY = {
 	liquidityMonths: {
@@ -58,7 +63,9 @@ function hasGeneticDomain(profile: BioanalytixPlanningProfileV1, domains: string
 	);
 }
 
-function financialResilienceArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryArea {
+function financialResilienceArea(
+	profile: BioanalytixPlanningProfileV1,
+): PlanningSummaryAreaAssessment {
 	const months = monthsOfEssentialExpenses(profile);
 
 	let outcome: PlanningOutcome = "comfortable";
@@ -100,7 +107,7 @@ function financialResilienceArea(profile: BioanalytixPlanningProfileV1): Plannin
 	};
 }
 
-function incomeWorkArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryArea {
+function incomeWorkArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryAreaAssessment {
 	const income = profile.householdContext.annualIncome;
 	const essentialExpenses = profile.householdContext.annualEssentialExpenses;
 
@@ -150,7 +157,7 @@ function incomeWorkArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryA
 	};
 }
 
-function protectionArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryArea {
+function protectionArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryAreaAssessment {
 	const hasCover = profile.householdContext.insuranceCoverCount > 0;
 
 	const geneticsIncreasesAttention = hasGeneticDomain(profile, [
@@ -175,7 +182,7 @@ function protectionArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryA
 	};
 }
 
-function estateFamilyArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryArea {
+function estateFamilyArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryAreaAssessment {
 	const estate = profile.householdContext.estate;
 
 	const completed = [
@@ -225,7 +232,7 @@ function estateFamilyArea(profile: BioanalytixPlanningProfileV1): PlanningSummar
 	};
 }
 
-function longevityArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryArea {
+function longevityArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryAreaAssessment {
 	const geneticsIncreasesAttention = hasGeneticDomain(profile, ["longevity", "care_dependency"]);
 
 	return {
@@ -242,6 +249,12 @@ function longevityArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryAr
 			: undefined,
 		geneticsIncreasesAttention,
 	};
+}
+
+function coverageForOutcome(outcome: PlanningOutcome): PlanningCoverage {
+	return outcome === "worth_reviewing" || outcome === "exposed"
+		? "review_recommended"
+		: "covered";
 }
 
 function outcomeRank(outcome: PlanningOutcome): number {
@@ -264,7 +277,10 @@ export function buildPlanningSummary(profile: BioanalytixPlanningProfileV1): Pla
 		protectionArea(profile),
 		estateFamilyArea(profile),
 		longevityArea(profile),
-	];
+	].map((area) => ({
+		...area,
+		coverage: coverageForOutcome(area.outcome),
+	}));
 
 	const priorities = [...areas]
 		.filter((area) => area.outcome === "exposed" || area.outcome === "worth_reviewing")
