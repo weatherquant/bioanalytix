@@ -575,9 +575,302 @@
 	animation: spin 800ms linear infinite;
 }
 
+.planningHeader {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 40px;
+
+	margin-bottom: 22px;
+}
+
+.reviewProgress {
+	width: 300px;
+	flex: 0 0 300px;
+}
+
+.reviewProgressTop {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+
+	margin-bottom: 9px;
+
+	font-size: 11px;
+}
+
+.reviewProgressTop strong {
+	font-weight: 650;
+}
+
+.reviewProgressTop span {
+	color: #777777;
+}
+
+.reviewProgressTrack {
+	height: 7px;
+
+	overflow: hidden;
+
+	background: #eeeeee;
+	border-radius: 999px;
+}
+
+.reviewProgressFill {
+	height: 100%;
+
+	background: #2aad72;
+	border-radius: inherit;
+
+	transition: width 180ms ease;
+}
+
+.planningGrid {
+	display: grid;
+
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+
+	gap: 10px;
+}
+
+.planningCard {
+	min-height: 300px;
+
+	display: flex;
+	flex-direction: column;
+
+	padding: 18px;
+
+	border: 1px solid #e5e5e5;
+	border-radius: 12px;
+
+	transition:
+		border-color 140ms ease,
+		box-shadow 140ms ease,
+		transform 140ms ease;
+}
+
+.planningCard:hover {
+	transform: translateY(-1px);
+
+	box-shadow: 0 8px 26px rgba(0, 0, 0, 0.035);
+}
+
+.planningCardFinancial {
+	background: #f4fbf7;
+	border-color: #cfe9da;
+}
+
+.planningCardIncome {
+	background: #f4f9ff;
+	border-color: #d6e6f8;
+}
+
+.planningCardProtection {
+	background: #fffaf0;
+	border-color: #f0dfbb;
+}
+
+.planningCardEstate {
+	background: #fbf7ff;
+	border-color: #e4d8ef;
+}
+
+.planningCardLongevity {
+	background: #f4fbf8;
+	border-color: #d3e9df;
+}
+
+.planningCardReviewed {
+	box-shadow: inset 0 0 0 1px rgba(42, 173, 114, 0.08);
+}
+
+.planningCardTop {
+	display: flex;
+	align-items: flex-start;
+	gap: 11px;
+}
+
+.planningIcon {
+	width: 42px;
+	height: 42px;
+
+	flex: 0 0 42px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	color: #313131;
+	background: rgba(255, 255, 255, 0.7);
+
+	border: 1px solid rgba(0, 0, 0, 0.06);
+	border-radius: 11px;
+}
+
+.planningCardHeading {
+	min-width: 0;
+}
+
+.planningCardTitle {
+	margin-top: 1px;
+
+	font-size: 13px;
+	line-height: 18px;
+	font-weight: 650;
+}
+
+.planningBadges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+
+	margin-top: 7px;
+}
+
+.outcomeBadge {
+	display: inline-flex;
+	align-items: center;
+
+	padding: 4px 8px;
+
+	border-radius: 999px;
+
+	font-size: 10px;
+	line-height: 14px;
+	font-weight: 600;
+}
+
+.outcomeStrong {
+	color: #14613f;
+	background: #dff5e9;
+}
+
+.outcomeComfortable {
+	color: #24577c;
+	background: #dfedfb;
+}
+
+.outcomeReview {
+	color: #76510d;
+	background: #ffedc6;
+}
+
+.outcomeExposed {
+	color: #873737;
+	background: #fde2e2;
+}
+
+.planningSummaryText {
+	margin: 20px 0 0;
+
+	font-size: 13px;
+	line-height: 19px;
+	font-weight: 550;
+}
+
+.planningGeneticContext {
+	margin: 9px 0 0;
+
+	color: #555555;
+
+	font-size: 11px;
+	line-height: 17px;
+}
+
+.planningQuestion {
+	margin: 10px 0 0;
+
+	color: #6f6f6f;
+
+	font-size: 11px;
+	line-height: 17px;
+}
+
+.planningReviewFooter {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+
+	margin-top: auto;
+	padding-top: 20px;
+}
+
+.reviewButton {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+
+	padding: 0;
+
+	color: #444444;
+	background: transparent;
+
+	border: 0;
+
+	font: inherit;
+	font-size: 11px;
+	font-weight: 600;
+
+	cursor: pointer;
+}
+
+.reviewCircle {
+	width: 20px;
+	height: 20px;
+
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	color: #ffffff;
+	background: rgba(255, 255, 255, 0.72);
+
+	border: 1px solid #8d8d8d;
+	border-radius: 999px;
+}
+
+.reviewButtonReviewed .reviewCircle {
+	background: #2aad72;
+	border-color: #2aad72;
+}
+
+.reviewDate {
+	color: #8b8b8b;
+
+	font-size: 9px;
+	line-height: 13px;
+	text-align: right;
+}
+
+.unsavedMessage {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+
+	color: #555555;
+
+	font-size: 11px;
+}
+
+.unsavedDot {
+	width: 8px;
+	height: 8px;
+
+	background: #eab45b;
+	border-radius: 999px;
+}
+
 @keyframes spin {
 	to {
 		transform: rotate(360deg);
+	}
+}
+
+@media (max-width: 1400px) {
+	.planningGrid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
 
@@ -589,6 +882,19 @@
 
 	.twoColumnGrid {
 		grid-template-columns: 1fr;
+	}
+
+	.planningGrid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.planningHeader {
+		flex-direction: column;
+	}
+
+	.reviewProgress {
+		width: 100%;
+		flex-basis: auto;
 	}
 }
 
@@ -613,5 +919,9 @@
 
 	.saveActions {
 		justify-content: space-between;
+	}
+
+	.planningGrid {
+		grid-template-columns: 1fr;
 	}
 }

@@ -1,3 +1,4 @@
+import type { PlanningArea } from "./planningSummary";
 import type { PlanningExposureDomain, PlanningSignificance } from "./types";
 
 export const SAVED_PLAN_VERSION = "1.0.0";
@@ -48,6 +49,16 @@ export interface PlanScenarioAssumptions {
 	insuranceShortfall?: number;
 }
 
+export type PlanningReviewStatus = "to_review" | "reviewed";
+
+export interface SavedPlanningAreaReview {
+	area: PlanningArea;
+
+	status: PlanningReviewStatus;
+
+	reviewedAt?: string;
+}
+
 export interface SavedBioanalytixPlanV1 {
 	version: typeof SAVED_PLAN_VERSION;
 
@@ -58,6 +69,8 @@ export interface SavedBioanalytixPlanV1 {
 	planningProfileId?: string;
 
 	questions: SavedPlanningQuestion[];
+
+	areaReviews?: SavedPlanningAreaReview[];
 
 	assumptions: PlanScenarioAssumptions;
 
@@ -73,6 +86,8 @@ export function emptySavedPlan(): SavedBioanalytixPlanV1 {
 		version: SAVED_PLAN_VERSION,
 
 		questions: [],
+
+		areaReviews: [],
 
 		assumptions: {},
 

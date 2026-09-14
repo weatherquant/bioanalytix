@@ -13,11 +13,13 @@ const savedPlanningQuestionSchema = z.object({
 		"healthy_working_life",
 		"health_costs",
 		"care_dependency",
+		"partner_dependency",
 		"premature_mortality",
 		"longevity",
 		"income_interruption",
 		"estate",
-		"partner_dependency",
+		"insurance",
+		"family",
 	]),
 
 	title: z.string().min(1),
@@ -33,12 +35,28 @@ const savedPlanningQuestionSchema = z.object({
 	sourceInsightIds: z.array(z.string()).optional(),
 });
 
+const savedPlanningAreaReviewSchema = z.object({
+	area: z.enum([
+		"financial_resilience",
+		"income_work",
+		"protection",
+		"estate_family",
+		"longevity_later_life",
+	]),
+
+	status: z.enum(["to_review", "reviewed"]),
+
+	reviewedAt: z.string().optional(),
+});
+
 const savedPlanSchema = z.object({
 	version: z.literal(SAVED_PLAN_VERSION),
 
 	planningProfileId: z.string().optional(),
 
 	questions: z.array(savedPlanningQuestionSchema),
+
+	areaReviews: z.array(savedPlanningAreaReviewSchema).optional(),
 
 	assumptions: z.object({
 		incomeInterruptionMonths: z.number().nonnegative().optional(),

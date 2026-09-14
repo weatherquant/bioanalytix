@@ -3,13 +3,16 @@
 import {
 	AlertCircle,
 	Brain,
+	Briefcase,
 	Check,
 	ChevronRight,
+	Coins,
 	Dna,
 	HeartPulse,
 	Landmark,
 	Save,
 	ShieldCheck,
+	UsersRound,
 	WalletCards,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -35,6 +38,41 @@ type PlanningQuestionSource =
 	| "user";
 
 type PlanningSignificance = "low" | "moderate" | "high";
+
+type PlanningOutcome = "strong" | "comfortable" | "worth_reviewing" | "exposed";
+
+type PlanningArea =
+	| "financial_resilience"
+	| "income_work"
+	| "protection"
+	| "estate_family"
+	| "longevity_later_life";
+
+type PlanningReviewStatus = "to_review" | "reviewed";
+
+interface PlanningAreaReview {
+	area: PlanningArea;
+	status: PlanningReviewStatus;
+	reviewedAt?: string;
+}
+
+interface PlanningSummaryArea {
+	area: PlanningArea;
+	title: string;
+	outcome: PlanningOutcome;
+	summary: string;
+	question: string;
+	geneticContext?: string;
+	geneticsIncreasesAttention: boolean;
+}
+
+interface PlanningSummary {
+	overallOutcome: PlanningOutcome;
+	headline: string;
+	summary: string;
+	areas: PlanningSummaryArea[];
+	priorities: PlanningSummaryArea[];
+}
 
 interface PlanningQuestion {
 	id: string;
@@ -62,6 +100,7 @@ interface SavedPlan {
 	version: "1.0.0";
 	planningProfileId?: string;
 	questions: PlanningQuestion[];
+	areaReviews?: PlanningAreaReview[];
 	assumptions: PlanAssumptions;
 	priorities: string[];
 	notes: string;
@@ -84,6 +123,8 @@ interface PlanResponse {
 		geneticUploadId?: string | null;
 		updatedAt: string;
 	} | null;
+
+	planningSummary: PlanningSummary | null;
 
 	updatedAt: string | null;
 }
@@ -156,6 +197,88 @@ function numberValue(value: string): number | undefined {
 	return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function outcomeLabel(outcome: PlanningOutcome) {
+	switch (outcome) {
+		case "strong":
+			return "Strong";
+
+		case "comfortable":
+			return "Comfortable";
+
+		case "worth_reviewing":
+			return "Worth reviewing";
+
+		case "exposed":
+			return "Exposed";
+	}
+}
+
+function iconForPlanningArea(area: PlanningArea) {
+	switch (area) {
+		case "financial_resilience":
+			return Coins;
+
+		case "income_work":
+			return Briefcase;
+
+		case "protection":
+			return ShieldCheck;
+
+		case "estate_family":
+			return UsersRound;
+
+		case "longevity_later_life":
+			return HeartPulse;
+	}
+}
+
+function planningAreaClass(area: PlanningArea) {
+	switch (area) {
+		case "financial_resilience":
+			return styles.planningCardFinancial;
+
+		case "income_work":
+			return styles.planningCardIncome;
+
+		case "protection":
+			return styles.planningCardProtection;
+
+		case "estate_family":
+			return styles.planningCardEstate;
+
+		case "longevity_later_life":
+			return styles.planningCardLongevity;
+	}
+}
+
+function outcomeClass(outcome: PlanningOutcome) {
+	switch (outcome) {
+		case "strong":
+			return styles.outcomeStrong;
+
+		case "comfortable":
+			return styles.outcomeComfortable;
+
+		case "worth_reviewing":
+			return styles.outcomeReview;
+
+		case "exposed":
+			return styles.outcomeExposed;
+	}
+}
+
+function formatReviewDate(value?: string) {
+	if (!value) {
+		return null;
+	}
+
+	return new Date(value).toLocaleDateString(undefined, {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+	});
+}
+
 export function PlanWorkspace() {
 	const [loading, setLoading] = useState(true);
 
@@ -176,6 +299,12 @@ export function PlanWorkspace() {
 	const [notes, setNotes] = useState("");
 
 	const [planningProfileId, setPlanningProfileId] = useState<string | undefined>();
+
+	const [planningSummary, setPlanningSummary] = useState<PlanningSummary | null>(null);
+
+	const [areaReviews, setAreaReviews] = useState<PlanningAreaReview[]>([]);
+
+	const [dirty, setDirty] = useState(false);
 
 	const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
@@ -219,6 +348,12 @@ export function PlanWorkspace() {
 
 				setPlanningProfileId(data.planningProfile?.id);
 
+				setPlanningSummary(data.planningSummary ?? null);
+
+				setAreaReviews(data.savedPlan.areaReviews ?? []);
+
+				setDirty(false);
+
 				setLastSavedAt(data.updatedAt ?? data.savedPlan.lastSavedAt ?? null);
 			} catch (loadError) {
 				setError(
@@ -243,6 +378,60 @@ export function PlanWorkspace() {
 		[questions],
 	);
 
+	const reviewedAreaIds = useMemo(
+		() =>
+			new Set(
+				areaReviews
+					.filter((review) => review.status === "reviewed")
+					.map((review) => review.area),
+			),
+		[areaReviews],
+	);
+
+	const reviewedCount =
+		planningSummary?.areas.filter((area) => reviewedAreaIds.has(area.area)).length ?? 0;
+
+	const reviewTotal = planningSummary?.areas.length ?? 0;
+
+	const reviewPercent = reviewTotal > 0 ? Math.round((reviewedCount / reviewTotal) * 100) : 0;
+
+	function markDirty() {
+		setDirty(true);
+		setSavedMessage(null);
+	}
+
+	function updateAssumption<K extends keyof PlanAssumptions>(key: K, value: PlanAssumptions[K]) {
+		setAssumptions((current) => ({
+			...current,
+			[key]: value,
+		}));
+
+		markDirty();
+	}
+
+	function toggleAreaReview(area: PlanningArea) {
+		setAreaReviews((current) => {
+			const existing = current.find((review) => review.area === area);
+
+			const reviewed = existing?.status === "reviewed";
+
+			const nextReview: PlanningAreaReview = reviewed
+				? {
+						area,
+						status: "to_review",
+					}
+				: {
+						area,
+						status: "reviewed",
+						reviewedAt: new Date().toISOString(),
+					};
+
+			return [...current.filter((review) => review.area !== area), nextReview];
+		});
+
+		markDirty();
+	}
+
 	function toggleQuestion(id: string) {
 		setQuestions((current) =>
 			current.map((question) =>
@@ -255,7 +444,7 @@ export function PlanWorkspace() {
 			),
 		);
 
-		setSavedMessage(null);
+		markDirty();
 	}
 
 	function togglePriority(priority: string) {
@@ -265,7 +454,7 @@ export function PlanWorkspace() {
 				: [...current, priority],
 		);
 
-		setSavedMessage(null);
+		markDirty();
 	}
 
 	async function savePlan() {
@@ -279,6 +468,8 @@ export function PlanWorkspace() {
 			planningProfileId,
 
 			questions,
+
+			areaReviews,
 
 			assumptions,
 
@@ -310,6 +501,7 @@ export function PlanWorkspace() {
 
 			setLastSavedAt(savedAt);
 			setSavedMessage("Your plan has been saved.");
+			setDirty(false);
 		} catch (saveError) {
 			setError(saveError instanceof Error ? saveError.message : "Unable to save your plan.");
 		} finally {
@@ -352,6 +544,122 @@ export function PlanWorkspace() {
 					)}
 				</div>
 			</section>
+
+			{planningSummary && (
+				<section className={styles.section}>
+					<div className={styles.planningHeader}>
+						<div>
+							<p className={styles.eyebrow}>Your planning position</p>
+
+							<h3 className={styles.sectionTitle}>{planningSummary.headline}</h3>
+
+							<p className={styles.sectionDescription}>{planningSummary.summary}</p>
+						</div>
+
+						<div className={styles.reviewProgress}>
+							<div className={styles.reviewProgressTop}>
+								<strong>
+									{reviewedCount} of {reviewTotal} areas reviewed
+								</strong>
+
+								<span>{reviewPercent}%</span>
+							</div>
+
+							<div className={styles.reviewProgressTrack}>
+								<div
+									className={styles.reviewProgressFill}
+									style={{ width: `${reviewPercent}%` }}
+								/>
+							</div>
+						</div>
+					</div>
+
+					<div className={styles.planningGrid}>
+						{planningSummary.areas.map((area) => {
+							const Icon = iconForPlanningArea(area.area);
+
+							const review = areaReviews.find((item) => item.area === area.area);
+
+							const reviewed = review?.status === "reviewed";
+
+							return (
+								<div
+									key={area.area}
+									className={[
+										styles.planningCard,
+										planningAreaClass(area.area),
+										reviewed ? styles.planningCardReviewed : "",
+									].join(" ")}
+								>
+									<div className={styles.planningCardTop}>
+										<div className={styles.planningIcon}>
+											<Icon size={22} />
+										</div>
+
+										<div className={styles.planningCardHeading}>
+											<div className={styles.planningCardTitle}>
+												{area.title}
+											</div>
+
+											<div className={styles.planningBadges}>
+												<span
+													className={[
+														styles.outcomeBadge,
+														outcomeClass(area.outcome),
+													].join(" ")}
+												>
+													{outcomeLabel(area.outcome)}
+												</span>
+
+												{area.geneticsIncreasesAttention && (
+													<span className={styles.geneticBadge}>
+														<Dna size={12} />
+														DNA-informed
+													</span>
+												)}
+											</div>
+										</div>
+									</div>
+
+									<p className={styles.planningSummaryText}>{area.summary}</p>
+
+									{area.geneticContext && (
+										<p className={styles.planningGeneticContext}>
+											{area.geneticContext}
+										</p>
+									)}
+
+									<p className={styles.planningQuestion}>{area.question}</p>
+
+									<div className={styles.planningReviewFooter}>
+										<button
+											type="button"
+											className={[
+												styles.reviewButton,
+												reviewed ? styles.reviewButtonReviewed : "",
+											].join(" ")}
+											onClick={() => toggleAreaReview(area.area)}
+											aria-pressed={reviewed}
+										>
+											<span className={styles.reviewCircle}>
+												{reviewed && <Check size={13} />}
+											</span>
+
+											{reviewed ? "Reviewed" : "To review"}
+										</button>
+
+										{reviewed && review?.reviewedAt && (
+											<span className={styles.reviewDate}>
+												Reviewed {formatReviewDate(review.reviewedAt)}
+											</span>
+										)}
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				</section>
+			)}
 
 			{error && (
 				<div className={styles.error}>
@@ -471,12 +779,10 @@ export function PlanWorkspace() {
 									min="0"
 									value={assumptions.incomeInterruptionMonths ?? ""}
 									onChange={(event) =>
-										setAssumptions((current) => ({
-											...current,
-											incomeInterruptionMonths: numberValue(
-												event.target.value,
-											),
-										}))
+										updateAssumption(
+											"incomeInterruptionMonths",
+											numberValue(event.target.value),
+										)
 									}
 								/>
 
@@ -493,12 +799,10 @@ export function PlanWorkspace() {
 									min="0"
 									value={assumptions.essentialSpendingIncreasePercent ?? ""}
 									onChange={(event) =>
-										setAssumptions((current) => ({
-											...current,
-											essentialSpendingIncreasePercent: numberValue(
-												event.target.value,
-											),
-										}))
+										updateAssumption(
+											"incomeInterruptionMonths",
+											numberValue(event.target.value),
+										)
 									}
 								/>
 
@@ -517,12 +821,10 @@ export function PlanWorkspace() {
 									min="0"
 									value={assumptions.additionalAnnualHealthCosts ?? ""}
 									onChange={(event) =>
-										setAssumptions((current) => ({
-											...current,
-											additionalAnnualHealthCosts: numberValue(
-												event.target.value,
-											),
-										}))
+										updateAssumption(
+											"incomeInterruptionMonths",
+											numberValue(event.target.value),
+										)
 									}
 								/>
 							</div>
@@ -539,12 +841,10 @@ export function PlanWorkspace() {
 									min="0"
 									value={assumptions.additionalAnnualCareCosts ?? ""}
 									onChange={(event) =>
-										setAssumptions((current) => ({
-											...current,
-											additionalAnnualCareCosts: numberValue(
-												event.target.value,
-											),
-										}))
+										updateAssumption(
+											"incomeInterruptionMonths",
+											numberValue(event.target.value),
+										)
 									}
 								/>
 							</div>
@@ -559,12 +859,10 @@ export function PlanWorkspace() {
 									min="0"
 									value={assumptions.retirementYearsExtension ?? ""}
 									onChange={(event) =>
-										setAssumptions((current) => ({
-											...current,
-											retirementYearsExtension: numberValue(
-												event.target.value,
-											),
-										}))
+										updateAssumption(
+											"incomeInterruptionMonths",
+											numberValue(event.target.value),
+										)
 									}
 								/>
 
@@ -583,10 +881,10 @@ export function PlanWorkspace() {
 									min="0"
 									value={assumptions.insuranceShortfall ?? ""}
 									onChange={(event) =>
-										setAssumptions((current) => ({
-											...current,
-											insuranceShortfall: numberValue(event.target.value),
-										}))
+										updateAssumption(
+											"incomeInterruptionMonths",
+											numberValue(event.target.value),
+										)
 									}
 								/>
 							</div>
@@ -630,7 +928,7 @@ export function PlanWorkspace() {
 							value={notes}
 							onChange={(event) => {
 								setNotes(event.target.value);
-								setSavedMessage(null);
+								markDirty();
 							}}
 							placeholder="Anything else you want the plan to remember?"
 							rows={6}
@@ -647,6 +945,12 @@ export function PlanWorkspace() {
 				</div>
 
 				<div className={styles.saveActions}>
+					{dirty && !savedMessage && (
+						<span className={styles.unsavedMessage}>
+							<span className={styles.unsavedDot} />
+							You have unsaved changes
+						</span>
+					)}
 					{savedMessage && (
 						<span className={styles.savedMessage}>
 							<Check size={15} />

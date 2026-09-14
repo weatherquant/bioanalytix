@@ -7,20 +7,13 @@ import {
 import { protectedProcedure } from "../../../orpc/procedures";
 import type { HouseholdFinancialState } from "../../financial/household/types";
 import { buildBaselinePlanningQuestions } from "../../planning/baselineQuestions";
+import type { BioanalytixPlanningProfileV1 } from "../../planning/planningProfile";
+import { buildPlanningSummary } from "../../planning/planningSummary";
 import {
 	emptySavedPlan,
 	type SavedBioanalytixPlanV1,
 	type SavedPlanningQuestion,
 } from "../../planning/savedPlan";
-
-interface GeneratedPlanningProfile {
-	questions?: SavedPlanningQuestion[];
-
-	geneticSource?: {
-		uploadId?: string;
-		modelIds?: string[];
-	};
-}
 
 export const getBioanalytixPlan = protectedProcedure
 	.route({
@@ -45,7 +38,8 @@ export const getBioanalytixPlan = protectedProcedure
 			(savedRecord?.plan as unknown as SavedBioanalytixPlanV1 | null) ?? emptySavedPlan();
 
 		const generatedProfile =
-			(planningProfileRecord?.profile as unknown as GeneratedPlanningProfile | null) ?? null;
+			(planningProfileRecord?.profile as unknown as BioanalytixPlanningProfileV1 | null) ??
+			null;
 
 		let baselineQuestions: SavedPlanningQuestion[] = [];
 
@@ -57,6 +51,8 @@ export const getBioanalytixPlan = protectedProcedure
 
 		const geneticQuestions = generatedProfile?.questions ?? [];
 
+		const planningSummary = generatedProfile ? buildPlanningSummary(generatedProfile) : null;
+
 		/*
 		 * Suggestions remain separate from savedPlan.
 		 *
@@ -64,20 +60,6 @@ export const getBioanalytixPlan = protectedProcedure
 		 * must never silently overwrite user-selected Plan
 		 * state.
 		 */
-		const planningProfileData = planningProfileRecord?.profile as
-			| {
-					geneticHighlights?: unknown[];
-
-					planningInsights?: unknown[];
-
-					geneticPlanningCoverage?: {
-						modelsEvaluated: number;
-						elevatedFindings: number;
-						planningExposureCount: number;
-						planningInsightCount: number;
-					};
-			  }
-			| undefined;
 
 		return {
 			householdId: household.id,
@@ -99,14 +81,15 @@ export const getBioanalytixPlan = protectedProcedure
 
 						updatedAt: planningProfileRecord.updatedAt.toISOString(),
 
-						geneticHighlights: planningProfileData?.geneticHighlights ?? [],
+						geneticHighlights: generatedProfile?.geneticHighlights ?? [],
 
-						planningInsights: planningProfileData?.planningInsights ?? [],
+						planningInsights: generatedProfile?.planningInsights ?? [],
 
-						geneticPlanningCoverage:
-							planningProfileData?.geneticPlanningCoverage ?? null,
+						geneticPlanningCoverage: generatedProfile?.geneticPlanningCoverage ?? null,
 					}
 				: null,
+
+			planningSummary,
 
 			updatedAt: savedRecord?.updatedAt.toISOString() ?? null,
 		};
