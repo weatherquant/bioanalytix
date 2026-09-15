@@ -875,4 +875,89 @@ describe("runLifecycleSimulation", () => {
 
 		expect(withSafetyNet.summary.totalUnfundedCashFlow).toBe(20000);
 	});
+
+	it("applies different investment tax treatment outside and inside super", () => {
+		const inputHousehold = household();
+
+		inputHousehold.income = [];
+
+		inputHousehold.expenses = {
+			essentialAnnual: 0,
+			discretionaryAnnual: 0,
+		};
+
+		inputHousehold.insurance = [];
+
+		inputHousehold.assets = [
+			{
+				id: "portfolio",
+				type: "investment",
+				value: 100000,
+				liquid: true,
+				investable: true,
+				incomeProducing: true,
+			},
+		];
+
+		inputHousehold.superannuation = [
+			{
+				id: "super-1",
+				personId: "person-1",
+				balance: 100000,
+				annualContribution: 0,
+				preserved: true,
+			},
+		];
+
+		const inputAssumptions = assumptions();
+
+		inputAssumptions.effectiveTaxRate = 0.3;
+		inputAssumptions.projectionEndDate = "2027-09-01";
+
+		const market = flatMarketPath(1);
+
+		market.years[0] = {
+			yearIndex: 0,
+			growthReturn: 0.1,
+			defensiveReturn: 0.1,
+			cashReturn: 0.1,
+			inflationRate: 0,
+		};
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+			assumptions: inputAssumptions,
+			plan: {
+				retirementAge: 65,
+				annualRetirementSpending: 0,
+			},
+			strategy: strategy(),
+			marketPath: market,
+		});
+
+		const year = result.years[1]!;
+
+		/*
+		 * Gross portfolio return is 10%.
+		 *
+		 * Outside super:
+		 * 10% × (1 - 30%) = 7%
+		 * $100,000 -> $107,000
+		 *
+		 * Super:
+		 * 10% × (1 - 15%) = 8.5%
+		 * $100,000 -> $108,500
+		 *
+		 * The reported portfolio return remains the underlying
+		 * gross market/strategy return rather than the account-
+		 * specific after-tax return.
+		 */
+		expect(year.portfolioReturn).toBeCloseTo(0.1, 8);
+
+		expect(year.nonSuperInvestableWealth).toBeCloseTo(107000, 8);
+
+		expect(year.superannuation).toBeCloseTo(108500, 8);
+
+		expect(year.superannuation).toBeGreaterThan(year.nonSuperInvestableWealth);
+	});
 });

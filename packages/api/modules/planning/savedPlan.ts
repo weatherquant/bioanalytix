@@ -44,6 +44,8 @@ export interface PlanScenarioAssumptions {
 
 	retirementYearsExtension?: number;
 
+	retirementAgeToTest?: number;
+
 	earlierDeathAge?: number;
 
 	insuranceShortfall?: number;

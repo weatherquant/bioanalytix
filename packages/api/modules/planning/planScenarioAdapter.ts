@@ -548,17 +548,33 @@ export function buildPlanScenarioIntent({
 				geneticContext: geneticContext(question),
 			};
 
-		case "healthy_working_life":
+		case "healthy_working_life": {
 			/*
-			 * For financial execution, healthy-working-life
-			 * disruption maps onto an explicit income
-			 * interruption test.
+			 * Healthy-working-life planning can change the point
+			 * at which employment income ends. That changes the
+			 * lifecycle plan itself rather than applying a temporary
+			 * financial shock.
+			 *
+			 * The retirement age is an explicit user-entered
+			 * financial assumption. Genetics may explain why this
+			 * question was surfaced, but must never populate the age.
 			 */
-			return incomeInterruptionIntent({
-				question,
-				household,
-				assumptions: extendedAssumptions,
-			});
+			const retirementAgeToTest = assumptions.retirementAgeToTest;
+
+			return {
+				questionId: question.id,
+
+				mode: "projection_comparison",
+
+				ready: positiveInteger(retirementAgeToTest),
+
+				missingInputs: positiveInteger(retirementAgeToTest)
+					? []
+					: ["Enter the retirement age you want to test."],
+
+				geneticContext: geneticContext(question),
+			};
+		}
 
 		case "insurance":
 		case "family":

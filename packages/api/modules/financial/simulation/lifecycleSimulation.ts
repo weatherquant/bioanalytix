@@ -93,6 +93,15 @@ function validateInput(input: LifecycleSimulationInput): void {
 		reasons.push("Effective tax rate must be between 0 and 1.");
 	}
 
+	if (
+		input.assumptions.superInvestmentTaxRate !== undefined &&
+		(!Number.isFinite(input.assumptions.superInvestmentTaxRate) ||
+			input.assumptions.superInvestmentTaxRate < 0 ||
+			input.assumptions.superInvestmentTaxRate > 1)
+	) {
+		reasons.push("Super investment tax rate must be between 0 and 1.");
+	}
+
 	const numberOfYears =
 		Number(input.assumptions.projectionEndDate.slice(0, 4)) -
 		Number(input.household.asOfDate.slice(0, 4));
@@ -177,6 +186,34 @@ function halfPeriodReturn(annualReturn: number): number {
 	}
 
 	return Math.sqrt(1 + annualReturn) - 1;
+}
+
+function afterTaxInvestmentReturn(grossReturn: number, taxRate: number): number {
+	if (!Number.isFinite(grossReturn)) {
+		throw new LifecycleSimulationError("Investment return must be finite.", [
+			"Gross investment return must be finite.",
+		]);
+	}
+
+	if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 1) {
+		throw new LifecycleSimulationError("Investment tax rate is invalid.", [
+			"Investment tax rate must be between 0 and 1.",
+		]);
+	}
+
+	/*
+	 * MVP tax treatment:
+	 *
+	 * Positive investment earnings are reduced by the
+	 * applicable effective tax rate.
+	 *
+	 * Negative investment returns are preserved rather
+	 * than creating an assumed tax benefit.
+	 *
+	 * This is deliberately a planning approximation,
+	 * not a jurisdiction-specific tax engine.
+	 */
+	return grossReturn > 0 ? grossReturn * (1 - taxRate) : grossReturn;
 }
 
 function totalAssetValue(assets: Asset[], predicate: (asset: Asset) => boolean): number {
@@ -335,10 +372,26 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 
 		const portfolioReturn = calculatePortfolioReturn(allocation, marketYear);
 
-		const portfolioHalfReturn = halfPeriodReturn(portfolioReturn);
+		const outsideSuperPortfolioReturn = afterTaxInvestmentReturn(
+			portfolioReturn,
+			assumptions.effectiveTaxRate,
+		);
 
-		const cashHalfReturn = halfPeriodReturn(marketYear.cashReturn);
+		const superPortfolioReturn = afterTaxInvestmentReturn(
+			portfolioReturn,
+			assumptions.superInvestmentTaxRate ?? 0.15,
+		);
 
+		const afterTaxCashReturn = afterTaxInvestmentReturn(
+			marketYear.cashReturn,
+			assumptions.effectiveTaxRate,
+		);
+
+		const outsideSuperPortfolioHalfReturn = halfPeriodReturn(outsideSuperPortfolioReturn);
+
+		const superPortfolioHalfReturn = halfPeriodReturn(superPortfolioReturn);
+
+		const cashHalfReturn = halfPeriodReturn(afterTaxCashReturn);
 		/**
 		 * Lifecycle Simulation v1 uses a mid-period cash-flow
 		 * convention.
@@ -354,9 +407,9 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 		 */
 		cashAssets *= 1 + cashHalfReturn;
 
-		nonSuperInvestableWealth *= 1 + portfolioHalfReturn;
+		nonSuperInvestableWealth *= 1 + outsideSuperPortfolioHalfReturn;
 
-		superannuation *= 1 + portfolioHalfReturn;
+		superannuation *= 1 + superPortfolioHalfReturn;
 
 		const income = recurringIncomeForYear(
 			household.income,
@@ -501,9 +554,9 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 		 */
 		cashAssets *= 1 + cashHalfReturn;
 
-		nonSuperInvestableWealth *= 1 + portfolioHalfReturn;
+		nonSuperInvestableWealth *= 1 + outsideSuperPortfolioHalfReturn;
 
-		superannuation *= 1 + portfolioHalfReturn;
+		superannuation *= 1 + superPortfolioHalfReturn;
 
 		const netWorth =
 			cashAssets +

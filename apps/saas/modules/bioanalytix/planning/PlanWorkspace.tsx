@@ -95,6 +95,7 @@ interface PlanAssumptions {
 	additionalAnnualHealthCosts?: number;
 	additionalAnnualCareCosts?: number;
 	retirementYearsExtension?: number;
+	retirementAgeToTest?: number;
 	earlierDeathAge?: number;
 	insuranceShortfall?: number;
 }
@@ -853,7 +854,7 @@ export function PlanWorkspace() {
 									value={assumptions.essentialSpendingIncreasePercent ?? ""}
 									onChange={(event) =>
 										updateAssumption(
-											"incomeInterruptionMonths",
+											"essentialSpendingIncreasePercent",
 											numberValue(event.target.value),
 										)
 									}
@@ -875,7 +876,7 @@ export function PlanWorkspace() {
 									value={assumptions.additionalAnnualHealthCosts ?? ""}
 									onChange={(event) =>
 										updateAssumption(
-											"incomeInterruptionMonths",
+											"additionalAnnualHealthCosts",
 											numberValue(event.target.value),
 										)
 									}
@@ -895,7 +896,7 @@ export function PlanWorkspace() {
 									value={assumptions.additionalAnnualCareCosts ?? ""}
 									onChange={(event) =>
 										updateAssumption(
-											"incomeInterruptionMonths",
+											"additionalAnnualCareCosts",
 											numberValue(event.target.value),
 										)
 									}
@@ -913,7 +914,7 @@ export function PlanWorkspace() {
 									value={assumptions.retirementYearsExtension ?? ""}
 									onChange={(event) =>
 										updateAssumption(
-											"incomeInterruptionMonths",
+											"retirementYearsExtension",
 											numberValue(event.target.value),
 										)
 									}
@@ -935,7 +936,7 @@ export function PlanWorkspace() {
 									value={assumptions.insuranceShortfall ?? ""}
 									onChange={(event) =>
 										updateAssumption(
-											"incomeInterruptionMonths",
+											"insuranceShortfall",
 											numberValue(event.target.value),
 										)
 									}

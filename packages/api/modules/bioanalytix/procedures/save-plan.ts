@@ -69,6 +69,8 @@ const savedPlanSchema = z.object({
 
 		retirementYearsExtension: z.number().nonnegative().optional(),
 
+		retirementAgeToTest: z.number().positive().optional(),
+
 		earlierDeathAge: z.number().nonnegative().optional(),
 
 		insuranceShortfall: z.number().nonnegative().optional(),

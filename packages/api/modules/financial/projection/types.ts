@@ -30,13 +30,29 @@ export interface ProjectionAssumptions {
 	superReturnRate: number;
 
 	/**
-	 * Simplified effective tax assumption for
-	 * Baseline Projection v1.
+	 * Simplified effective tax assumption.
+	 *
+	 * For MVP planning this is used for taxable household
+	 * income and may also be used as the simplified tax
+	 * drag on investment earnings held outside super.
 	 *
 	 * It is intentionally explicit and replaceable.
 	 * It is not a jurisdiction-specific tax engine.
 	 */
 	effectiveTaxRate: number;
+
+	/**
+	 * Simplified tax rate applied to positive investment
+	 * earnings inside superannuation.
+	 *
+	 * Defaults to 15% when omitted.
+	 *
+	 * This is an MVP planning assumption only. It does not
+	 * attempt to model pension-phase exemptions, capital
+	 * gains concessions, contribution taxes, transfer
+	 * balance rules or other detailed Australian super rules.
+	 */
+	superInvestmentTaxRate?: number;
 
 	/**
 	 * Authoritative execution horizon.
