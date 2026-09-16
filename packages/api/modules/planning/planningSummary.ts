@@ -158,7 +158,7 @@ function incomeWorkArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryA
 }
 
 function protectionArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryAreaAssessment {
-	const hasCover = profile.householdContext.insuranceCoverCount > 0;
+	const protection = profile.householdContext.protection;
 
 	const geneticsIncreasesAttention = hasGeneticDomain(profile, [
 		"insurance",
@@ -166,13 +166,35 @@ function protectionArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryA
 		"partner_dependency",
 	]);
 
+	let summary: string;
+
+	switch (protection.assessment) {
+		case "strong":
+			summary =
+				"Your current financial resources provide a strong foundation against the protection risks recorded in your plan.";
+			break;
+
+		case "comfortable":
+			summary =
+				"Your current financial resources and recorded protection provide a useful foundation if circumstances change unexpectedly.";
+			break;
+
+		case "worth_reviewing":
+			summary =
+				"Your household has some capacity to absorb an unexpected change, but the role of protection in your plan is worth reviewing.";
+			break;
+
+		case "exposed":
+			summary =
+				"Your household may face a meaningful financial gap if income or financial support is lost unexpectedly.";
+			break;
+	}
+
 	return {
 		area: "protection",
 		title: "Protection",
-		outcome: hasCover ? "comfortable" : "worth_reviewing",
-		summary: hasCover
-			? "You have insurance arrangements recorded as part of your household plan."
-			: "No insurance cover is currently recorded, so protection needs are worth reviewing.",
+		outcome: protection.assessment,
+		summary,
 		question:
 			"Would the people who depend on you remain financially secure if your circumstances changed unexpectedly?",
 		geneticContext: geneticsIncreasesAttention
@@ -183,50 +205,48 @@ function protectionArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryA
 }
 
 function estateFamilyArea(profile: BioanalytixPlanningProfileV1): PlanningSummaryAreaAssessment {
-	const estate = profile.householdContext.estate;
-
-	const completed = [
-		estate.hasWill,
-		estate.hasEnduringPowerOfAttorney,
-		estate.hasSuperBeneficiaryNomination,
-	].filter((value) => value === true).length;
-
-	const unknown = [
-		estate.hasWill,
-		estate.hasEnduringPowerOfAttorney,
-		estate.hasSuperBeneficiaryNomination,
-	].filter((value) => value === null).length;
-
-	let outcome: PlanningOutcome = "comfortable";
-	let summary = "Your core estate arrangements appear broadly in place.";
-
-	if (completed === 3) {
-		outcome = "strong";
-		summary =
-			"Your core will, decision-making and beneficiary arrangements are recorded as being in place.";
-	} else if (completed === 0 && unknown === 0) {
-		outcome = "exposed";
-		summary = "Your core estate arrangements are recorded as not currently being in place.";
-	} else if (completed < 2 || unknown > 0) {
-		outcome = "worth_reviewing";
-		summary = "Some estate arrangements are incomplete or have not yet been confirmed.";
-	}
+	const estate = profile.householdContext.estatePosition;
 
 	const geneticsIncreasesAttention = hasGeneticDomain(profile, [
 		"estate",
 		"family",
 		"premature_mortality",
+		"partner_dependency",
 	]);
+
+	let summary: string;
+
+	switch (estate.assessment) {
+		case "strong":
+			summary =
+				"Your current financial position and recorded estate arrangements provide a strong foundation for your estate and family objectives.";
+			break;
+
+		case "comfortable":
+			summary =
+				"Your current financial position provides a useful foundation for your estate and family objectives.";
+			break;
+
+		case "worth_reviewing":
+			summary =
+				"Your estate and family position has a reasonable foundation, but some financial or estate arrangements are worth reviewing.";
+			break;
+
+		case "exposed":
+			summary =
+				"Your current estate and family position may leave a meaningful financial or planning gap.";
+			break;
+	}
 
 	return {
 		area: "estate_family",
 		title: "Estate & family",
-		outcome,
+		outcome: estate.assessment,
 		summary,
 		question:
-			"Are your estate documents and family arrangements clear and current if circumstances change unexpectedly?",
+			"If something happened to you, would your financial resources and estate arrangements support the people and legacy that matter to you?",
 		geneticContext: geneticsIncreasesAttention
-			? "Your genetic profile makes estate and family resilience more relevant to consider."
+			? "Your genetic profile makes estate, family or survivor resilience more relevant to explore."
 			: undefined,
 		geneticsIncreasesAttention,
 	};

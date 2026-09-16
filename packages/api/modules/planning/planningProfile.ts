@@ -1,4 +1,6 @@
+import { assessEstatePosition } from "../financial/estate/estateAnalysis";
 import type { HouseholdFinancialState } from "../financial/household/types";
+import { assessProtectionPosition } from "../financial/protection/protectionAnalysis";
 import type { GeneticHighlight } from "./geneticHighlight";
 import type { PlanningInsight } from "./planningInsight";
 import type { PlanningExposure, PlanningExposureDomain, PlanningSignificance } from "./types";
@@ -39,10 +41,42 @@ export interface PlanningProfileHouseholdContext {
 
 	insuranceCoverCount: number;
 
+	protection: {
+		assessment: "strong" | "comfortable" | "worth_reviewing" | "exposed";
+		annualIncomeAtRisk: number;
+		lifeInsuranceCover: number;
+		incomeProtectionAnnualBenefit: number;
+		totalHouseholdLiabilities: number;
+		liquidAssets: number;
+		financialAssets: number;
+		hasFinancialDependants: boolean;
+		reasons: string[];
+	};
+
 	estate: {
 		hasWill: boolean | null;
 		hasEnduringPowerOfAttorney: boolean | null;
 		hasSuperBeneficiaryNomination: boolean | null;
+	};
+
+	estatePosition: {
+		assessment: "strong" | "comfortable" | "worth_reviewing" | "exposed";
+		economicAssessment: "strong" | "comfortable" | "worth_reviewing" | "exposed";
+		documentationAssessment: "strong" | "comfortable" | "worth_reviewing" | "exposed";
+		netHouseholdResources: number;
+		totalAssets: number;
+		totalLiabilities: number;
+		inheritanceGoal: number | null;
+		currentSurplusOrShortfallToGoal: number | null;
+		documentation: {
+			hasWill: boolean | null;
+			hasEnduringPowerOfAttorney: boolean | null;
+			hasSuperBeneficiaryNomination: boolean | null;
+			completed: number;
+			unknown: number;
+		};
+		reasons: string[];
+		qualifications: string[];
 	};
 }
 
@@ -179,6 +213,17 @@ function questionForExposure(exposure: PlanningExposure, index: number): Plannin
 }
 
 function householdContext(household: HouseholdFinancialState): PlanningProfileHouseholdContext {
+	const primaryPerson =
+		household.people.find((person) => person.role === "primary") ?? household.people[0];
+
+	if (!primaryPerson) {
+		throw new Error("Planning profile requires at least one household person.");
+	}
+
+	const protection = assessProtectionPosition(household, primaryPerson.id);
+
+	const estate = assessEstatePosition(household);
+
 	const annualIncome = household.income.reduce((total, source) => total + source.annualAmount, 0);
 
 	const liquidAssets = household.assets
@@ -210,10 +255,38 @@ function householdContext(household: HouseholdFinancialState): PlanningProfileHo
 
 		insuranceCoverCount: household.insurance.length,
 
+		protection: {
+			assessment: protection.assessment,
+			annualIncomeAtRisk: protection.annualIncomeAtRisk,
+			lifeInsuranceCover: protection.lifeInsuranceCover,
+			incomeProtectionAnnualBenefit: protection.incomeProtectionAnnualBenefit,
+			totalHouseholdLiabilities: protection.totalHouseholdLiabilities,
+			liquidAssets: protection.liquidAssets,
+			financialAssets: protection.financialAssets,
+			hasFinancialDependants: protection.hasFinancialDependants,
+			reasons: protection.reasons,
+		},
+
 		estate: {
 			hasWill: household.estate.hasWill ?? null,
 			hasEnduringPowerOfAttorney: household.estate.hasEnduringPowerOfAttorney ?? null,
 			hasSuperBeneficiaryNomination: household.estate.hasSuperBeneficiaryNomination ?? null,
+		},
+
+		estatePosition: {
+			assessment: estate.assessment,
+			economicAssessment: estate.economicAssessment,
+			documentationAssessment: estate.documentationAssessment,
+			netHouseholdResources: estate.netHouseholdResources,
+			totalAssets: estate.totalAssets,
+			totalLiabilities: estate.totalLiabilities,
+			inheritanceGoal: estate.inheritanceGoal,
+			currentSurplusOrShortfallToGoal: estate.currentSurplusOrShortfallToGoal,
+			documentation: {
+				...estate.documentation,
+			},
+			reasons: [...estate.reasons],
+			qualifications: [...estate.qualifications],
 		},
 	};
 }
