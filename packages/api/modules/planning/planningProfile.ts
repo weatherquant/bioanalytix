@@ -348,3 +348,16 @@ export function buildPlanningProfileV1({
 		},
 	};
 }
+
+export function refreshPlanningProfileHouseholdContext({
+	profile,
+	household,
+}: {
+	profile: BioanalytixPlanningProfileV1;
+	household: HouseholdFinancialState;
+}): BioanalytixPlanningProfileV1 {
+	return {
+		...profile,
+		householdContext: householdContext(household),
+	};
+}

@@ -7,7 +7,10 @@ import {
 import { protectedProcedure } from "../../../orpc/procedures";
 import type { HouseholdFinancialState } from "../../financial/household/types";
 import { buildBaselinePlanningQuestions } from "../../planning/baselineQuestions";
-import type { BioanalytixPlanningProfileV1 } from "../../planning/planningProfile";
+import {
+	refreshPlanningProfileHouseholdContext,
+	type BioanalytixPlanningProfileV1,
+} from "../../planning/planningProfile";
 import { buildPlanningSummary } from "../../planning/planningSummary";
 import {
 	emptySavedPlan,
@@ -37,9 +40,17 @@ export const getBioanalytixPlan = protectedProcedure
 		const savedPlan =
 			(savedRecord?.plan as unknown as SavedBioanalytixPlanV1 | null) ?? emptySavedPlan();
 
-		const generatedProfile =
+		const storedProfile =
 			(planningProfileRecord?.profile as unknown as BioanalytixPlanningProfileV1 | null) ??
 			null;
+
+		const generatedProfile =
+			storedProfile && household.financialState
+				? refreshPlanningProfileHouseholdContext({
+						profile: storedProfile,
+						household: household.financialState as unknown as HouseholdFinancialState,
+					})
+				: storedProfile;
 
 		let baselineQuestions: SavedPlanningQuestion[] = [];
 
