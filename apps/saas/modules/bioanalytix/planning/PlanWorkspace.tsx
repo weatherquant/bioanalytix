@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { AskBioanalytix } from "./AskBioanalytix";
+
 import styles from "./PlanWorkspace.module.css";
 
 type PlanningDomain =
@@ -814,6 +816,8 @@ export function PlanWorkspace() {
 					</div>
 				)}
 			</section>
+
+			<AskBioanalytix />
 
 			<section className={styles.twoColumnGrid}>
 				<div className={styles.panel}>

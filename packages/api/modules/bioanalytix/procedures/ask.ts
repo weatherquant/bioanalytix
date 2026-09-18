@@ -53,5 +53,6 @@ export const askBioanalytix = protectedProcedure
 			question: input.question,
 			household: financialState,
 			profile: planningProfile,
+			continuation: input.continuation,
 		});
 	});

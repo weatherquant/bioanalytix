@@ -6,17 +6,23 @@ import { buildBioanalytixAgentContext } from "./agentContext";
 import {
 	bioanalytixAgentAnswerSchema,
 	type BioanalytixAgentAnswer,
-	type BioanalytixMissingAssumption,
+	type BioanalytixAgentContinuation,
 	type BioanalytixAgentDecision,
+	type BioanalytixAgentToolParameters,
 } from "./agentContract";
 import { generateBioanalytixAgentDecision } from "./agentDecision";
-import { buildBioanalytixAgentExplanationPrompt } from "./agentPrompt";
+import {
+	BIOANALYTIX_AGENT_SYSTEM_PROMPT,
+	buildBioanalytixAgentExplanationPrompt,
+	buildBioanalytixAgentNoToolPrompt,
+} from "./agentPrompt";
 import { runBioanalytixAgentTool, type BioanalytixAgentToolResult } from "./agentTools";
 
 export interface RunBioanalytixAgentInput {
 	question: string;
 	household: HouseholdFinancialState;
 	profile: BioanalytixPlanningProfileV1;
+	continuation?: BioanalytixAgentContinuation | null;
 }
 
 export interface BioanalytixAgentDependencies {
@@ -25,9 +31,14 @@ export interface BioanalytixAgentDependencies {
 		context: ReturnType<typeof buildBioanalytixAgentContext>;
 	}) => Promise<BioanalytixAgentDecision>;
 
-	generateExplanation: (input: {
+	generateNoToolResponse: (input: {
 		question: string;
 		context: ReturnType<typeof buildBioanalytixAgentContext>;
+		intent: BioanalytixAgentDecision["intent"];
+	}) => Promise<string>;
+
+	generateExplanation: (input: {
+		question: string;
 		toolResult: BioanalytixAgentToolResult;
 	}) => Promise<string>;
 }
@@ -35,13 +46,26 @@ export interface BioanalytixAgentDependencies {
 const defaultDependencies: BioanalytixAgentDependencies = {
 	generateDecision: generateBioanalytixAgentDecision,
 
-	generateExplanation: async ({ question, context, toolResult }) => {
-		const explanation = await generateText({
+	generateNoToolResponse: async ({ question, context, intent }) => {
+		const response = await generateText({
 			model: textModel,
-			system: "You are Ask Bioanalytix. Explain deterministic Bioanalytix financial analysis clearly and conservatively. Never replace the supplied calculation with your own calculation or invent missing facts.",
-			prompt: buildBioanalytixAgentExplanationPrompt({
+			system: BIOANALYTIX_AGENT_SYSTEM_PROMPT,
+			prompt: buildBioanalytixAgentNoToolPrompt({
 				question,
 				context,
+				intent,
+			}),
+		});
+
+		return response.text;
+	},
+
+	generateExplanation: async ({ question, toolResult }) => {
+		const explanation = await generateText({
+			model: textModel,
+			system: "You are Ask Bioanalytix. Explain deterministic Bioanalytix financial analysis clearly and conservatively. The supplied deterministic result is authoritative. Never replace the supplied calculation with your own calculation, invent missing facts, or make a recommendation that the calculation does not establish.",
+			prompt: buildBioanalytixAgentExplanationPrompt({
+				question,
 				toolResult,
 			}),
 		});
@@ -50,70 +74,144 @@ const defaultDependencies: BioanalytixAgentDependencies = {
 	},
 };
 
-function missingInputAnswer(missingAssumptions: BioanalytixMissingAssumption[]): string {
-	if (missingAssumptions.length === 0) {
-		return "I need a little more information before I can run that analysis.";
-	}
-
-	if (missingAssumptions.length === 1) {
-		return missingAssumptions[0]!.question;
-	}
-
-	return [
-		"I need a couple of assumptions before I can run that analysis:",
-		"",
-		...missingAssumptions.map((assumption) => `- ${assumption.question}`),
-	].join("\n");
+function emptyParameters(): BioanalytixAgentToolParameters {
+	return {
+		personId: null,
+		alternativeRetirementAge: null,
+		startDate: null,
+		annualIncomeLost: null,
+		annualAdditionalExpenses: null,
+		oneOffExpense: null,
+	};
 }
 
-export async function runBioanalytixAgent(
-	input: RunBioanalytixAgentInput,
-	dependencies: BioanalytixAgentDependencies = defaultDependencies,
-): Promise<BioanalytixAgentAnswer> {
-	const context = buildBioanalytixAgentContext(input.profile);
+function toToolParameters(parameters: BioanalytixAgentToolParameters) {
+	return {
+		personId: parameters.personId ?? undefined,
+		alternativeRetirementAge: parameters.alternativeRetirementAge ?? undefined,
+		startDate: parameters.startDate ?? undefined,
+		annualIncomeLost: parameters.annualIncomeLost ?? undefined,
+		annualAdditionalExpenses: parameters.annualAdditionalExpenses ?? undefined,
+		oneOffExpense: parameters.oneOffExpense ?? undefined,
+	};
+}
 
-	const decision = await dependencies.generateDecision({
-		question: input.question,
-		context,
-	});
+function questionExplicitlyStatesAnnualIncomeLost(question: string): boolean {
+	const normalized = question.toLowerCase();
 
+	const hasIncomeLossLanguage =
+		/\b(income|salary|earnings|wages)\b/.test(normalized) &&
+		/\b(lost|lose|loss|disappear|disappeared|gone|reduced|reduction)\b/.test(normalized);
+
+	const hasExplicitAmount =
+		/\$\s*\d[\d,]*(?:\.\d+)?\s*(?:k|m|thousand|million)?\b/i.test(question) ||
+		/\b\d[\d,]*(?:\.\d+)?\s*(?:k|m|thousand|million)\b/i.test(question);
+
+	return hasIncomeLossLanguage && hasExplicitAmount;
+}
+
+function enforceExplicitInitialAssumptions({
+	question,
+	decision,
+}: {
+	question: string;
+	decision: BioanalytixAgentDecision;
+}): BioanalytixAgentDecision {
+	const parameters = {
+		...emptyParameters(),
+		...decision.parameters,
+	};
+
+	if (
+		(decision.tool === "compare_life_insurance" || decision.tool === "run_survivor_scenario") &&
+		!questionExplicitlyStatesAnnualIncomeLost(question)
+	) {
+		parameters.annualIncomeLost = null;
+	}
+
+	return {
+		...decision,
+		parameters,
+	};
+}
+
+function buildContinuation({
+	question,
+	decision,
+}: {
+	question: string;
+	decision: BioanalytixAgentDecision;
+}): BioanalytixAgentContinuation | null {
 	if (!decision.tool) {
+		return null;
+	}
+
+	return {
+		originalQuestion: question,
+		intent: decision.intent,
+		tool: decision.tool,
+		parameters: {
+			...emptyParameters(),
+			...decision.parameters,
+		},
+	};
+}
+
+async function executeDecision({
+	question,
+	decision,
+	household,
+	profile,
+	context,
+	dependencies,
+}: {
+	question: string;
+	decision: BioanalytixAgentDecision;
+	household: HouseholdFinancialState;
+	profile: BioanalytixPlanningProfileV1;
+	context: ReturnType<typeof buildBioanalytixAgentContext>;
+	dependencies: BioanalytixAgentDependencies;
+}): Promise<BioanalytixAgentAnswer> {
+	if (!decision.tool) {
+		const answer = await dependencies.generateNoToolResponse({
+			question,
+			context,
+			intent: decision.intent,
+		});
+
 		return bioanalytixAgentAnswerSchema.parse({
-			answer: "I can help with questions about your Bioanalytix Plan, including retirement, financial resilience, protection, estate planning and the planning relevance of your genetic results. I don't have an approved analysis for that question yet.",
+			answer,
 			intent: decision.intent,
 			toolUsed: null,
-			missingAssumptions: decision.missingAssumptions,
+			missingAssumptions: [],
+			continuation: null,
 			proposedPlanChange: null,
 		});
 	}
 
 	const toolResult = runBioanalytixAgentTool({
 		tool: decision.tool,
-		household: input.household,
-		profile: input.profile,
-		parameters: {
-			personId: decision.parameters.personId ?? undefined,
-			alternativeRetirementAge: decision.parameters.alternativeRetirementAge ?? undefined,
-			startDate: decision.parameters.startDate ?? undefined,
-			annualIncomeLost: decision.parameters.annualIncomeLost ?? undefined,
-			annualAdditionalExpenses: decision.parameters.annualAdditionalExpenses ?? undefined,
-			oneOffExpense: decision.parameters.oneOffExpense ?? undefined,
-		},
+		household,
+		profile,
+		parameters: toToolParameters(decision.parameters),
 	});
 
 	if (toolResult.status === "needs_input") {
 		return bioanalytixAgentAnswerSchema.parse({
-			answer: missingInputAnswer(toolResult.missingInputs),
+			answer: "I need a little more information before I can run that analysis.",
 			intent: decision.intent,
 			toolUsed: decision.tool,
 			missingAssumptions: toolResult.missingInputs,
+			continuation: buildContinuation({
+				question,
+				decision,
+			}),
 			proposedPlanChange: null,
 		});
 	}
 
 	const explanation = await dependencies.generateExplanation({
-		question: input.question,
-		context,
+		question,
 		toolResult,
 	});
 
@@ -122,6 +220,61 @@ export async function runBioanalytixAgent(
 		intent: decision.intent,
 		toolUsed: toolResult.tool,
 		missingAssumptions: [],
+		continuation: null,
 		proposedPlanChange: null,
+	});
+}
+
+export async function runBioanalytixAgent(
+	input: RunBioanalytixAgentInput,
+	dependencies: BioanalytixAgentDependencies = defaultDependencies,
+): Promise<BioanalytixAgentAnswer> {
+	const context = buildBioanalytixAgentContext(input.profile);
+
+	/*
+	 * A continuation is deliberately not sent back through the model for
+	 * tool selection. The original approved tool and intent are retained.
+	 *
+	 * The next UI step will collect explicit missing values and place them
+	 * into continuation.parameters before resubmitting.
+	 */
+	if (input.continuation) {
+		const decision: BioanalytixAgentDecision = {
+			intent: input.continuation.intent,
+			tool: input.continuation.tool,
+			parameters: {
+				...emptyParameters(),
+				...input.continuation.parameters,
+			},
+			missingAssumptions: [],
+		};
+
+		return executeDecision({
+			question: input.continuation.originalQuestion,
+			decision,
+			household: input.household,
+			profile: input.profile,
+			context,
+			dependencies,
+		});
+	}
+
+	const generatedDecision = await dependencies.generateDecision({
+		question: input.question,
+		context,
+	});
+
+	const decision = enforceExplicitInitialAssumptions({
+		question: input.question,
+		decision: generatedDecision,
+	});
+
+	return executeDecision({
+		question: input.question,
+		decision,
+		household: input.household,
+		profile: input.profile,
+		context,
+		dependencies,
 	});
 }

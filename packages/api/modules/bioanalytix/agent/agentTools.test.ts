@@ -116,10 +116,7 @@ describe("runBioanalytixAgentTool", () => {
 			throw new Error("Expected survivor scenario to require input.");
 		}
 
-		expect(result.missingInputs.map((input) => input.key)).toEqual([
-			"startDate",
-			"annualIncomeLost",
-		]);
+		expect(result.missingInputs.map((input) => input.key)).toEqual(["annualIncomeLost"]);
 	});
 
 	it("requires explicit assumptions before comparing life insurance", () => {
@@ -135,9 +132,6 @@ describe("runBioanalytixAgentTool", () => {
 			throw new Error("Expected life insurance comparison to require input.");
 		}
 
-		expect(result.missingInputs.map((input) => input.key)).toEqual([
-			"startDate",
-			"annualIncomeLost",
-		]);
+		expect(result.missingInputs.map((input) => input.key)).toEqual(["annualIncomeLost"]);
 	});
 });

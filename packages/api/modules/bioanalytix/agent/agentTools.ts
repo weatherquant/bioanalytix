@@ -167,13 +167,7 @@ export function runBioanalytixAgentTool(
 				reason: string;
 			}> = [];
 
-			if (!parameters.startDate) {
-				missingInputs.push({
-					key: "startDate",
-					question: "What date should I use for the survivor scenario?",
-					reason: "The financial scenario needs an explicit start date.",
-				});
-			}
+			const startDate = parameters.startDate ?? input.household.asOfDate;
 
 			if (!nonNegativeFinite(parameters.annualIncomeLost)) {
 				missingInputs.push({
@@ -200,7 +194,7 @@ export function runBioanalytixAgentTool(
 					household: input.household,
 					assumptions: buildBioanalytixProjectionAssumptions(input.household),
 					personId,
-					startDate: parameters.startDate!,
+					startDate,
 					annualIncomeLost: parameters.annualIncomeLost!,
 					annualAdditionalExpenses: parameters.annualAdditionalExpenses,
 					oneOffExpense: parameters.oneOffExpense,
@@ -216,13 +210,7 @@ export function runBioanalytixAgentTool(
 				reason: string;
 			}> = [];
 
-			if (!parameters.startDate) {
-				missingInputs.push({
-					key: "startDate",
-					question: "What date should I use for the insurance comparison?",
-					reason: "The comparison requires an explicit scenario start date.",
-				});
-			}
+			const startDate = parameters.startDate ?? input.household.asOfDate;
 
 			if (!nonNegativeFinite(parameters.annualIncomeLost)) {
 				missingInputs.push({
@@ -249,7 +237,7 @@ export function runBioanalytixAgentTool(
 					household: input.household,
 					assumptions: buildBioanalytixProjectionAssumptions(input.household),
 					personId,
-					startDate: parameters.startDate!,
+					startDate,
 					annualIncomeLost: parameters.annualIncomeLost!,
 					annualAdditionalExpenses: parameters.annualAdditionalExpenses,
 					oneOffExpense: parameters.oneOffExpense,

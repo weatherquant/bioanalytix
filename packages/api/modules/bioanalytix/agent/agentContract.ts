@@ -49,12 +49,6 @@ export const bioanalytixProposedPlanChangeSchema = z.object({
 
 export type BioanalytixProposedPlanChange = z.infer<typeof bioanalytixProposedPlanChangeSchema>;
 
-export const bioanalytixAgentRequestSchema = z.object({
-	question: z.string().trim().min(1).max(4000),
-});
-
-export type BioanalytixAgentRequest = z.infer<typeof bioanalytixAgentRequestSchema>;
-
 export const bioanalytixAgentToolParametersSchema = z.object({
 	personId: z.string().min(1).nullable(),
 	alternativeRetirementAge: z.number().positive().nullable(),
@@ -65,6 +59,22 @@ export const bioanalytixAgentToolParametersSchema = z.object({
 });
 
 export type BioanalytixAgentToolParameters = z.infer<typeof bioanalytixAgentToolParametersSchema>;
+
+export const bioanalytixAgentContinuationSchema = z.object({
+	originalQuestion: z.string().trim().min(1).max(4000),
+	intent: bioanalytixAgentIntentSchema,
+	tool: bioanalytixToolNameSchema,
+	parameters: bioanalytixAgentToolParametersSchema,
+});
+
+export type BioanalytixAgentContinuation = z.infer<typeof bioanalytixAgentContinuationSchema>;
+
+export const bioanalytixAgentRequestSchema = z.object({
+	question: z.string().trim().min(1).max(4000),
+	continuation: bioanalytixAgentContinuationSchema.nullable().optional(),
+});
+
+export type BioanalytixAgentRequest = z.infer<typeof bioanalytixAgentRequestSchema>;
 
 export const bioanalytixAgentDecisionSchema = z.object({
 	intent: bioanalytixAgentIntentSchema,
@@ -80,6 +90,7 @@ export const bioanalytixAgentAnswerSchema = z.object({
 	intent: bioanalytixAgentIntentSchema,
 	toolUsed: bioanalytixToolNameSchema.nullable(),
 	missingAssumptions: z.array(bioanalytixMissingAssumptionSchema),
+	continuation: bioanalytixAgentContinuationSchema.nullable(),
 	proposedPlanChange: bioanalytixProposedPlanChangeSchema.nullable(),
 });
 
