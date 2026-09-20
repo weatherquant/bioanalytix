@@ -61,6 +61,10 @@ export interface SavedPlanningAreaReview {
 	reviewedAt?: string;
 }
 
+export interface SavedEstateObjective {
+	targetAmount: number;
+}
+
 export interface SavedBioanalytixPlanV1 {
 	version: typeof SAVED_PLAN_VERSION;
 
@@ -75,6 +79,8 @@ export interface SavedBioanalytixPlanV1 {
 	areaReviews?: SavedPlanningAreaReview[];
 
 	assumptions: PlanScenarioAssumptions;
+
+	estateObjective?: SavedEstateObjective;
 
 	priorities: string[];
 

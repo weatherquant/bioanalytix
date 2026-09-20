@@ -960,4 +960,134 @@ describe("runLifecycleSimulation", () => {
 
 		expect(year.superannuation).toBeGreaterThan(year.nonSuperInvestableWealth);
 	});
+
+	it("applies the age-adjusted retirement spending profile across later-life age bands", () => {
+		const inputHousehold = household();
+
+		/*
+		 * Give the household enough financial resources that the test
+		 * observes the spending profile rather than asset depletion.
+		 */
+		inputHousehold.assets = [
+			{
+				id: "cash",
+				type: "cash",
+				value: 5_000_000,
+				liquid: true,
+				investable: true,
+				incomeProducing: false,
+			},
+		];
+
+		const inputAssumptions = assumptions();
+		inputAssumptions.projectionEndDate = "2057-09-01";
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+
+			assumptions: inputAssumptions,
+
+			plan: {
+				retirementAge: 60,
+				annualRetirementSpending: 80_000,
+				retirementSpendingProfile: {
+					type: "age_adjusted",
+				},
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(31),
+		});
+
+		const age74 = result.years.find(
+			(year) => year.primaryAge === 74 && year.phase === "retired",
+		);
+
+		const age75 = result.years.find(
+			(year) => year.primaryAge === 75 && year.phase === "retired",
+		);
+
+		const age84 = result.years.find(
+			(year) => year.primaryAge === 84 && year.phase === "retired",
+		);
+
+		const age85 = result.years.find(
+			(year) => year.primaryAge === 85 && year.phase === "retired",
+		);
+
+		expect(age74?.retirementSpending).toBe(80_000);
+		expect(age75?.retirementSpending).toBe(72_000);
+		expect(age84?.retirementSpending).toBe(72_000);
+		expect(age85?.retirementSpending).toBe(64_000);
+	});
+
+	it("adds explicit later-life care costs only for the selected ages", () => {
+		const inputHousehold = household();
+
+		inputHousehold.assets = [
+			{
+				id: "cash",
+				type: "cash",
+				value: 5_000_000,
+				liquid: true,
+				investable: true,
+				incomeProducing: false,
+			},
+		];
+
+		const inputAssumptions = assumptions();
+		inputAssumptions.projectionEndDate = "2059-09-01";
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+
+			assumptions: inputAssumptions,
+
+			plan: {
+				retirementAge: 60,
+				annualRetirementSpending: 80_000,
+				retirementSpendingProfile: {
+					type: "age_adjusted",
+					laterLifeCare: {
+						startAge: 85,
+						annualCost: 50_000,
+						durationYears: 3,
+					},
+				},
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(33),
+		});
+
+		const age84 = result.years.find(
+			(year) => year.primaryAge === 84 && year.phase === "retired",
+		);
+
+		const age85 = result.years.find(
+			(year) => year.primaryAge === 85 && year.phase === "retired",
+		);
+
+		const age86 = result.years.find(
+			(year) => year.primaryAge === 86 && year.phase === "retired",
+		);
+
+		const age87 = result.years.find(
+			(year) => year.primaryAge === 87 && year.phase === "retired",
+		);
+
+		const age88 = result.years.find(
+			(year) => year.primaryAge === 88 && year.phase === "retired",
+		);
+
+		expect(age84?.retirementSpending).toBe(72_000);
+
+		expect(age85?.retirementSpending).toBe(114_000);
+		expect(age86?.retirementSpending).toBe(114_000);
+		expect(age87?.retirementSpending).toBe(114_000);
+
+		expect(age88?.retirementSpending).toBe(64_000);
+	});
 });

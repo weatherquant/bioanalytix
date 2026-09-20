@@ -2,6 +2,7 @@ import type { Asset, HouseholdFinancialState, IncomeSource, Person } from "../ho
 import { calculateAgeOnDate, validateHouseholdFinancialState } from "../household/validation";
 import { isValidIsoDate } from "../household/validation";
 import { assessLifecycleSafetyNet } from "../retirement/lifecycleSafetyNet";
+import { retirementSpendingForAge } from "../retirement/retirementSpendingProfile";
 import {
 	LifecycleSimulationError,
 	type LifecycleSimulationInput,
@@ -453,8 +454,18 @@ export function runLifecycleSimulation(input: LifecycleSimulationInput): Lifecyc
 				: (household.expenses.essentialAnnual + household.expenses.discretionaryAnnual) *
 					cumulativeInflation;
 
+		const retirementSpendingAssessment =
+			phase === "retired"
+				? retirementSpendingForAge({
+						baseAnnualRetirementSpending: plan.annualRetirementSpending,
+						age: phaseAge,
+						retirementAge: plan.retirementAge,
+						profile: plan.retirementSpendingProfile,
+					})
+				: undefined;
+
 		const retirementSpending =
-			phase === "retired" ? plan.annualRetirementSpending * cumulativeInflation : 0;
+			(retirementSpendingAssessment?.totalAnnualSpending ?? 0) * cumulativeInflation;
 
 		const oneOffExpenses = yearIndex === 0 ? (household.expenses.oneOffAnnual ?? 0) : 0;
 

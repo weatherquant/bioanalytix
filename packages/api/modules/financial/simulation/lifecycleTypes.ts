@@ -1,6 +1,7 @@
 import type { HouseholdFinancialState } from "../household/types";
 import type { ProjectionAssumptions } from "../projection/types";
 import type { LifecycleRetirementSafetyNet } from "../retirement/lifecycleSafetyNet";
+import type { RetirementSpendingProfile } from "../retirement/retirementSpendingProfile";
 import type { MarketPath, PortfolioStrategy, AssetClassAllocation } from "./types";
 
 export type LifecyclePhase = "working" | "retirement_transition" | "retired";
@@ -14,12 +15,28 @@ export interface LifecyclePlan {
 	retirementAge: number;
 
 	/**
-	 * Desired annual retirement spending in today's
-	 * dollars.
+	 * Base annual retirement spending in today's dollars.
 	 *
-	 * It is indexed by the simulated inflation path.
+	 * With no retirementSpendingProfile supplied, this amount
+	 * remains constant in real terms and is indexed only by the
+	 * simulated inflation path.
+	 *
+	 * When a profile is supplied, this remains the base lifestyle
+	 * spending amount from which the age-related spending path is
+	 * calculated.
 	 */
 	annualRetirementSpending: number;
+
+	/**
+	 * Optional retirement spending profile.
+	 *
+	 * Omitted = existing flat real-spending behaviour.
+	 *
+	 * This is an explicit financial planning assumption. Genetics
+	 * may make a scenario worth exploring but must never populate
+	 * or alter this profile automatically.
+	 */
+	retirementSpendingProfile?: RetirementSpendingProfile;
 }
 
 export interface LifecycleYear {

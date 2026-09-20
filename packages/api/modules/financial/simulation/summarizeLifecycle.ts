@@ -9,6 +9,8 @@ export interface LifecycleYearDistribution {
 
 	primaryAge: number;
 
+	retirementSpending: SimulationDistribution;
+
 	netWorth: SimulationDistribution;
 
 	liquidWealth: SimulationDistribution;
@@ -82,6 +84,10 @@ export function summarizeLifecycleSimulations(
 			projectionDate: reference.projectionDate,
 
 			primaryAge: reference.primaryAge,
+
+			retirementSpending: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.retirementSpending),
+			),
 
 			netWorth: summarizeDistribution(
 				results.map((result) => result.years[yearIndex]!.netWorth),

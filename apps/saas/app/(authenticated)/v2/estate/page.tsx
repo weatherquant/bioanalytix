@@ -1,523 +1,748 @@
 "use client";
 
-import {
-	ArrowRight,
-	CheckCircle2,
-	FileText,
-	HeartHandshake,
-	Info,
-	Landmark,
-	ShieldCheck,
-	TriangleAlert,
-	Users,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle, Loader2, MessageCircleQuestion } from "lucide-react";
 import Link from "next/link";
-import {
-	CartesianGrid,
-	Legend,
-	Line,
-	LineChart,
-	ReferenceArea,
-	ReferenceLine,
-	ResponsiveContainer,
-	Tooltip,
-	XAxis,
-	YAxis,
-} from "recharts";
+import { useEffect, useState } from "react";
 
-import { AppHeader } from "../../../../modules/bioanalytix/components/AppHeader";
-import { PageShell } from "../../../../modules/bioanalytix/components/PageShell";
-import { estateFixture } from "./estateFixture";
+import styles from "./EstatePage.module.css";
 
-const currencyFormatter = new Intl.NumberFormat("en-AU", {
-	style: "currency",
-	currency: estateFixture.currency,
-	maximumFractionDigits: 0,
-});
+type EstateAssessment = "strong" | "comfortable" | "review" | "exposed";
 
-const compactCurrency = new Intl.NumberFormat("en-AU", {
-	style: "currency",
-	currency: estateFixture.currency,
-	notation: "compact",
-	maximumFractionDigits: 1,
-});
+interface EstatePosition {
+	assessment: EstateAssessment;
+	economicAssessment: EstateAssessment;
+	documentationAssessment: EstateAssessment;
 
-function formatSignedCurrency(value: number | null) {
-	if (value === null) {
-		return "Not set";
-	}
+	totalAssets: number;
+	totalLiabilities: number;
+	netHouseholdResources: number;
 
-	const formatted = compactCurrency.format(Math.abs(value));
+	inheritanceGoal: {
+		targetAmount: number;
+		priority?: string;
+	} | null;
 
-	return value >= 0 ? `+${formatted}` : `-${formatted}`;
+	currentSurplusOrShortfallToGoal: number | null;
+
+	documentation: {
+		hasWill: boolean | null;
+		hasEnduringPowerOfAttorney: boolean | null;
+		hasSuperBeneficiaryNomination: boolean | null;
+	};
+
+	reasons: string[];
+	qualifications: string[];
 }
 
-function statusLabel(value: boolean | null) {
-	if (value === true) {
-		return "In place";
-	}
-
-	if (value === false) {
-		return "Needs attention";
-	}
-
-	return "Not recorded";
+interface EstateObjective {
+	targetAmount: number;
 }
 
-function statusClass(value: boolean | null) {
-	if (value === true) {
-		return "text-emerald-700";
-	}
-
-	if (value === false) {
-		return "text-amber-700";
-	}
-
-	return "text-muted-foreground";
+interface ObjectiveComparison {
+	targetAmount: number;
+	currentSurplusOrShortfall: number;
 }
 
-const chartData = estateFixture.projection.map((point) => ({
-	age: point.age,
-	p25: point.p25Estate,
-	median: point.medianEstate,
-	p75: point.p75Estate,
-}));
+interface LegacyComparison {
+	retirementAge: number;
+	strategyId: string;
+	strategyName: string;
+	targetAmount: number;
+	baselineAnnualRetirementSpending: number;
+	withInheritanceObjectiveAnnualRetirementSpending: number;
+	annualSpendingDifference: number;
+	objectiveAchievableAtZeroSpending: boolean;
+	projectionYears: number;
+	maximumRetirementShortfallProbability: number;
+	maximumInheritanceShortfallProbability: number;
+}
 
-export default function EstatePage() {
-	const central = estateFixture.atCentralLongevityAge;
-	const longLife = estateFixture.atLongLifeAge;
+interface LegacyComparisonResponse {
+	status: "complete" | "missing_financial_state" | "missing_estate_objective";
+	comparison: LegacyComparison | null;
+}
+
+interface EstateResponse {
+	householdId: string;
+	estatePosition: EstatePosition | null;
+	estateObjective: EstateObjective | null;
+	objectiveComparison: ObjectiveComparison | null;
+}
+
+interface SavedPlanResponse {
+	savedPlan: {
+		version: string;
+		planningProfileId?: string;
+		questions: unknown[];
+		areaReviews?: unknown[];
+		assumptions: Record<string, number>;
+		estateObjective?: EstateObjective;
+		priorities: string[];
+		notes: string;
+		lastSavedAt?: string;
+	};
+}
+
+function formatCurrency(value: number) {
+	return new Intl.NumberFormat("en-AU", {
+		style: "currency",
+		currency: "AUD",
+		maximumFractionDigits: 0,
+	}).format(value);
+}
+
+function assessmentLabel(assessment: EstateAssessment) {
+	switch (assessment) {
+		case "strong":
+			return "Strong";
+		case "comfortable":
+			return "Comfortable";
+		case "review":
+			return "Worth reviewing";
+		case "exposed":
+			return "Exposed";
+	}
+}
+
+function ReadinessItem({ label, value }: { label: string; value: boolean | null }) {
+	const recorded = value === true;
 
 	return (
-		<>
-			<AppHeader
-				title="Estate"
-				description="See how longevity, liabilities and protection may affect what remains for others."
-			/>
-
-			<PageShell>
-				<div className="space-y-8">
-					<section className="p-8 shadow-sm rounded-3xl border bg-card">
-						<div className="gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-center grid">
-							<div>
-								<div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-									Longevity × Estate
-								</div>
-
-								<h1 className="max-w-3xl text-3xl font-semibold tracking-tight md:text-4xl">
-									What might remain for the people and purposes you care about?
-								</h1>
-
-								<p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
-									Bioanalytix tests how your projected estate changes across
-									different longevity horizons and financial outcomes. It helps
-									distinguish current wealth from what may remain after a longer
-									life.
-								</p>
-							</div>
-
-							<div className="p-5 rounded-2xl border bg-muted/30">
-								<div className="gap-3 flex items-center">
-									<HeartHandshake className="h-5 w-5" />
-
-									<div>
-										<p className="text-sm font-medium">Inheritance goal</p>
-
-										<p className="text-2xl font-semibold">
-											{estateFixture.inheritanceGoal.targetAmount === null
-												? "Not set"
-												: compactCurrency.format(
-														estateFixture.inheritanceGoal.targetAmount,
-													)}
-										</p>
-									</div>
-								</div>
-
-								<p className="mt-3 text-sm leading-6 text-muted-foreground">
-									Compared with projected estate at your central longevity
-									planning horizon.
-								</p>
-							</div>
-						</div>
-					</section>
-
-					<section className="gap-4 md:grid-cols-2 xl:grid-cols-4 grid">
-						<div className="p-5 rounded-2xl border bg-card">
-							<div className="flex items-center justify-between">
-								<p className="text-sm text-muted-foreground">Current net estate</p>
-
-								<Landmark className="h-4 w-4 text-muted-foreground" />
-							</div>
-
-							<p className="mt-3 text-2xl font-semibold">
-								{compactCurrency.format(estateFixture.current.netEstate)}
-							</p>
-
-							<p className="mt-2 text-sm text-muted-foreground">
-								Financial planning estimate
-							</p>
-						</div>
-
-						<div className="p-5 rounded-2xl border bg-card">
-							<div className="flex items-center justify-between">
-								<p className="text-sm text-muted-foreground">
-									At age {central.age}
-								</p>
-
-								<Users className="h-4 w-4 text-muted-foreground" />
-							</div>
-
-							<p className="mt-3 text-2xl font-semibold">
-								{compactCurrency.format(central.medianEstate)}
-							</p>
-
-							<p className="mt-2 text-sm text-muted-foreground">
-								Median projected estate
-							</p>
-						</div>
-
-						<div className="p-5 rounded-2xl border bg-card">
-							<div className="flex items-center justify-between">
-								<p className="text-sm text-muted-foreground">Long-life estate</p>
-
-								<ShieldCheck className="h-4 w-4 text-muted-foreground" />
-							</div>
-
-							<p className="mt-3 text-2xl font-semibold">
-								{compactCurrency.format(longLife.medianEstate)}
-							</p>
-
-							<p className="mt-2 text-sm text-muted-foreground">
-								Median at age {longLife.age}
-							</p>
-						</div>
-
-						<div className="p-5 rounded-2xl border bg-card">
-							<div className="flex items-center justify-between">
-								<p className="text-sm text-muted-foreground">Goal position</p>
-
-								{(estateFixture.goalComparison.medianSurplusOrShortfall ?? 0) >=
-								0 ? (
-									<CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-								) : (
-									<TriangleAlert className="h-4 w-4 text-muted-foreground" />
-								)}
-							</div>
-
-							<p className="mt-3 text-2xl font-semibold">
-								{formatSignedCurrency(
-									estateFixture.goalComparison.medianSurplusOrShortfall,
-								)}
-							</p>
-
-							<p className="mt-2 text-sm text-muted-foreground">
-								Median vs inheritance goal
-							</p>
-						</div>
-					</section>
-
-					<section className="p-6 shadow-sm md:p-8 rounded-3xl border bg-card">
-						<div className="gap-4 md:flex-row md:items-start flex flex-col justify-between">
-							<div>
-								<h2 className="text-xl font-semibold">
-									Projected estate across your longevity horizon
-								</h2>
-
-								<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-									The range reflects variation in simulated financial outcomes.
-									The shaded area marks your longevity planning range.
-								</p>
-							</div>
-
-							<div className="px-3 py-1 text-xs rounded-full border text-muted-foreground">
-								{estateFixture.simulationCount} simulations
-							</div>
-						</div>
-
-						<div className="mt-6 h-[380px] w-full">
-							<ResponsiveContainer width="100%" height="100%">
-								<LineChart
-									data={chartData}
-									margin={{
-										top: 10,
-										right: 20,
-										left: 10,
-										bottom: 10,
-									}}
-								>
-									<CartesianGrid strokeDasharray="3 3" vertical={false} />
-
-									<XAxis
-										dataKey="age"
-										tickLine={false}
-										axisLine={false}
-										tickMargin={10}
-									/>
-
-									<YAxis
-										tickLine={false}
-										axisLine={false}
-										width={70}
-										tickFormatter={(value) =>
-											compactCurrency.format(Number(value))
-										}
-									/>
-
-									<Tooltip
-										labelFormatter={(age) => `Age ${age}`}
-										formatter={(value, name) => [
-											currencyFormatter.format(Number(value)),
-											name,
-										]}
-									/>
-
-									<Legend />
-
-									<ReferenceArea
-										x1={estateFixture.longevity.lowerAge}
-										x2={estateFixture.longevity.upperAge}
-										fill="currentColor"
-										fillOpacity={0.04}
-										strokeOpacity={0}
-									/>
-
-									<ReferenceLine
-										x={estateFixture.longevity.centralAge}
-										strokeDasharray="4 4"
-										label={{
-											value: `Planning age ${estateFixture.longevity.centralAge}`,
-											position: "insideTopRight",
-										}}
-									/>
-
-									<Line
-										type="monotone"
-										dataKey="median"
-										name="Median"
-										stroke="currentColor"
-										strokeWidth={3}
-										dot={false}
-									/>
-
-									<Line
-										type="monotone"
-										dataKey="p25"
-										name="25th percentile"
-										stroke="currentColor"
-										strokeOpacity={0.4}
-										strokeWidth={1.5}
-										dot={false}
-									/>
-
-									<Line
-										type="monotone"
-										dataKey="p75"
-										name="75th percentile"
-										stroke="currentColor"
-										strokeOpacity={0.4}
-										strokeWidth={1.5}
-										dot={false}
-									/>
-								</LineChart>
-							</ResponsiveContainer>
-						</div>
-
-						<div className="mt-5 gap-3 p-4 flex rounded-2xl bg-muted/40">
-							<Info className="mt-0.5 h-4 w-4 shrink-0" />
-
-							<p className="text-sm leading-6 text-muted-foreground">
-								Projected estate here means projected household net worth. It is not
-								a calculation of the legal estate that would pass through probate.
-							</p>
-						</div>
-					</section>
-
-					<section className="gap-6 lg:grid-cols-2 grid">
-						<div className="p-6 rounded-3xl border bg-card">
-							<h2 className="text-xl font-semibold">Estate resilience</h2>
-
-							<p className="mt-2 text-sm leading-6 text-muted-foreground">
-								Your inheritance goal can look very different under central and less
-								favourable financial outcomes.
-							</p>
-
-							<div className="mt-6 space-y-4">
-								<div className="pb-4 flex items-center justify-between border-b">
-									<div>
-										<p className="font-medium">
-											Median estate at age {central.age}
-										</p>
-
-										<p className="text-sm text-muted-foreground">
-											Central financial outcome
-										</p>
-									</div>
-
-									<p className="font-semibold">
-										{compactCurrency.format(central.medianEstate)}
-									</p>
-								</div>
-
-								<div className="pb-4 flex items-center justify-between border-b">
-									<div>
-										<p className="font-medium">
-											25th percentile at age {central.age}
-										</p>
-
-										<p className="text-sm text-muted-foreground">
-											Less favourable simulated outcome
-										</p>
-									</div>
-
-									<p className="font-semibold">
-										{compactCurrency.format(central.p25Estate)}
-									</p>
-								</div>
-
-								<div className="flex items-center justify-between">
-									<div>
-										<p className="font-medium">25th percentile goal position</p>
-
-										<p className="text-sm text-muted-foreground">
-											Relative to intended inheritance
-										</p>
-									</div>
-
-									<p className="font-semibold">
-										{formatSignedCurrency(
-											estateFixture.goalComparison.p25SurplusOrShortfall,
-										)}
-									</p>
-								</div>
-							</div>
-						</div>
-
-						<div className="p-6 rounded-3xl border bg-card">
-							<h2 className="text-xl font-semibold">Estate readiness</h2>
-
-							<p className="mt-2 text-sm leading-6 text-muted-foreground">
-								These are recorded planning arrangements, not legal assessments of
-								whether each document is valid or appropriate.
-							</p>
-
-							<div className="mt-6 space-y-4">
-								<div className="pb-4 flex items-center justify-between border-b">
-									<div className="gap-3 flex items-center">
-										<FileText className="h-4 w-4 text-muted-foreground" />
-
-										<span>Will</span>
-									</div>
-
-									<span
-										className={`text-sm font-medium ${statusClass(
-											estateFixture.planning.hasWill,
-										)}`}
-									>
-										{statusLabel(estateFixture.planning.hasWill)}
-									</span>
-								</div>
-
-								<div className="pb-4 flex items-center justify-between border-b">
-									<div className="gap-3 flex items-center">
-										<FileText className="h-4 w-4 text-muted-foreground" />
-
-										<span>Enduring power of attorney</span>
-									</div>
-
-									<span
-										className={`text-sm font-medium ${statusClass(
-											estateFixture.planning.hasEnduringPowerOfAttorney,
-										)}`}
-									>
-										{statusLabel(
-											estateFixture.planning.hasEnduringPowerOfAttorney,
-										)}
-									</span>
-								</div>
-
-								<div className="flex items-center justify-between">
-									<div className="gap-3 flex items-center">
-										<FileText className="h-4 w-4 text-muted-foreground" />
-
-										<span>Super beneficiary nomination</span>
-									</div>
-
-									<span
-										className={`text-sm font-medium ${statusClass(
-											estateFixture.planning.hasSuperBeneficiaryNomination,
-										)}`}
-									>
-										{statusLabel(
-											estateFixture.planning.hasSuperBeneficiaryNomination,
-										)}
-									</span>
-								</div>
-							</div>
-						</div>
-					</section>
-
-					<section className="p-6 md:p-8 rounded-3xl border bg-card">
-						<div className="gap-6 lg:grid-cols-3 grid">
-							<div>
-								<p className="text-sm text-muted-foreground">Current liabilities</p>
-
-								<p className="mt-2 text-2xl font-semibold">
-									{compactCurrency.format(estateFixture.current.liabilities)}
-								</p>
-							</div>
-
-							<div>
-								<p className="text-sm text-muted-foreground">Life cover recorded</p>
-
-								<p className="mt-2 text-2xl font-semibold">
-									{compactCurrency.format(
-										estateFixture.current.lifeInsuranceCover,
-									)}
-								</p>
-							</div>
-
-							<div className="p-4 rounded-2xl bg-muted/40">
-								<p className="text-sm font-medium">
-									Protection is treated separately
-								</p>
-
-								<p className="mt-2 text-sm leading-6 text-muted-foreground">
-									Life insurance is not added to your normal longevity estate
-									projection. It will be assessed when Bioanalytix tests
-									premature-death and dependency scenarios.
-								</p>
-							</div>
-						</div>
-					</section>
-
-					<section className="gap-4 p-6 md:flex-row md:items-center md:justify-between flex flex-col rounded-3xl border bg-card">
-						<div>
-							<h2 className="text-lg font-semibold">Next: test the consequences</h2>
-
-							<p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-								See how premature death, income interruption and a longer life
-								affect your household plan.
-							</p>
-						</div>
-
-						<div className="gap-3 flex flex-wrap">
-							<Link
-								href="/v2/plan"
-								className="gap-2 px-4 py-2 text-sm font-medium inline-flex items-center rounded-xl border"
-							>
-								Open Plan
-								<ArrowRight className="h-4 w-4" />
-							</Link>
-
-							<Link
-								href="/v2/wealth"
-								className="gap-2 px-4 py-2 text-sm font-medium inline-flex items-center rounded-xl border"
-							>
-								Review Wealth
-							</Link>
-						</div>
-					</section>
+		<div className={styles.readinessItem}>
+			<span>{label}</span>
+
+			<div className={styles.readinessStatus}>
+				{recorded ? <CheckCircle2 size={17} /> : <Circle size={17} />}
+
+				<span>{recorded ? "In place" : "Not recorded"}</span>
+			</div>
+		</div>
+	);
+}
+
+export default function EstatePage() {
+	const [data, setData] = useState<EstateResponse | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [editingGoal, setEditingGoal] = useState(false);
+	const [goalAmount, setGoalAmount] = useState("");
+	const [savingGoal, setSavingGoal] = useState(false);
+	const [goalError, setGoalError] = useState<string | null>(null);
+	const [legacyComparison, setLegacyComparison] = useState<LegacyComparison | null>(null);
+	const [loadingLegacyComparison, setLoadingLegacyComparison] = useState(false);
+	const [legacyComparisonError, setLegacyComparisonError] = useState<string | null>(null);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		async function loadEstate() {
+			setLoading(true);
+			setError(null);
+
+			try {
+				const response = await fetch("/api/bioanalytix/estate", {
+					method: "GET",
+					credentials: "include",
+					cache: "no-store",
+				});
+
+				if (!response.ok) {
+					throw new Error("Unable to load your estate position.");
+				}
+
+				const result = (await response.json()) as EstateResponse;
+
+				if (!cancelled) {
+					setData(result);
+				}
+			} catch (loadError) {
+				if (!cancelled) {
+					setError(
+						loadError instanceof Error
+							? loadError.message
+							: "Unable to load your estate position.",
+					);
+				}
+			} finally {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		}
+
+		void loadEstate();
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	useEffect(() => {
+		if (data?.estateObjective) {
+			setGoalAmount(String(data.estateObjective.targetAmount));
+		}
+	}, [data?.estateObjective]);
+
+	async function saveEstateGoal() {
+		const targetAmount = Number(goalAmount.replace(/,/g, "").trim());
+
+		if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
+			setGoalError("Enter an inheritance goal greater than zero.");
+			return;
+		}
+
+		setSavingGoal(true);
+		setGoalError(null);
+
+		try {
+			const planResponse = await fetch("/api/bioanalytix/plan", {
+				method: "GET",
+				credentials: "include",
+				cache: "no-store",
+			});
+
+			if (!planResponse.ok) {
+				throw new Error("Unable to load your Plan.");
+			}
+
+			const planData = (await planResponse.json()) as SavedPlanResponse;
+
+			const updatedPlan = {
+				...planData.savedPlan,
+				estateObjective: {
+					targetAmount,
+				},
+			};
+
+			const saveResponse = await fetch("/api/bioanalytix/plan", {
+				method: "POST",
+				credentials: "include",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(updatedPlan),
+			});
+
+			if (!saveResponse.ok) {
+				const result = await saveResponse.json().catch(() => null);
+
+				throw new Error(
+					result?.message ?? result?.error ?? "Unable to save your inheritance goal.",
+				);
+			}
+
+			const estateResponse = await fetch("/api/bioanalytix/estate", {
+				method: "GET",
+				credentials: "include",
+				cache: "no-store",
+			});
+
+			if (!estateResponse.ok) {
+				throw new Error("Your goal was saved, but Estate could not be refreshed.");
+			}
+
+			const refreshedEstate = (await estateResponse.json()) as EstateResponse;
+
+			setData(refreshedEstate);
+			setLegacyComparison(null);
+			setLegacyComparisonError(null);
+			setEditingGoal(false);
+		} catch (saveError) {
+			setGoalError(
+				saveError instanceof Error
+					? saveError.message
+					: "Unable to save your inheritance goal.",
+			);
+		} finally {
+			setSavingGoal(false);
+		}
+	}
+
+	async function exploreLegacyTradeOff() {
+		setLoadingLegacyComparison(true);
+		setLegacyComparisonError(null);
+
+		try {
+			const response = await fetch("/api/bioanalytix/estate/legacy-comparison", {
+				method: "POST",
+				credentials: "include",
+			});
+
+			if (!response.ok) {
+				throw new Error("Unable to explore this trade-off right now.");
+			}
+
+			const result = (await response.json()) as LegacyComparisonResponse;
+
+			if (result.status !== "complete" || !result.comparison) {
+				throw new Error(
+					"We need a little more information before this trade-off can be explored.",
+				);
+			}
+
+			setLegacyComparison(result.comparison);
+		} catch (comparisonError) {
+			setLegacyComparisonError(
+				comparisonError instanceof Error
+					? comparisonError.message
+					: "Unable to explore this trade-off right now.",
+			);
+		} finally {
+			setLoadingLegacyComparison(false);
+		}
+	}
+
+	if (loading) {
+		return (
+			<div className={styles.loadingCard}>
+				<Loader2 size={20} className={styles.spinner} />
+				<p>Loading your estate position…</p>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className={styles.workspace}>
+				<section className={styles.intro}>
+					<div>
+						<p className={styles.eyebrow}>Estate</p>
+						<h1 className={styles.title}>What might you leave behind?</h1>
+					</div>
+				</section>
+
+				<div className={styles.card}>
+					<p>{error}</p>
 				</div>
-			</PageShell>
-		</>
+			</div>
+		);
+	}
+
+	const estate = data?.estatePosition;
+
+	if (!estate) {
+		return (
+			<div className={styles.workspace}>
+				<section className={styles.intro}>
+					<div>
+						<p className={styles.eyebrow}>Estate</p>
+						<h1 className={styles.title}>What might you leave behind?</h1>
+						<p className={styles.description}>
+							Complete your financial profile before Bioanalytix can assess your
+							estate position.
+						</p>
+					</div>
+				</section>
+
+				<Link href="/v2/onboarding" className={styles.primaryLink}>
+					Complete your profile
+					<ArrowRight size={17} />
+				</Link>
+			</div>
+		);
+	}
+
+	return (
+		<div className={styles.workspace}>
+			<section className={styles.intro}>
+				<div>
+					<p className={styles.eyebrow}>Estate</p>
+
+					<h1 className={styles.title}>What might you leave behind?</h1>
+
+					<p className={styles.description}>
+						Your current household position provides the starting point for thinking
+						about what you may leave to the people who matter to you.
+					</p>
+				</div>
+			</section>
+
+			<section className={styles.section}>
+				<div className={styles.heroCard}>
+					<p className={styles.cardLabel}>Net household resources</p>
+
+					<div className={styles.heroValue}>
+						{formatCurrency(estate.netHouseholdResources)}
+					</div>
+
+					<div className={styles.financialGrid}>
+						<div>
+							<p className={styles.metricLabel}>Total assets</p>
+							<p className={styles.metricValue}>
+								{formatCurrency(estate.totalAssets)}
+							</p>
+						</div>
+
+						<div>
+							<p className={styles.metricLabel}>Total liabilities</p>
+							<p className={styles.metricValue}>
+								{formatCurrency(estate.totalLiabilities)}
+							</p>
+						</div>
+					</div>
+
+					<p className={styles.qualification}>
+						This is a broad financial-planning measure of household resources, not a
+						legal probate-estate calculation.
+					</p>
+				</div>
+			</section>
+
+			<section className={styles.section}>
+				<div className={styles.sectionHeader}>
+					<div>
+						<p className={styles.eyebrow}>Your legacy</p>
+						<h2 className={styles.sectionTitle}>Inheritance</h2>
+					</div>
+				</div>
+
+				<div className={styles.card}>
+					{editingGoal ? (
+						<div className={styles.goalEditor}>
+							<div>
+								<p className={styles.cardLabel}>
+									How much would you like to leave behind?
+								</p>
+								<p className={styles.supportingText}>
+									Set a household inheritance objective for your Plan.
+								</p>
+							</div>
+
+							<div className={styles.goalInputRow}>
+								<div className={styles.goalInputWrap}>
+									<span>$</span>
+									<input
+										type="text"
+										inputMode="numeric"
+										value={goalAmount}
+										onChange={(event) => {
+											setGoalAmount(event.target.value);
+											setGoalError(null);
+										}}
+										placeholder="1,000,000"
+										className={styles.goalInput}
+										aria-label="Inheritance goal"
+									/>
+								</div>
+
+								<button
+									type="button"
+									className={styles.saveGoalButton}
+									onClick={() => void saveEstateGoal()}
+									disabled={savingGoal}
+								>
+									{savingGoal ? "Saving…" : "Save goal"}
+								</button>
+
+								<button
+									type="button"
+									className={styles.cancelGoalButton}
+									onClick={() => {
+										setEditingGoal(false);
+										setGoalError(null);
+										setGoalAmount(
+											data?.estateObjective
+												? String(data.estateObjective.targetAmount)
+												: "",
+										);
+									}}
+									disabled={savingGoal}
+								>
+									Cancel
+								</button>
+							</div>
+
+							{goalError ? <p className={styles.goalError}>{goalError}</p> : null}
+						</div>
+					) : (
+						<>
+							<div className={styles.legacyRow}>
+								<div>
+									<p className={styles.cardLabel}>Inheritance goal</p>
+									<p className={styles.supportingText}>
+										How much you would like to leave behind.
+									</p>
+								</div>
+
+								<div className={styles.goalSummary}>
+									<strong className={styles.legacyValue}>
+										{data?.estateObjective
+											? formatCurrency(data.estateObjective.targetAmount)
+											: "Not set"}
+									</strong>
+
+									<button
+										type="button"
+										className={styles.editGoalButton}
+										onClick={() => setEditingGoal(true)}
+									>
+										{data?.estateObjective ? "Edit goal" : "Set goal"}
+									</button>
+								</div>
+							</div>
+
+							{data?.objectiveComparison ? (
+								<div className={styles.position}>
+									<p className={styles.cardLabel}>Difference today</p>
+
+									<p className={styles.positionValue}>
+										{data.objectiveComparison.currentSurplusOrShortfall >= 0
+											? "+"
+											: "−"}
+										{formatCurrency(
+											Math.abs(
+												data.objectiveComparison.currentSurplusOrShortfall,
+											),
+										)}
+									</p>
+
+									<p className={styles.supportingText}>
+										Your current household resources are{" "}
+										{data.objectiveComparison.currentSurplusOrShortfall >= 0
+											? "above"
+											: "below"}{" "}
+										your inheritance goal by this amount.
+									</p>
+
+									<p className={styles.goalQualification}>
+										This is a comparison with your current household resources.
+										It does not estimate what will remain later in life.
+									</p>
+								</div>
+							) : (
+								<div className={styles.position}>
+									<p className={styles.supportingText}>
+										Set an inheritance goal to compare it with your current
+										household position.
+									</p>
+								</div>
+							)}
+
+							{data?.estateObjective ? (
+								<div className={styles.tradeOff}>
+									{legacyComparison ? (
+										<>
+											<div className={styles.tradeOffHeader}>
+												<div>
+													<p className={styles.cardLabel}>
+														How might this affect retirement?
+													</p>
+													<p className={styles.supportingText}>
+														Compare retirement spending with and without
+														your inheritance goal.
+													</p>
+												</div>
+											</div>
+
+											<div className={styles.tradeOffGrid}>
+												<div>
+													<p className={styles.metricLabel}>
+														Without a legacy target
+													</p>
+													<p className={styles.tradeOffValue}>
+														{formatCurrency(
+															legacyComparison.baselineAnnualRetirementSpending,
+														)}
+														<span> p.a.</span>
+													</p>
+												</div>
+
+												<div>
+													<p className={styles.metricLabel}>
+														While targeting{" "}
+														{formatCurrency(
+															legacyComparison.targetAmount,
+														)}{" "}
+														remaining
+													</p>
+													<p className={styles.tradeOffValue}>
+														{formatCurrency(
+															legacyComparison.withInheritanceObjectiveAnnualRetirementSpending,
+														)}
+														<span> p.a.</span>
+													</p>
+												</div>
+											</div>
+
+											<div className={styles.tradeOffResult}>
+												<p className={styles.cardLabel}>
+													Potential trade-off
+												</p>
+
+												<p className={styles.tradeOffDifference}>
+													{formatCurrency(
+														Math.abs(
+															legacyComparison.annualSpendingDifference,
+														),
+													)}{" "}
+													p.a. less retirement spending
+												</p>
+											</div>
+
+											<p className={styles.goalQualification}>
+												Illustrative {legacyComparison.strategyName}{" "}
+												strategy from age {legacyComparison.retirementAge}{" "}
+												over a {legacyComparison.projectionYears}-year model
+												horizon. The amount remaining is modelled household
+												wealth, not a guaranteed inheritance or legal estate
+												value.
+											</p>
+
+											<Link
+												href={`/v2/plan?ask=${encodeURIComponent(
+													`What does my ${formatCurrency(
+														legacyComparison.targetAmount,
+													)} inheritance goal mean for my retirement spending?`,
+												)}`}
+												className={styles.tradeOffAsk}
+											>
+												<MessageCircleQuestion size={16} />
+												Ask Bioanalytix about this
+												<ArrowRight size={15} />
+											</Link>
+										</>
+									) : (
+										<>
+											<p className={styles.cardLabel}>
+												How might this affect retirement?
+											</p>
+
+											<p className={styles.supportingText}>
+												Keeping money for your family can mean spending less
+												during retirement. Explore the trade-off using your
+												current Plan.
+											</p>
+
+											<button
+												type="button"
+												className={styles.exploreButton}
+												onClick={() => void exploreLegacyTradeOff()}
+												disabled={loadingLegacyComparison}
+											>
+												{loadingLegacyComparison ? (
+													<>
+														<Loader2
+															size={16}
+															className={styles.spinner}
+														/>
+														Exploring trade-off…
+													</>
+												) : (
+													<>
+														Explore the trade-off
+														<ArrowRight size={16} />
+													</>
+												)}
+											</button>
+
+											{legacyComparisonError ? (
+												<p className={styles.goalError}>
+													{legacyComparisonError}
+												</p>
+											) : null}
+										</>
+									)}
+								</div>
+							) : null}
+						</>
+					)}
+				</div>
+			</section>
+
+			<section className={styles.section}>
+				<div className={styles.sectionHeader}>
+					<div>
+						<p className={styles.eyebrow}>Basic arrangements</p>
+						<h2 className={styles.sectionTitle}>Estate readiness</h2>
+					</div>
+				</div>
+
+				<div className={styles.card}>
+					<ReadinessItem label="Will" value={estate.documentation.hasWill} />
+
+					<ReadinessItem
+						label="Power of attorney"
+						value={estate.documentation.hasEnduringPowerOfAttorney}
+					/>
+
+					<ReadinessItem
+						label="Super beneficiary"
+						value={estate.documentation.hasSuperBeneficiaryNomination}
+					/>
+				</div>
+			</section>
+
+			<section className={styles.section}>
+				<div className={styles.sectionHeader}>
+					<div>
+						<p className={styles.eyebrow}>Ask Bioanalytix</p>
+
+						<h2 className={styles.sectionTitle}>Questions worth exploring</h2>
+
+						<p className={styles.sectionDescription}>
+							Explore how different choices and assumptions could affect what you
+							leave behind.
+						</p>
+					</div>
+				</div>
+
+				<div className={styles.questionsCard}>
+					<Link
+						href={`/v2/plan?ask=${encodeURIComponent(
+							"How much might I leave to my family?",
+						)}`}
+						className={styles.question}
+					>
+						<MessageCircleQuestion size={16} />
+						<span>How much might I leave to my family?</span>
+						<ArrowRight size={15} className={styles.questionArrow} />
+					</Link>
+
+					<Link
+						href={`/v2/plan?ask=${encodeURIComponent(
+							"Could I leave $500,000 to each of my children?",
+						)}`}
+						className={styles.question}
+					>
+						<MessageCircleQuestion size={16} />
+						<span>Could I leave $500,000 to each of my children?</span>
+						<ArrowRight size={15} className={styles.questionArrow} />
+					</Link>
+
+					<Link
+						href={`/v2/plan?ask=${encodeURIComponent(
+							"What might I leave if I live to 95?",
+						)}`}
+						className={styles.question}
+					>
+						<MessageCircleQuestion size={16} />
+						<span>What might I leave if I live to 95?</span>
+						<ArrowRight size={15} className={styles.questionArrow} />
+					</Link>
+
+					<Link
+						href={`/v2/plan?ask=${encodeURIComponent(
+							"What happens if I spend more in retirement?",
+						)}`}
+						className={styles.question}
+					>
+						<MessageCircleQuestion size={16} />
+						<span>What happens if I spend more in retirement?</span>
+						<ArrowRight size={15} className={styles.questionArrow} />
+					</Link>
+
+					<Link href="/v2/plan" className={styles.primaryLink}>
+						Ask Bioanalytix
+						<ArrowRight size={17} />
+					</Link>
+				</div>
+			</section>
+
+			<p className={styles.disclosure}>
+				General information only. Bioanalytix provides illustrative financial planning
+				analysis using your information and stated assumptions. It does not provide personal
+				financial, medical, legal or tax advice.
+			</p>
+		</div>
 	);
 }

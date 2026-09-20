@@ -80,6 +80,12 @@ const savedPlanSchema = z.object({
 		careCostDurationYears: z.number().positive().optional(),
 	}),
 
+	estateObjective: z
+		.object({
+			targetAmount: z.number().positive(),
+		})
+		.optional(),
+
 	priorities: z.array(z.string()),
 
 	notes: z.string(),

@@ -2,7 +2,8 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, ArrowRight, Brain, Loader2, MessageCircleQuestion } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 import { orpc } from "../../shared/lib/orpc-query-utils";
 
@@ -102,7 +103,9 @@ function inputSuffix(key: string): string | null {
 }
 
 export function AskBioanalytix() {
-	const [question, setQuestion] = useState("");
+	const searchParams = useSearchParams();
+	const initialQuestion = searchParams.get("ask")?.trim() ?? "";
+	const [question, setQuestion] = useState(initialQuestion);
 	const [result, setResult] = useState<AskResponse | null>(null);
 	const [assumptionValues, setAssumptionValues] = useState<AssumptionValues>({});
 
@@ -124,6 +127,14 @@ export function AskBioanalytix() {
 			},
 		}),
 	);
+
+	useEffect(() => {
+		if (!initialQuestion) {
+			return;
+		}
+
+		setQuestion(initialQuestion);
+	}, [initialQuestion]);
 
 	const visibleMissingAssumptions = useMemo(() => {
 		return result?.missingAssumptions ?? [];

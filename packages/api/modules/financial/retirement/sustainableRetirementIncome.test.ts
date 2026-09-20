@@ -169,6 +169,124 @@ describe("findSustainableRetirementIncome", () => {
 		expect(result.assessment.simulationCount).toBe(10);
 	});
 
+	it("reduces sustainable spending when an inheritance objective is applied", () => {
+		const result = findSustainableRetirementIncome({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			retirementAge: 55,
+
+			strategy: strategy(),
+
+			marketPaths: [
+				flatMarketPath(0),
+				flatMarketPath(1),
+				flatMarketPath(2),
+				flatMarketPath(3),
+				flatMarketPath(4),
+				flatMarketPath(5),
+				flatMarketPath(6),
+				flatMarketPath(7),
+				flatMarketPath(8),
+				flatMarketPath(9),
+			],
+
+			maximumShortfallProbability: 0.1,
+
+			inheritanceObjective: {
+				minimumEndingNetWorth: 40000,
+				maximumShortfallProbability: 0.1,
+			},
+
+			maximumAnnualSpending: 100000,
+
+			spendingPrecision: 1000,
+		});
+
+		/*
+		 * The household starts with $100,000 and the
+		 * projection covers two retirement years.
+		 *
+		 * Preserving $40,000 therefore leaves $60,000
+		 * available across those two years: $30,000 p.a.
+		 */
+		expect(result.sustainableAnnualRetirementIncome).toBe(30000);
+
+		expect(result.assessment.meetsResilienceTarget).toBe(true);
+
+		expect(result.assessment.inheritanceObjective).toEqual({
+			minimumEndingNetWorth: 40000,
+			pathsBelowObjective: 0,
+			shortfallProbability: 0,
+			maximumShortfallProbability: 0.1,
+			meetsObjective: true,
+		});
+
+		expect(result.assessment.meetsAllTargets).toBe(true);
+	});
+
+	it("preserves existing behaviour when no inheritance objective is supplied", () => {
+		const result = findSustainableRetirementIncome({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			retirementAge: 55,
+
+			strategy: strategy(),
+
+			marketPaths: [flatMarketPath(0)],
+
+			maximumShortfallProbability: 0.1,
+
+			maximumAnnualSpending: 100000,
+
+			spendingPrecision: 1000,
+		});
+
+		expect(result.sustainableAnnualRetirementIncome).toBe(50000);
+
+		expect(result.assessment.inheritanceObjective).toBeUndefined();
+
+		expect(result.assessment.meetsAllTargets).toBe(true);
+	});
+
+	it("reports when an inheritance objective is not achievable even with zero retirement spending", () => {
+		const result = findSustainableRetirementIncome({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			retirementAge: 55,
+
+			strategy: strategy(),
+
+			marketPaths: [flatMarketPath(0)],
+
+			maximumShortfallProbability: 0.1,
+
+			inheritanceObjective: {
+				minimumEndingNetWorth: 150000,
+				maximumShortfallProbability: 0.1,
+			},
+
+			maximumAnnualSpending: 100000,
+
+			spendingPrecision: 1000,
+		});
+
+		expect(result.sustainableAnnualRetirementIncome).toBe(0);
+
+		expect(result.assessment.inheritanceObjective?.meetsObjective).toBe(false);
+
+		expect(result.assessment.inheritanceObjective?.shortfallProbability).toBe(1);
+
+		expect(result.assessment.meetsAllTargets).toBe(false);
+
+		expect(result.iterations).toBe(0);
+	});
+
 	it("rejects an empty set of market paths", () => {
 		expect(() =>
 			findSustainableRetirementIncome({

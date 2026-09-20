@@ -77,6 +77,18 @@ export const BIOANALYTIX_MAXIMUM_ANNUAL_RETIREMENT_SPENDING = 500_000;
 
 export const BIOANALYTIX_RETIREMENT_SPENDING_PRECISION = 1_000;
 
+/**
+ * MVP inheritance-objective reliability threshold.
+ *
+ * No more than 10% of simulated paths may finish below the
+ * modelled inheritance objective.
+ *
+ * This is deliberately a separate criterion from retirement
+ * cash-flow resilience even though both currently use the
+ * same 10% threshold.
+ */
+export const BIOANALYTIX_MAXIMUM_INHERITANCE_SHORTFALL_PROBABILITY = 0.1;
+
 export interface BioanalytixRetirementSimulationPolicy {
 	projectionAssumptions: ProjectionAssumptions;
 
