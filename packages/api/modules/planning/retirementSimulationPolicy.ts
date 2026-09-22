@@ -8,7 +8,7 @@ import type {
 } from "../financial/simulation/types";
 import { buildBioanalytixProjectionAssumptions } from "./projectionPolicy";
 
-export const BIOANALYTIX_RETIREMENT_SIMULATION_POLICY_VERSION = "1.0.0";
+export const BIOANALYTIX_RETIREMENT_SIMULATION_POLICY_VERSION = "1.1.0";
 
 /**
  * MVP retirement simulation policy.
@@ -89,6 +89,10 @@ export const BIOANALYTIX_RETIREMENT_SPENDING_PRECISION = 1_000;
  */
 export const BIOANALYTIX_MAXIMUM_INHERITANCE_SHORTFALL_PROBABILITY = 0.1;
 
+export interface BioanalytixRetirementSimulationPolicyOptions {
+	projectionYears?: number;
+}
+
 export interface BioanalytixRetirementSimulationPolicy {
 	projectionAssumptions: ProjectionAssumptions;
 
@@ -103,12 +107,27 @@ export interface BioanalytixRetirementSimulationPolicy {
 
 export function buildBioanalytixRetirementSimulationPolicy(
 	household: HouseholdFinancialState,
+	options: BioanalytixRetirementSimulationPolicyOptions = {},
 ): BioanalytixRetirementSimulationPolicy {
+	const projectionYears =
+		options.projectionYears ?? BIOANALYTIX_RETIREMENT_SIMULATION_CONFIG.numberOfYears;
+
+	if (!Number.isInteger(projectionYears) || projectionYears <= 0) {
+		throw new Error("Projection years must be a positive integer.");
+	}
+
 	return {
-		projectionAssumptions: buildBioanalytixProjectionAssumptions(household),
+		projectionAssumptions: buildBioanalytixProjectionAssumptions(
+			household,
+			{},
+			projectionYears,
+		),
 
 		marketPaths: generateMarketPaths(
-			BIOANALYTIX_RETIREMENT_SIMULATION_CONFIG,
+			{
+				...BIOANALYTIX_RETIREMENT_SIMULATION_CONFIG,
+				numberOfYears: projectionYears,
+			},
 			BIOANALYTIX_MARKET_MODEL_ASSUMPTIONS,
 		),
 

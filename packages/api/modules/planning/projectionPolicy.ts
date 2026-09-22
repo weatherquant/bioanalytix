@@ -1,7 +1,7 @@
 import type { HouseholdFinancialState } from "../financial/household/types";
 import type { ProjectionAssumptions } from "../financial/projection/types";
 
-export const BIOANALYTIX_PROJECTION_POLICY_VERSION = "1.0.0";
+export const BIOANALYTIX_PROJECTION_POLICY_VERSION = "1.1.0";
 
 /**
  * Development / MVP projection policy.
@@ -46,11 +46,13 @@ function addYearsToIsoDate(date: string, years: number): string {
 export function buildBioanalytixProjectionAssumptions(
 	household: HouseholdFinancialState,
 	overrides: Partial<ProjectionAssumptions> = {},
+	projectionYears: number = BIOANALYTIX_DEFAULT_PROJECTION_YEARS,
 ): ProjectionAssumptions {
-	const projectionEndDate = addYearsToIsoDate(
-		household.asOfDate,
-		BIOANALYTIX_DEFAULT_PROJECTION_YEARS,
-	);
+	if (!Number.isInteger(projectionYears) || projectionYears <= 0) {
+		throw new Error("Projection years must be a positive integer.");
+	}
+
+	const projectionEndDate = addYearsToIsoDate(household.asOfDate, projectionYears);
 
 	return {
 		...BIOANALYTIX_DEFAULT_RATES,

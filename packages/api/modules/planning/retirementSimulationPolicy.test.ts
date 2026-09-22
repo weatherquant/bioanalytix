@@ -79,6 +79,25 @@ describe("Bioanalytix retirement simulation policy", () => {
 		expect(first.spendingPrecision).toBe(BIOANALYTIX_RETIREMENT_SPENDING_PRECISION);
 	});
 
+	it("supports a projection horizon longer than the default policy horizon", () => {
+		const household = householdFixture();
+
+		const policy = buildBioanalytixRetirementSimulationPolicy(household, {
+			projectionYears: 50,
+		});
+
+		const startYear = Number(household.asOfDate.slice(0, 4));
+		const endYear = Number(policy.projectionAssumptions.projectionEndDate.slice(0, 4));
+
+		expect(endYear - startYear).toBe(50);
+
+		expect(policy.marketPaths).toHaveLength(
+			BIOANALYTIX_RETIREMENT_SIMULATION_CONFIG.numberOfSimulations,
+		);
+
+		expect(policy.marketPaths[0]?.years).toHaveLength(50);
+	});
+
 	it("fails rather than inventing a baseline retirement age", () => {
 		const household = householdFixture();
 
