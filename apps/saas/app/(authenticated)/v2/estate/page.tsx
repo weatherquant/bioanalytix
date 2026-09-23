@@ -62,11 +62,63 @@ interface LegacyComparisonResponse {
 	comparison: LegacyComparison | null;
 }
 
+interface EstateProjectionPoint {
+	age: number;
+	projectionDate: string;
+	p25Estate: number;
+	medianEstate: number;
+	p75Estate: number;
+}
+
+interface EstateProjection {
+	simulationCount: number;
+	currency: string;
+
+	longevity: {
+		lowerAge: number;
+		centralAge: number;
+		upperAge: number;
+	};
+
+	projection: EstateProjectionPoint[];
+
+	atCentralLongevityAge: {
+		age: number;
+		p25Estate: number;
+		medianEstate: number;
+		p75Estate: number;
+	};
+
+	atLongLifeAge: {
+		age: number;
+		p25Estate: number;
+		medianEstate: number;
+		p75Estate: number;
+	};
+
+	qualifications: string[];
+}
+
+interface EstatePlanningHorizon {
+	version: string;
+
+	range: {
+		lowerAge: number;
+		centralAge: number;
+		upperAge: number;
+	};
+
+	projectionYears: number;
+	qualifications: string[];
+}
+
 interface EstateResponse {
 	householdId: string;
 	estatePosition: EstatePosition | null;
 	estateObjective: EstateObjective | null;
 	objectiveComparison: ObjectiveComparison | null;
+	planningHorizon: EstatePlanningHorizon | null;
+	projection: EstateProjection | null;
 }
 
 interface SavedPlanResponse {
@@ -334,7 +386,7 @@ export default function EstatePage() {
 					</div>
 				</section>
 
-				<Link href="/v2/onboarding" className={styles.primaryLink}>
+				<Link href="/v2/setup" className={styles.primaryLink}>
 					Complete your profile
 					<ArrowRight size={17} />
 				</Link>
@@ -387,6 +439,99 @@ export default function EstatePage() {
 					</p>
 				</div>
 			</section>
+
+			{data?.projection && data.planningHorizon ? (
+				<section className={styles.section}>
+					<div className={styles.sectionHeader}>
+						<div>
+							<p className={styles.eyebrow}>Long-term planning</p>
+							<h2 className={styles.sectionTitle}>
+								What might remain later in life?
+							</h2>
+							<p className={styles.sectionDescription}>
+								Explore projected household wealth across governed longevity
+								planning horizons. These ages are planning assumptions, not
+								predictions of how long you will live.
+							</p>
+						</div>
+					</div>
+
+					<div className={styles.projectionGrid}>
+						<div className={styles.projectionCard}>
+							<p className={styles.cardLabel}>
+								Central planning age {data.projection.atCentralLongevityAge.age}
+							</p>
+
+							<p className={styles.projectionValue}>
+								{formatCurrency(data.projection.atCentralLongevityAge.medianEstate)}
+							</p>
+
+							<p className={styles.supportingText}>
+								Median projected household net worth
+							</p>
+
+							<div className={styles.projectionRange}>
+								<div>
+									<span>25th percentile</span>
+									<strong>
+										{formatCurrency(
+											data.projection.atCentralLongevityAge.p25Estate,
+										)}
+									</strong>
+								</div>
+
+								<div>
+									<span>75th percentile</span>
+									<strong>
+										{formatCurrency(
+											data.projection.atCentralLongevityAge.p75Estate,
+										)}
+									</strong>
+								</div>
+							</div>
+						</div>
+
+						<div className={styles.projectionCard}>
+							<p className={styles.cardLabel}>
+								Long-life planning age {data.projection.atLongLifeAge.age}
+							</p>
+
+							<p className={styles.projectionValue}>
+								{formatCurrency(data.projection.atLongLifeAge.medianEstate)}
+							</p>
+
+							<p className={styles.supportingText}>
+								Median projected household net worth
+							</p>
+
+							<div className={styles.projectionRange}>
+								<div>
+									<span>25th percentile</span>
+									<strong>
+										{formatCurrency(data.projection.atLongLifeAge.p25Estate)}
+									</strong>
+								</div>
+
+								<div>
+									<span>75th percentile</span>
+									<strong>
+										{formatCurrency(data.projection.atLongLifeAge.p75Estate)}
+									</strong>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<p className={styles.projectionQualification}>
+						Based on {data.projection.simulationCount} simulations using the baseline
+						planning assumptions and your current recurring household spending as the
+						initial retirement-spending assumption. Projected amounts represent
+						household net worth for financial-planning purposes, not a guaranteed
+						inheritance or legal probate-estate value. Life insurance is not
+						automatically added to these projections.
+					</p>
+				</section>
+			) : null}
 
 			<section className={styles.section}>
 				<div className={styles.sectionHeader}>

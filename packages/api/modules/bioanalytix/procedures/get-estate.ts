@@ -3,16 +3,26 @@ import { getBioPlanForHousehold, getOrCreatePrimaryBioHousehold } from "@repo/da
 import { protectedProcedure } from "../../../orpc/procedures";
 import { assessEstatePosition } from "../../financial/estate/estateAnalysis";
 import type { HouseholdFinancialState } from "../../financial/household/types";
+import { standardPortfolioStrategy } from "../../financial/retirement/standardPortfolioStrategies";
+import { runLifecycleSimulation } from "../../financial/simulation/lifecycleSimulation";
+import { buildEstateViewModel } from "../../financial/views/estateViewModel";
+import { buildLongevityPlanningPolicy } from "../../planning/longevityPlanningPolicy";
+import {
+	buildBioanalytixRetirementSimulationPolicy,
+	getBioanalytixBaselineRetirementAge,
+} from "../../planning/retirementSimulationPolicy";
 import { emptySavedPlan, type SavedBioanalytixPlanV1 } from "../../planning/savedPlan";
+
+const ESTATE_BASELINE_STRATEGY_ID = "balanced" as const;
 
 export const getBioanalytixEstate = protectedProcedure
 	.route({
 		method: "GET",
 		path: "/bioanalytix/estate",
 		tags: ["Bioanalytix"],
-		summary: "Get Bioanalytix estate position",
+		summary: "Get Bioanalytix estate planning view",
 		description:
-			"Return the authenticated household's current estate position and saved inheritance objective.",
+			"Return the authenticated household's current estate position, saved inheritance objective and baseline estate projection.",
 	})
 	.handler(async ({ context }) => {
 		const household = await getOrCreatePrimaryBioHousehold({
@@ -32,6 +42,8 @@ export const getBioanalytixEstate = protectedProcedure
 				estatePosition: null,
 				estateObjective,
 				objectiveComparison: null,
+				planningHorizon: null,
+				projection: null,
 			};
 		}
 
@@ -47,10 +59,49 @@ export const getBioanalytixEstate = protectedProcedure
 				}
 			: null;
 
+		const longevityPolicy = buildLongevityPlanningPolicy(financialState);
+
+		const retirementAge = getBioanalytixBaselineRetirementAge(financialState);
+
+		const simulationPolicy = buildBioanalytixRetirementSimulationPolicy(financialState, {
+			projectionYears: longevityPolicy.projectionYears,
+		});
+
+		const illustrativePortfolio = standardPortfolioStrategy(ESTATE_BASELINE_STRATEGY_ID);
+
+		const desiredAnnualRetirementIncome =
+			financialState.expenses.essentialAnnual + financialState.expenses.discretionaryAnnual;
+
+		const lifecycleResults = simulationPolicy.marketPaths.map((marketPath) =>
+			runLifecycleSimulation({
+				household: financialState,
+				assumptions: simulationPolicy.projectionAssumptions,
+				plan: {
+					retirementAge,
+					annualRetirementSpending: desiredAnnualRetirementIncome,
+				},
+				strategy: illustrativePortfolio.strategy,
+				marketPath,
+			}),
+		);
+
+		const projection = buildEstateViewModel(
+			financialState,
+			lifecycleResults,
+			longevityPolicy.range,
+		);
+
 		return {
 			householdId: household.id,
 			estatePosition,
 			estateObjective,
 			objectiveComparison,
+			planningHorizon: {
+				version: longevityPolicy.version,
+				range: longevityPolicy.range,
+				projectionYears: longevityPolicy.projectionYears,
+				qualifications: longevityPolicy.qualifications,
+			},
+			projection,
 		};
 	});
