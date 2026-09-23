@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
 	ArrowRight,
 	ChartNoAxesCombined,
@@ -25,20 +26,7 @@ import {
 
 import { AppHeader } from "../../../../modules/bioanalytix/components/AppHeader";
 import { PageShell } from "../../../../modules/bioanalytix/components/PageShell";
-import { wealthFixture } from "./wealthFixture";
-
-const wealthProjection = wealthFixture.projection.map((point) => ({
-	age: point.age,
-	p25: point.p25NetWealth,
-	median: point.medianNetWealth,
-	p75: point.p75NetWealth,
-}));
-
-const longevityRange = {
-	lower: wealthFixture.longevity.lowerAge,
-	central: wealthFixture.longevity.centralAge,
-	upper: wealthFixture.longevity.upperAge,
-};
+import { orpcClient } from "../../../../modules/shared/lib/orpc-client";
 
 const currency = new Intl.NumberFormat("en-AU", {
 	style: "currency",
@@ -53,55 +41,141 @@ const compactCurrency = new Intl.NumberFormat("en-AU", {
 	maximumFractionDigits: 1,
 });
 
-const metrics = [
-	{
-		label: "Current net wealth",
-		value: compactCurrency.format(wealthFixture.current.netWealth),
-		description: "Assets less liabilities today",
-		icon: WalletCards,
-	},
-	{
-		label: `At planning age ${wealthFixture.atPlanningAge.age}`,
-		value: compactCurrency.format(wealthFixture.atPlanningAge.medianNetWealth),
-		description: "Median projected wealth",
-		icon: Clock3,
-	},
-	{
-		label: "Long-life downside",
-		value: compactCurrency.format(wealthFixture.atPlanningAge.p25NetWealth),
-		description: `25th percentile at age ${wealthFixture.atPlanningAge.age}`,
-		icon: ChartNoAxesCombined,
-	},
-	{
-		label: "Funding pressure",
-		value: `${Math.round(wealthFixture.resilience.probabilityOfAnyUnfundedCashFlow * 100)}%`,
-		description: "Simulations with any unfunded cash flow",
-		icon: ShieldCheck,
-	},
-];
-
-const horizonRows = [
-	{
-		label: "Current planning horizon",
-		age: "85",
-		status: "Comfortable",
-		detail: "Private resources remain strong across most simulated outcomes.",
-	},
-	{
-		label: "Central longevity horizon",
-		age: "92",
-		status: "Funded",
-		detail: "Plan remains funded, with less flexibility in weaker outcomes.",
-	},
-	{
-		label: "Long-life scenario",
-		age: "96+",
-		status: "Pressure emerges",
-		detail: "Lower-tail outcomes begin to create a meaningful spending or estate trade-off.",
-	},
-];
-
 export default function WealthPage() {
+	const wealthQuery = useQuery({
+		queryKey: ["bioanalytix", "wealth"],
+		queryFn: () => orpcClient.bioanalytix.wealth.get(),
+	});
+
+	if (wealthQuery.isPending) {
+		return (
+			<>
+				<AppHeader
+					title="Wealth"
+					description="See how your financial position may evolve across your longevity horizon."
+				/>
+				<PageShell>
+					<div className="p-8 text-sm rounded-3xl border bg-card text-muted-foreground">
+						Building your wealth projection…
+					</div>
+				</PageShell>
+			</>
+		);
+	}
+
+	if (wealthQuery.isError) {
+		return (
+			<>
+				<AppHeader
+					title="Wealth"
+					description="See how your financial position may evolve across your longevity horizon."
+				/>
+				<PageShell>
+					<div className="p-8 rounded-3xl border bg-card">
+						<p className="font-medium">
+							We couldn&apos;t build your wealth projection.
+						</p>
+						<p className="mt-2 text-sm text-muted-foreground">
+							Please try again or review the information in Setup.
+						</p>
+					</div>
+				</PageShell>
+			</>
+		);
+	}
+
+	const response = wealthQuery.data;
+
+	if (!response.planning || !response.planningHorizon) {
+		return (
+			<>
+				<AppHeader
+					title="Wealth"
+					description="See how your financial position may evolve across your longevity horizon."
+				/>
+				<PageShell>
+					<div className="p-8 rounded-3xl border bg-card">
+						<p className="font-medium">
+							Complete Setup to build your wealth projection.
+						</p>
+						<p className="mt-2 text-sm text-muted-foreground">
+							Bioanalytix needs your household financial information before it can run
+							the planning analysis.
+						</p>
+
+						<Link
+							href="/v2/setup"
+							className="mt-5 gap-2 px-4 py-2.5 text-sm font-medium inline-flex items-center rounded-xl border transition-colors hover:bg-muted/40"
+						>
+							Go to Setup
+							<ArrowRight size={15} />
+						</Link>
+					</div>
+				</PageShell>
+			</>
+		);
+	}
+
+	const wealth = response.planning.baseline;
+
+	const wealthProjection = wealth.projection.map((point) => ({
+		age: point.age,
+		p25: point.p25NetWealth,
+		median: point.medianNetWealth,
+		p75: point.p75NetWealth,
+	}));
+
+	const longevityRange = {
+		lower: response.planningHorizon.range.lowerAge,
+		central: response.planningHorizon.range.centralAge,
+		upper: response.planningHorizon.range.upperAge,
+	};
+
+	const metrics = [
+		{
+			label: "Current net wealth",
+			value: compactCurrency.format(wealth.current.netWealth),
+			description: "Assets less liabilities today",
+			icon: WalletCards,
+		},
+		{
+			label: `At planning age ${wealth.atPlanningAge.age}`,
+			value: compactCurrency.format(wealth.atPlanningAge.medianNetWealth),
+			description: "Median projected wealth",
+			icon: Clock3,
+		},
+		{
+			label: "Long-life downside",
+			value: compactCurrency.format(wealth.atPlanningAge.p25NetWealth),
+			description: `25th percentile at age ${wealth.atPlanningAge.age}`,
+			icon: ChartNoAxesCombined,
+		},
+		{
+			label: "Funding pressure",
+			value: `${Math.round(wealth.resilience.probabilityOfAnyUnfundedCashFlow * 100)}%`,
+			description: "Simulations with any unfunded cash flow",
+			icon: ShieldCheck,
+		},
+	];
+
+	const horizonRows = [
+		{
+			label: "Planning range begins",
+			age: longevityRange.lower,
+			detail: "Lower bound of the governed long-life financial planning range.",
+		},
+		{
+			label: "Central planning horizon",
+			age: longevityRange.central,
+			detail: "The central age used to summarise the long-life wealth projection.",
+		},
+		{
+			label: "Long-life stress horizon",
+			age: longevityRange.upper,
+			detail: "Upper planning age used to test financial resilience under longer life.",
+		},
+	];
+
 	return (
 		<>
 			<AppHeader
@@ -134,7 +208,7 @@ export default function WealthPage() {
 
 								<div className="gap-2 px-3 py-1.5 text-xs inline-flex w-fit items-center rounded-full border bg-muted/40 text-muted-foreground">
 									<Info size={13} />
-									Illustrative data
+									{wealth.simulationCount} simulations
 								</div>
 							</div>
 						</div>
@@ -282,10 +356,10 @@ export default function WealthPage() {
 								<Info size={17} className="mt-0.5 shrink-0 text-muted-foreground" />
 
 								<p className="text-sm leading-6 text-muted-foreground">
-									The shaded region marks the illustrative longevity planning
-									range of ages {longevityRange.lower}–{longevityRange.upper}. The
-									lines represent financial outcomes, not predicted personal
-									lifespan or investment performance.
+									The shaded region marks the governed longevity planning range of
+									ages {longevityRange.lower}–{longevityRange.upper}. The lines
+									represent financial outcomes, not predicted personal lifespan or
+									investment performance.
 								</p>
 							</div>
 						</div>
@@ -319,8 +393,6 @@ export default function WealthPage() {
 												{row.detail}
 											</p>
 										</div>
-
-										<div className="text-sm font-medium">{row.status}</div>
 									</div>
 								))}
 							</div>
