@@ -131,6 +131,29 @@ export default function WealthPage() {
 		upper: response.planningHorizon.range.upperAge,
 	};
 
+	const fundingPressurePercent = Math.round(
+		wealth.resilience.probabilityOfAnyUnfundedCashFlow * 100,
+	);
+
+	const resilienceInterpretation =
+		fundingPressurePercent <= 10
+			? {
+					title: "Strongly funded",
+					description:
+						"Few simulated paths experience an unfunded cash-flow event across the planning horizon.",
+				}
+			: fundingPressurePercent <= 40
+				? {
+						title: "Funded, with some pressure",
+						description:
+							"Most simulated paths remain funded, although weaker outcomes begin to reduce financial flexibility.",
+					}
+				: {
+						title: "Meaningful funding pressure",
+						description:
+							"A material share of simulated paths experience an unfunded cash-flow event, making the assumptions worth exploring in Plan.",
+					};
+
 	const metrics = [
 		{
 			label: "Current net wealth",
@@ -139,7 +162,7 @@ export default function WealthPage() {
 			icon: WalletCards,
 		},
 		{
-			label: `At planning age ${wealth.atPlanningAge.age}`,
+			label: `At long-life horizon ${wealth.atPlanningAge.age}`,
 			value: compactCurrency.format(wealth.atPlanningAge.medianNetWealth),
 			description: "Median projected wealth",
 			icon: Clock3,
@@ -152,7 +175,7 @@ export default function WealthPage() {
 		},
 		{
 			label: "Funding pressure",
-			value: `${Math.round(wealth.resilience.probabilityOfAnyUnfundedCashFlow * 100)}%`,
+			value: `${fundingPressurePercent}%`,
 			description: "Simulations with any unfunded cash flow",
 			icon: ShieldCheck,
 		},
@@ -314,7 +337,7 @@ export default function WealthPage() {
 										strokeDasharray="4 4"
 										strokeOpacity={0.45}
 										label={{
-											value: "Central longevity age",
+											value: "Central planning horizon",
 											position: "insideTopRight",
 										}}
 									/>
@@ -417,12 +440,12 @@ export default function WealthPage() {
 									Long-life case
 								</p>
 
-								<p className="mt-2 text-xl font-semibold">Funded, with pressure</p>
+								<p className="mt-2 text-xl font-semibold">
+									{resilienceInterpretation.title}
+								</p>
 
 								<p className="mt-3 text-sm leading-6 text-muted-foreground">
-									The central projection remains funded through the longevity
-									range, while weaker outcomes begin to reduce flexibility and the
-									estate available later in life.
+									{resilienceInterpretation.description}
 								</p>
 							</div>
 
