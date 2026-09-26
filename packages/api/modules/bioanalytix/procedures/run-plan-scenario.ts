@@ -8,9 +8,10 @@ import { z } from "zod";
 
 import { protectedProcedure } from "../../../orpc/procedures";
 import type { HouseholdFinancialState } from "../../financial/household/types";
-import { compareRetirementAges } from "../../financial/retirement/compareRetirementAges";
+import { assessProtectionPosition } from "../../financial/protection/protectionAnalysis";
+import { standardPortfolioStrategy } from "../../financial/retirement/standardPortfolioStrategies";
+import { findSustainableRetirementIncome } from "../../financial/retirement/sustainableRetirementIncome";
 import { runFinancialScenario } from "../../financial/scenarios/scenarioEngine";
-import { buildRetirementWhatIfViewModel } from "../../financial/views/retirementWhatIfViewModel";
 import {
 	buildPlanScenarioIntent,
 	PLAN_SCENARIO_ADAPTER_VERSION,
@@ -86,6 +87,54 @@ export const runBioanalytixPlanScenario = protectedProcedure
 			throw new Error("Select and save this planning question before running it.");
 		}
 
+		if (question.domain === "premature_mortality" && question.source === "insurance") {
+			const primaryPerson =
+				householdState.people.find((person) => person.role === "primary") ??
+				householdState.people[0];
+
+			if (!primaryPerson) {
+				throw new Error("Protection assessment requires at least one household person.");
+			}
+
+			const protection = assessProtectionPosition(householdState, primaryPerson.id);
+
+			const engineVersion = ["protection-assessment-v1", PLAN_SCENARIO_ADAPTER_VERSION].join(
+				"|",
+			);
+
+			const run = await createBioScenarioRun({
+				householdId: household.id,
+
+				scenarioQuestionId: question.id,
+
+				source: sourceForQuestion(question),
+
+				parameters: {
+					personId: primaryPerson.id,
+				},
+
+				result: {
+					protection,
+				},
+
+				engineVersion,
+			});
+
+			return {
+				status: "completed" as const,
+
+				runId: run.id,
+
+				questionId: question.id,
+
+				mode: "protection_assessment" as const,
+
+				result: protection,
+
+				createdAt: run.createdAt.toISOString(),
+			};
+		}
+
 		const intent = buildPlanScenarioIntent({
 			question,
 			household: householdState,
@@ -124,28 +173,95 @@ export const runBioanalytixPlanScenario = protectedProcedure
 
 			const simulationPolicy = buildBioanalytixRetirementSimulationPolicy(householdState);
 
-			const comparison = compareRetirementAges({
+			const balancedStrategy = standardPortfolioStrategy("balanced");
+
+			const sharedRetirementInput = {
 				household: householdState,
-
 				assumptions: simulationPolicy.projectionAssumptions,
-
-				baselineRetirementAge,
-
-				alternativeRetirementAge,
-
+				strategy: balancedStrategy.strategy,
 				marketPaths: simulationPolicy.marketPaths,
-
 				maximumShortfallProbability: simulationPolicy.maximumShortfallProbability,
-
 				maximumAnnualSpending: simulationPolicy.maximumAnnualSpending,
-
 				spendingPrecision: simulationPolicy.spendingPrecision,
+			};
+
+			const baselineResult = findSustainableRetirementIncome({
+				...sharedRetirementInput,
+				retirementAge: baselineRetirementAge,
 			});
 
-			const viewModel = buildRetirementWhatIfViewModel(comparison);
+			const alternativeResult = findSustainableRetirementIncome({
+				...sharedRetirementInput,
+				retirementAge: alternativeRetirementAge,
+			});
+
+			const baselineAnnualRetirementIncome = baselineResult.sustainableAnnualRetirementIncome;
+
+			const alternativeAnnualRetirementIncome =
+				alternativeResult.sustainableAnnualRetirementIncome;
+
+			const annualIncomeDifference =
+				alternativeAnnualRetirementIncome - baselineAnnualRetirementIncome;
+
+			const viewModel = {
+				question:
+					alternativeRetirementAge < baselineRetirementAge
+						? `What if I retired at ${alternativeRetirementAge}?`
+						: `What if I retired at ${alternativeRetirementAge}?`,
+
+				baseline: {
+					retirementAge: baselineRetirementAge,
+					annualIncome: baselineAnnualRetirementIncome,
+				},
+
+				alternative: {
+					retirementAge: alternativeRetirementAge,
+					annualIncome: alternativeAnnualRetirementIncome,
+				},
+
+				difference: {
+					annualAmount: annualIncomeDifference,
+					direction:
+						annualIncomeDifference > 0
+							? ("higher" as const)
+							: annualIncomeDifference < 0
+								? ("lower" as const)
+								: ("same" as const),
+				},
+
+				strategies: [
+					{
+						id: balancedStrategy.id,
+						name: balancedStrategy.name,
+						annualIncome: alternativeAnnualRetirementIncome,
+						riskLabel: "Moderate volatility",
+						allocationLabel: "60% growth · 35% defensive · 5% cash",
+					},
+				],
+
+				interpretation:
+					annualIncomeDifference < 0
+						? `Retiring at ${alternativeRetirementAge} instead of ${baselineRetirementAge} reduces the modelled sustainable annual retirement income by ${Math.abs(
+								annualIncomeDifference,
+							).toLocaleString("en-AU", {
+								style: "currency",
+								currency: "AUD",
+								maximumFractionDigits: 0,
+							})}.`
+						: annualIncomeDifference > 0
+							? `Retiring at ${alternativeRetirementAge} instead of ${baselineRetirementAge} increases the modelled sustainable annual retirement income by ${annualIncomeDifference.toLocaleString(
+									"en-AU",
+									{
+										style: "currency",
+										currency: "AUD",
+										maximumFractionDigits: 0,
+									},
+								)}.`
+							: `The modelled sustainable annual retirement income is unchanged at retirement age ${alternativeRetirementAge}.`,
+			};
 
 			const engineVersion = [
-				"retirement-age-comparison-v1",
+				"retirement-age-balanced-comparison-v1",
 				PLAN_SCENARIO_ADAPTER_VERSION,
 				BIOANALYTIX_PROJECTION_POLICY_VERSION,
 				BIOANALYTIX_RETIREMENT_SIMULATION_POLICY_VERSION,
@@ -176,7 +292,19 @@ export const runBioanalytixPlanScenario = protectedProcedure
 				},
 
 				result: {
-					comparison,
+					comparison: {
+						baselineRetirementAge,
+						alternativeRetirementAge,
+						strategyId: balancedStrategy.id,
+						strategyName: balancedStrategy.name,
+						baseline: baselineResult,
+						alternative: alternativeResult,
+						annualIncomeDifference,
+						percentageDifference:
+							baselineAnnualRetirementIncome > 0
+								? annualIncomeDifference / baselineAnnualRetirementIncome
+								: null,
+					},
 					viewModel,
 				},
 

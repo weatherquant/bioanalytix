@@ -7,6 +7,18 @@ export function buildBaselinePlanningQuestions(
 	const questions: SavedPlanningQuestion[] = [];
 
 	questions.push({
+		id: "baseline-retirement-timing",
+		source: "household",
+		domain: "healthy_working_life",
+		title: "Retirement timing",
+		question: "What happens if I retire earlier than currently planned?",
+		rationale:
+			"Testing a different retirement age can show how stopping work earlier affects the income and resilience supported by the household's financial plan.",
+		significance: "moderate",
+		selected: false,
+	});
+
+	questions.push({
 		id: "baseline-income-interruption",
 		source: "household",
 		domain: "income_interruption",
