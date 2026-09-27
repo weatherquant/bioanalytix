@@ -1,9 +1,11 @@
 import { getBioPlanForHousehold, getOrCreatePrimaryBioHousehold } from "@repo/database";
 
 import { protectedProcedure } from "../../../orpc/procedures";
+import { assessEstatePosition } from "../../financial/estate/estateAnalysis";
 import type { HouseholdFinancialState } from "../../financial/household/types";
 import { compareInheritanceObjective } from "../../financial/retirement/compareInheritanceObjective";
 import { standardPortfolioStrategy } from "../../financial/retirement/standardPortfolioStrategies";
+import { buildLongevityPlanningPolicy } from "../../planning/longevityPlanningPolicy";
 import {
 	BIOANALYTIX_MAXIMUM_INHERITANCE_SHORTFALL_PROBABILITY,
 	buildBioanalytixRetirementSimulationPolicy,
@@ -39,7 +41,17 @@ export const compareBioanalytixEstateLegacy = protectedProcedure
 		const savedPlan =
 			(savedRecord?.plan as unknown as SavedBioanalytixPlanV1 | null) ?? emptySavedPlan();
 
-		const estateObjective = savedPlan.estateObjective ?? null;
+		const financialState = household.financialState as unknown as HouseholdFinancialState;
+
+		const estatePosition = assessEstatePosition(financialState);
+
+		const estateObjective =
+			savedPlan.estateObjective ??
+			(estatePosition.inheritanceGoal !== null
+				? {
+						targetAmount: estatePosition.inheritanceGoal,
+					}
+				: null);
 
 		if (!estateObjective) {
 			return {
@@ -48,11 +60,13 @@ export const compareBioanalytixEstateLegacy = protectedProcedure
 			};
 		}
 
-		const financialState = household.financialState as unknown as HouseholdFinancialState;
+		const longevityPolicy = buildLongevityPlanningPolicy(financialState);
 
 		const retirementAge = getBioanalytixBaselineRetirementAge(financialState);
 
-		const policy = buildBioanalytixRetirementSimulationPolicy(financialState);
+		const policy = buildBioanalytixRetirementSimulationPolicy(financialState, {
+			projectionYears: longevityPolicy.projectionYears,
+		});
 
 		const illustrativePortfolio = standardPortfolioStrategy(ESTATE_ILLUSTRATIVE_STRATEGY_ID);
 
@@ -90,7 +104,7 @@ export const compareBioanalytixEstateLegacy = protectedProcedure
 
 				objectiveAchievableAtZeroSpending: result.objectiveAchievableAtZeroSpending,
 
-				projectionYears: 40,
+				projectionYears: longevityPolicy.projectionYears,
 
 				maximumRetirementShortfallProbability: policy.maximumShortfallProbability,
 

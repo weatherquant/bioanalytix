@@ -14,6 +14,7 @@ import {
 	ShieldCheck,
 	Users,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -453,6 +454,26 @@ export function DnaProfileClient() {
 
 							<span>{geneticHighlights.length} evidence models interpreted</span>
 						</div>
+					</div>
+
+					<div className="mt-5 gap-3 p-5 sm:flex-row sm:items-center sm:justify-between flex flex-col rounded-2xl border bg-muted/30">
+						<div>
+							<p className="text-sm font-medium">
+								Your Bioanalytix planning profile is ready.
+							</p>
+
+							<p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+								See how your genetic evidence connects with your financial position
+								and the planning questions worth exploring.
+							</p>
+						</div>
+
+						<Link
+							href="/v2/overview"
+							className="px-4 py-2.5 text-sm font-medium inline-flex shrink-0 items-center justify-center rounded-xl bg-foreground text-background transition hover:opacity-90"
+						>
+							View my Bioanalytix profile
+						</Link>
 					</div>
 				</div>
 

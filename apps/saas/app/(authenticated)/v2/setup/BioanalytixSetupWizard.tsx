@@ -71,22 +71,22 @@ const STEPS = [
 	{
 		number: 1,
 		title: "About you",
-		description: "The basics we need to anchor your planning horizon.",
+		description: "A few basics to anchor your planning horizon.",
 	},
 	{
 		number: 2,
-		title: "Your position",
-		description: "Approximate amounts are completely fine.",
+		title: "Your finances",
+		description: "Build a simple picture of the resources available to you.",
 	},
 	{
 		number: 3,
-		title: "Protection",
-		description: "Enough context to make future What-If scenarios meaningful.",
+		title: "Protection & goals",
+		description: "Add the assumptions that shape your financial resilience and priorities.",
 	},
 	{
 		number: 4,
-		title: "DNA",
-		description: "Add your genetics to personalise which possibilities are worth exploring.",
+		title: "Personalise with DNA",
+		description: "Connect your biological evidence to the planning questions worth exploring.",
 	},
 ] as const;
 
@@ -432,9 +432,9 @@ export function BioanalytixSetupWizard() {
 					</h2>
 
 					{step !== 4 ? (
-						<p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-							Approximate information is fine. You can refine it later — this is
-							enough to make your first Bioanalytix scenarios useful.
+						<p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
+							Approximate information is fine. You can refine it later — this gives
+							Bioanalytix enough context to build your initial financial baseline.
 						</p>
 					) : null}
 				</div>
@@ -658,23 +658,24 @@ export function BioanalytixSetupWizard() {
 						<div className="space-y-6">
 							<div className="p-6 rounded-2xl border bg-muted/30">
 								<p className="text-sm font-medium">
-									Your financial context is ready.
+									Your financial baseline is ready.
 								</p>
 
 								<h3 className="mt-2 text-xl font-semibold">
-									Now make it biological.
+									Now personalise it with your DNA.
 								</h3>
 
 								<p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-									Add raw genetic data so Bioanalytix can identify evidence-backed
-									associations that may be worth considering in your long-term
-									planning.
+									Your financial information tells Bioanalytix what resources you
+									have. Your DNA helps identify which health, working-life and
+									later-life planning questions deserve more attention.
 								</p>
 
 								<p className="mt-3 max-w-2xl text-xs leading-5 text-muted-foreground">
-									A genetic association is not a diagnosis or a prediction that an
-									event will occur. Bioanalytix uses supported findings to
-									identify scenarios worth exploring.
+									Genetic associations are not diagnoses or predictions.
+									Bioanalytix uses supported evidence to identify questions worth
+									exploring — it does not use DNA to predict your lifespan or
+									automatically change your financial assumptions.
 								</p>
 							</div>
 
@@ -685,10 +686,13 @@ export function BioanalytixSetupWizard() {
 									onClick={() => void complete("dna")}
 									className="p-6 rounded-2xl border bg-foreground text-left text-background transition hover:opacity-90 disabled:opacity-50"
 								>
-									<span className="text-sm font-medium">Add my DNA</span>
+									<span className="text-sm font-medium">
+										Personalise with my DNA
+									</span>
 
 									<span className="mt-2 text-sm block opacity-80">
-										Continue to the secure DNA upload and interpretation flow.
+										Continue to the secure DNA upload and build your personal
+										Bioanalytix planning profile.
 									</span>
 								</button>
 
@@ -703,8 +707,8 @@ export function BioanalytixSetupWizard() {
 									</span>
 
 									<span className="mt-2 text-sm block text-muted-foreground">
-										Explore general longevity and financial scenarios first. You
-										can add DNA later.
+										Start with your financial baseline. You can add DNA later to
+										personalise the planning questions you explore.
 									</span>
 								</button>
 							</div>

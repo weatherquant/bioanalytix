@@ -34,13 +34,11 @@ export const getBioanalytixEstate = protectedProcedure
 		const savedPlan =
 			(savedRecord?.plan as unknown as SavedBioanalytixPlanV1 | null) ?? emptySavedPlan();
 
-		const estateObjective = savedPlan.estateObjective ?? null;
-
 		if (!household.financialState) {
 			return {
 				householdId: household.id,
 				estatePosition: null,
-				estateObjective,
+				estateObjective: savedPlan.estateObjective ?? null,
 				objectiveComparison: null,
 				planningHorizon: null,
 				projection: null,
@@ -50,6 +48,14 @@ export const getBioanalytixEstate = protectedProcedure
 		const financialState = household.financialState as unknown as HouseholdFinancialState;
 
 		const estatePosition = assessEstatePosition(financialState);
+
+		const estateObjective =
+			savedPlan.estateObjective ??
+			(estatePosition.inheritanceGoal !== null
+				? {
+						targetAmount: estatePosition.inheritanceGoal,
+					}
+				: null);
 
 		const objectiveComparison = estateObjective
 			? {

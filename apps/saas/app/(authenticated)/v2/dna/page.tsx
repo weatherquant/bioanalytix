@@ -5,7 +5,10 @@ import { DnaProfileClient } from "../../../../modules/bioanalytix/genetics/DnaPr
 export default function DnaPage() {
 	return (
 		<>
-			<AppHeader title="My DNA" description="Your genetic profile and longevity signals." />
+			<AppHeader
+				title="My DNA"
+				description="Your genetic evidence and its relevance to your financial plan."
+			/>
 
 			<PageShell>
 				<DnaProfileClient />
