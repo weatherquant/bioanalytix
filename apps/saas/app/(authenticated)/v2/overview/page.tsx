@@ -352,7 +352,7 @@ export default function OverviewPage() {
 												key={area.area}
 												className="gap-2.5 py-1 text-sm flex items-center"
 											>
-												{area.reviewed ? (
+												{area.addressed ? (
 													<Check size={16} className="shrink-0" />
 												) : (
 													<Circle
@@ -363,7 +363,9 @@ export default function OverviewPage() {
 
 												<span
 													className={
-														area.reviewed ? "" : "text-muted-foreground"
+														area.addressed
+															? ""
+															: "text-muted-foreground"
 													}
 												>
 													{area.title}
@@ -383,8 +385,8 @@ export default function OverviewPage() {
 										</div>
 
 										<span className="text-xs font-medium shrink-0 text-muted-foreground">
-											{response.plan.reviewedAreas} of{" "}
-											{response.plan.totalAreas} reviewed
+											{response.plan.addressedAreas} of{" "}
+											{response.plan.totalAreas} addressed
 										</span>
 									</div>
 								</>

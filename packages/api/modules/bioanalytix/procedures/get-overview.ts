@@ -84,11 +84,13 @@ export const getBioanalytixOverview = protectedProcedure
 		const reviews = savedPlan.areaReviews ?? [];
 		const totalPlanningAreas = planningSummary?.areas.length ?? 0;
 
-		const reviewedAreas = planningSummary
-			? planningSummary.areas.filter((area) =>
-					reviews.some(
-						(review) => review.area === area.area && review.status === "reviewed",
-					),
+		const reviewedAreaIds = new Set(
+			reviews.filter((review) => review.status === "reviewed").map((review) => review.area),
+		);
+
+		const addressedAreas = planningSummary
+			? planningSummary.areas.filter(
+					(area) => area.coverage === "covered" || reviewedAreaIds.has(area.area),
 				).length
 			: 0;
 
@@ -109,7 +111,7 @@ export const getBioanalytixOverview = protectedProcedure
 					"Connect your genetic evidence to identify the planning questions most relevant to explore.",
 				href: "/v2/dna",
 			};
-		} else if (planningProfile && reviewedAreas < totalPlanningAreas) {
+		} else if (planningProfile && addressedAreas < totalPlanningAreas) {
 			nextAction = {
 				title: "Continue your plan",
 				description:
@@ -155,22 +157,32 @@ export const getBioanalytixOverview = protectedProcedure
 
 			plan: planningSummary
 				? {
-						headline: planningSummary.headline,
-						summary: planningSummary.summary,
-						areas: planningSummary.areas.map((area) => ({
-							area: area.area,
-							title: area.title,
-							outcome: area.outcome,
-							reviewed: reviews.some(
-								(review) =>
-									review.area === area.area && review.status === "reviewed",
-							),
-						})),
-						reviewedAreas,
+						headline:
+							addressedAreas === totalPlanningAreas
+								? "Your planning areas are covered"
+								: planningSummary.headline,
+						summary:
+							addressedAreas === totalPlanningAreas
+								? "You've reviewed the areas requiring attention and your current Plan covers all five planning areas."
+								: planningSummary.summary,
+						areas: planningSummary.areas.map((area) => {
+							const reviewed = reviewedAreaIds.has(area.area);
+							const addressed = area.coverage === "covered" || reviewed;
+
+							return {
+								area: area.area,
+								title: area.title,
+								outcome: area.outcome,
+								coverage: area.coverage,
+								reviewed,
+								addressed,
+							};
+						}),
+						addressedAreas,
 						totalAreas: totalPlanningAreas,
 						progressPercent:
 							totalPlanningAreas > 0
-								? Math.round((reviewedAreas / totalPlanningAreas) * 100)
+								? Math.round((addressedAreas / totalPlanningAreas) * 100)
 								: 0,
 					}
 				: null,

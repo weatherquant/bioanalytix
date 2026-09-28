@@ -1377,9 +1377,17 @@ export function PlanWorkspace() {
 						<div>
 							<p className={styles.eyebrow}>Your planning position</p>
 
-							<h3 className={styles.sectionTitle}>{planningSummary.headline}</h3>
+							<h3 className={styles.sectionTitle}>
+								{coveredCount === coverageTotal && coverageTotal > 0
+									? "Your planning areas are covered"
+									: planningSummary.headline}
+							</h3>
 
-							<p className={styles.sectionDescription}>{planningSummary.summary}</p>
+							<p className={styles.sectionDescription}>
+								{coveredCount === coverageTotal && coverageTotal > 0
+									? "You've reviewed the areas requiring attention and your current Plan covers all five planning areas."
+									: planningSummary.summary}
+							</p>
 						</div>
 
 						<div className={styles.reviewProgress}>
