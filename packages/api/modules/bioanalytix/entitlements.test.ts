@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { getBioanalytixEntitlements, hasBioanalytixCapability } from "./entitlements";
+import {
+	getBioanalytixEntitlements,
+	hasBioanalytixCapability,
+	resolveBioanalytixTierFromPlanId,
+} from "./entitlements";
 
 describe("Bioanalytix entitlements", () => {
 	it("gives free users the core planning experience without DNA", () => {
@@ -41,5 +45,23 @@ describe("Bioanalytix entitlements", () => {
 
 		expect(hasBioanalytixCapability(free, "wealthPlanning")).toBe(true);
 		expect(hasBioanalytixCapability(free, "dnaUpload")).toBe(false);
+	});
+});
+
+describe("Bioanalytix tier resolution", () => {
+	it("maps the current paid consumer plan to individual", () => {
+		expect(resolveBioanalytixTierFromPlanId("pro")).toBe("individual");
+	});
+
+	it("maps no purchase or the free plan to free", () => {
+		expect(resolveBioanalytixTierFromPlanId(undefined)).toBe("free");
+		expect(resolveBioanalytixTierFromPlanId(null)).toBe("free");
+		expect(resolveBioanalytixTierFromPlanId("free")).toBe("free");
+	});
+
+	it("does not grant paid entitlements for legacy or unknown plans", () => {
+		expect(resolveBioanalytixTierFromPlanId("lifetime")).toBe("free");
+		expect(resolveBioanalytixTierFromPlanId("enterprise")).toBe("free");
+		expect(resolveBioanalytixTierFromPlanId("future-plan")).toBe("free");
 	});
 });

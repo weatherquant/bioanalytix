@@ -64,3 +64,25 @@ export function hasBioanalytixCapability(
 ): boolean {
 	return entitlements.capabilities[capability];
 }
+
+/**
+ * Translates the current billing plan identifier into Bioanalytix product
+ * semantics.
+ *
+ * Billing identifiers are deliberately kept separate from Bioanalytix tier
+ * names so the commercial provider/configuration can evolve independently of
+ * product entitlements.
+ *
+ * Unknown, legacy, or unsupported billing plans fail closed to the free tier.
+ */
+export function resolveBioanalytixTierFromPlanId(
+	planId: string | null | undefined,
+): BioanalytixTier {
+	switch (planId) {
+		case "pro":
+			return "individual";
+
+		default:
+			return "free";
+	}
+}
