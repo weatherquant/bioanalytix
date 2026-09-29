@@ -2,6 +2,8 @@ import { auth } from "@repo/auth/auth";
 import { db } from "@repo/database";
 import { NextResponse } from "next/server";
 
+import { getBioanalytixUserEntitlements } from "../../../../../packages/api/modules/bioanalytix/server-entitlements";
+
 type ProcessingMetadata = {
 	relevantSnps?: Record<string, string>;
 	insights?: Array<{
@@ -80,6 +82,15 @@ export async function GET(req: Request) {
 
 	if (!session?.user) {
 		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+	}
+
+	const entitlements = await getBioanalytixUserEntitlements(session.user.id);
+
+	if (!entitlements.capabilities.geneticProfile) {
+		return NextResponse.json(
+			{ error: "Genetic profile access requires an Individual Bioanalytix plan." },
+			{ status: 403 },
+		);
 	}
 
 	const household = await db.bioHousehold.findFirst({

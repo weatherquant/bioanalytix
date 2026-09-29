@@ -4,6 +4,7 @@ import { auth } from "@repo/auth/auth";
 import { db, replaceCurrentBioPlanningProfile } from "@repo/database";
 import { NextResponse } from "next/server";
 
+import { getBioanalytixUserEntitlements } from "../../../../../../packages/api/modules/bioanalytix/server-entitlements";
 import type { HouseholdFinancialState } from "../../../../../../packages/api/modules/financial/household/types";
 import { interpretAvailableModels } from "../../../../../../packages/api/modules/genetics/evidence/interpretationDispatcher";
 import { observationsFrom23andMeRaw } from "../../../../../../packages/api/modules/genetics/observations/from23andMe";
@@ -40,6 +41,15 @@ export async function POST(req: Request) {
 	}
 
 	const userId = session.user.id;
+
+	const entitlements = await getBioanalytixUserEntitlements(userId);
+
+	if (!entitlements.capabilities.dnaUpload) {
+		return NextResponse.json(
+			{ error: "DNA upload requires an Individual Bioanalytix plan." },
+			{ status: 403 },
+		);
+	}
 
 	const household = await getPrimaryHousehold(userId);
 
