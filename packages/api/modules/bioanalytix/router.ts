@@ -3,6 +3,7 @@ import { askBioanalytix } from "./procedures/ask";
 import { compareBioanalytixEstateLegacy } from "./procedures/compare-estate-legacy";
 import { compareBioanalytixLongevitySpending } from "./procedures/compare-longevity-spending";
 import { completeBioanalytixOnboarding } from "./procedures/complete-onboarding";
+import { getBioanalytixUserEntitlements } from "./procedures/get-entitlements";
 import { getBioanalytixEstate } from "./procedures/get-estate";
 import { getBioanalytixOnboarding } from "./procedures/get-onboarding";
 import { getBioanalytixOverview } from "./procedures/get-overview";
@@ -15,6 +16,10 @@ import { saveBioanalytixPlan } from "./procedures/save-plan";
 
 export const bioanalytixRouter = publicProcedure.router({
 	ask: askBioanalytix,
+
+	entitlements: publicProcedure.router({
+		get: getBioanalytixUserEntitlements,
+	}),
 
 	estate: publicProcedure.router({
 		get: getBioanalytixEstate,
