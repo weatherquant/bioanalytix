@@ -16,18 +16,22 @@
 				"title": "Basic"
 			},
 			"enterprise": {
-				"description": "Custom plan tailored to your requirements",
+				"description": "Advanced Bioanalytix for advisers and professional workflows.",
 				"features": {
-					"enterpriseSupport": "Enterprise support",
-					"unlimitedProjects": "Unlimited projects"
+					"individual": "Everything in Individual",
+					"clientManagement": "Client management",
+					"organizationWorkspace": "Organisation workspace",
+					"professionalWorkflows": "Professional planning workflows"
 				},
-				"title": "Enterprise"
+				"title": "Professional"
 			},
 			"free": {
-				"description": "Start for free",
+				"description": "Build and explore your financial plan.",
 				"features": {
-					"anotherFeature": "Another amazing feature",
-					"limitedSupport": "Limited support"
+					"financialPlanning": "Financial and wealth planning",
+					"longevityPlanning": "Longevity and retirement planning",
+					"estatePlanning": "Estate planning",
+					"askBioanalytix": "Ask Bioanalytix"
 				},
 				"title": "Free"
 			},
@@ -40,13 +44,13 @@
 				"title": "Lifetime"
 			},
 			"pro": {
-				"description": "Best for teams",
+				"description": "Add your genetic evidence to your financial planning picture.",
 				"features": {
-					"anotherFeature": "Another amazing feature",
-					"fiveMembers": "Up to 5 members",
-					"fullSupport": "Full support"
+					"dnaUpload": "DNA upload and genetic profile",
+					"personalisedResearch": "Personalised research evidence",
+					"geneticsInformedPlanning": "Genetics-informed planning context"
 				},
-				"title": "Pro"
+				"title": "Individual"
 			}
 		},
 		"purchase": "Purchase",
