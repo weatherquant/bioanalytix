@@ -203,44 +203,77 @@ export default function ResearchPage() {
 								of the science kept in view.
 							</p>
 
-							<div className="mt-8 gap-3 sm:grid-cols-3 grid">
-								<div className="p-4 rounded-2xl border bg-background/50">
-									<div className="gap-2 text-sm flex items-center text-muted-foreground">
-										<Dna className="size-4" />
-										Genetic insights
+							{response.personalised && (
+								<div className="mt-8 gap-3 sm:grid-cols-3 grid">
+									<div className="p-4 rounded-2xl border bg-background/50">
+										<div className="gap-2 text-sm flex items-center text-muted-foreground">
+											<Dna className="size-4" />
+											Genetic insights
+										</div>
+
+										<p className="mt-2 text-2xl font-semibold">
+											{response.profile.geneticInsights}
+										</p>
 									</div>
 
-									<p className="mt-2 text-2xl font-semibold">
-										{response.profile.geneticInsights}
-									</p>
-								</div>
+									<div className="p-4 rounded-2xl border bg-background/50">
+										<div className="gap-2 text-sm flex items-center text-muted-foreground">
+											<BookOpen className="size-4" />
+											Research matches
+										</div>
 
-								<div className="p-4 rounded-2xl border bg-background/50">
-									<div className="gap-2 text-sm flex items-center text-muted-foreground">
-										<BookOpen className="size-4" />
-										Research matches
+										<p className="mt-2 text-2xl font-semibold">
+											{response.profile.matchedResearch}
+										</p>
 									</div>
 
-									<p className="mt-2 text-2xl font-semibold">
-										{response.profile.matchedResearch}
-									</p>
-								</div>
+									<div className="p-4 rounded-2xl border bg-background/50">
+										<div className="gap-2 text-sm flex items-center text-muted-foreground">
+											<FlaskConical className="size-4" />
+											Related topics
+										</div>
 
-								<div className="p-4 rounded-2xl border bg-background/50">
-									<div className="gap-2 text-sm flex items-center text-muted-foreground">
-										<FlaskConical className="size-4" />
-										Related topics
+										<p className="mt-2 text-2xl font-semibold">
+											{response.profile.matchedTopics.length}
+										</p>
 									</div>
-
-									<p className="mt-2 text-2xl font-semibold">
-										{response.profile.matchedTopics.length}
-									</p>
 								</div>
-							</div>
+							)}
 						</div>
 					</section>
 
-					{response.forYou.length > 0 ? (
+					{!response.personalised ? (
+						<section className="p-7 rounded-3xl border bg-card">
+							<div className="gap-4 flex items-start">
+								<div className="size-10 flex shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+									<Dna className="size-5" />
+								</div>
+
+								<div className="max-w-2xl">
+									<p className="text-sm font-medium text-primary">
+										Bioanalytix Individual
+									</p>
+
+									<h2 className="mt-1 text-xl font-semibold">
+										Connect research to your genetic profile
+									</h2>
+
+									<p className="mt-2 text-sm leading-6 text-muted-foreground">
+										Upgrade to Individual to see which research pathways concern
+										genes or biological topics represented in your Bioanalytix
+										genetic evidence.
+									</p>
+
+									<p className="mt-3 text-sm leading-6 text-muted-foreground">
+										A research match provides context for further consideration.
+										It does not mean that a study&apos;s findings apply
+										personally to you or change your health or financial
+										assumptions.
+									</p>
+								</div>
+							</div>
+						</section>
+					) : response.forYou.length > 0 ? (
 						<section>
 							<div className="max-w-3xl">
 								<p className="text-sm font-medium text-muted-foreground">For you</p>

@@ -6,6 +6,7 @@ import {
 	BIOANALYTIX_RESEARCH_CATALOG,
 	type BioanalytixResearchItem,
 } from "../research/researchCatalog";
+import { getBioanalytixUserEntitlements } from "../server-entitlements";
 
 function normalise(value: string) {
 	return value.trim().toLowerCase();
@@ -28,11 +29,41 @@ export const getBioanalytixResearch = protectedProcedure
 		method: "GET",
 		path: "/bioanalytix/research",
 		tags: ["Bioanalytix"],
-		summary: "Get personalised Bioanalytix research",
+		summary: "Get Bioanalytix research",
 		description:
-			"Return curated research matched conservatively to the authenticated household's genetic planning profile.",
+			"Return curated Bioanalytix research, with profile matching when the authenticated user is entitled to personalised research.",
 	})
 	.handler(async ({ context }) => {
+		const entitlements = await getBioanalytixUserEntitlements(context.user.id);
+
+		const guardrails = {
+			title: "How Bioanalytix uses research",
+			message:
+				"Research shown here does not automatically change your genetic interpretation, health assessment or financial plan. New evidence must be reviewed before it can affect a governed Bioanalytix model.",
+		};
+
+		if (!entitlements.capabilities.personalisedResearch) {
+			return {
+				updatedAt: new Date().toISOString(),
+
+				personalised: false,
+
+				profile: {
+					available: false,
+					geneticInsights: 0,
+					matchedResearch: 0,
+					matchedGenes: [],
+					matchedTopics: [],
+				},
+
+				forYou: [],
+
+				latest: [...BIOANALYTIX_RESEARCH_CATALOG],
+
+				guardrails,
+			};
+		}
+
 		const household = await getOrCreatePrimaryBioHousehold({
 			userId: context.user.id,
 			name: context.user.name ? `${context.user.name}'s household` : "My household",
@@ -85,6 +116,8 @@ export const getBioanalytixResearch = protectedProcedure
 		return {
 			updatedAt: new Date().toISOString(),
 
+			personalised: true,
+
 			profile: {
 				available: planningProfile !== null,
 				geneticInsights: geneticHighlights.length,
@@ -96,10 +129,6 @@ export const getBioanalytixResearch = protectedProcedure
 			forYou,
 			latest,
 
-			guardrails: {
-				title: "How Bioanalytix uses research",
-				message:
-					"Research shown here does not automatically change your genetic interpretation, health assessment or financial plan. New evidence must be reviewed before it can affect a governed Bioanalytix model.",
-			},
+			guardrails,
 		};
 	});
