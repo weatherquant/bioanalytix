@@ -26,75 +26,71 @@
 		"title": "Documentation"
 	},
 	"faq": {
-		"description": "Do you have any questions? We have got you covered.",
-		"title": "Frequently asked questions",
+		"description": "How genetics, longevity and financial planning fit together.",
+		"title": "Questions about Bioanalytix",
 		"items": {
-			"refundPolicy": {
-				"question": "What is the refund policy?",
-				"answer": "We offer a 30-day money-back guarantee if you're not happy with our product."
+			"dnaLifespan": {
+				"question": "Can my DNA tell me how long I will live?",
+				"answer": "No. Longevity is influenced by genetics, health, behaviour, environment and other factors. Bioanalytix does not predict an individual's lifespan with certainty. Genetic evidence can help inform which longevity questions and planning scenarios may be relevant."
 			},
-			"cancelSubscription": {
-				"question": "How do I cancel my subscription?",
-				"answer": "You can cancel your subscription by visiting the billing page."
+			"longevityPlanning": {
+				"question": "Why does longevity matter to my financial plan?",
+				"answer": "Retirement, spending, wealth and estate plans all depend on assumptions about how long financial resources may need to last. Bioanalytix helps make those assumptions explicit so you can explore the financial consequences of different longevity scenarios."
 			},
-			"changePlan": {
-				"question": "Can I change my plan?",
-				"answer": "Yes, you can change your plan at any time by visiting the billing page."
+			"existingDna": {
+				"question": "I already have DNA results. Can I use them?",
+				"answer": "Yes. Bioanalytix Individual lets you bring supported genetic data into your profile. Bioanalytix uses governed genetic evidence to identify health, longevity and resilience questions that may be relevant to long-term planning."
 			},
-			"freeTrial": {
-				"question": "Do you offer a free trial?",
-				"answer": "Not at this stage. But speak with your financial advisor to find out how you can get early access to our product and be among the first to try it out."
+			"needDnaTest": {
+				"question": "What if I have never had a DNA test?",
+				"answer": "You can start with Bioanalytix Free without DNA and build your financial planning foundation first. We also plan to provide a pathway for users who want to arrange compatible DNA testing through Bioanalytix."
+			},
+			"professionalAdvice": {
+				"question": "Does Bioanalytix provide medical or financial advice?",
+				"answer": "No. Bioanalytix provides analytical information and planning tools. It does not diagnose disease, provide medical advice, determine financial decisions or replace appropriately qualified professional advice."
+			},
+			"individualPlan": {
+				"question": "What do I get with Bioanalytix Individual?",
+				"answer": "Individual adds DNA upload and a governed genetic profile, personalised research evidence and genetics-informed planning context to the Bioanalytix financial planning experience. The current plan includes a 7-day free trial."
 			}
 		}
 	},
 	"home": {
 		"hero": {
-			"new": "New:",
-			"featureBadge": "Integrating genetic risk into sophisticated financial planning",
-			"title": "Your genetic profile is unique. Your financial plan should be too.",
-			"subtitle": "Your DNA offers clues about longevity, resilience, and risk. BioAnalytix turns those clues into actionable insights, helping you build a financial plan that reflects your real future - not a generic one.",
-			"getStarted": "Get started",
-			"documentation": "Documentation",
-			"imageAlt": "Our application",
-			"builtWith": "Built & shipped with these awesome tools"
+			"featureBadge": "Genomics meets long-term financial planning",
+			"title": "Your financial plan assumes how long you'll live. What if it knew more about you?",
+			"subtitle": "Your genetics can contain evidence relevant to longevity, health risk and biological resilience. Bioanalytix brings that evidence into long-term financial planning — helping you explore how different longevity scenarios could affect retirement, wealth and estate decisions.",
+			"getStarted": "Use my DNA",
+			"learnMore": "Start planning free",
+			"noDnaRequired": "Already have DNA results? Bring them with you. No DNA yet? You can still start free."
 		},
 		"features": {
-			"badge": "Incredible insights",
-			"title": "Turn genetic insights into smarter financial decisions",
-			"description": "Traditional financial planning is built on averages: average life expectancy, average health outcomes, and generic risk profiles.",
-			"feature1": {
-				"title": "Precision planning",
-				"subtitle": "Planning that reflects your unique genetic makeup.",
-				"description": "Genetic analysis can identify predispositions to certain health conditions, longevity indicators, and inherited risk factors.",
-				"benefit1": {
-					"title": "Replace assumptions with personalised risk insight",
-					"description": "Obtain a more accuracte assessment of long-term needs and reduce reliance on broad actuarial averages."
-				},
-				"benefit2": {
-					"title": "Optimise insurance strategies",
-					"description": "Genetic insights can help tailor insurance coverage to your specific risk profile."
-				},
-				"benefit3": {
-					"title": "Informed wealth accumulation",
-					"description": "Genetic insights allow for realistic planning scenarios, not to predict outcomes but to stress test financial strategies."
-				}
+			"badge": "One connected planning picture",
+			"title": "Start with your finances. Add your biology when it adds value.",
+			"description": "Bioanalytix combines familiar financial planning with an optional layer of governed genetic evidence — helping you explore relevant questions without turning biology into a prediction.",
+			"financial": {
+				"title": "Financial & wealth planning",
+				"description": "Bring your assets, liabilities, income and goals together into a clear financial planning foundation."
 			},
-			"feature2": {
-				"title": "Enhance estate and legacy planning",
-				"subtitle": "A legacy shaped by insight, not uncertainty.",
-				"description": "Genetic assessment introduces personalised insights to move beyond assumptions.",
-				"benefit1": {
-					"title": "Informed longevity expectations",
-					"description": "Genetic indicators help clarify potential lifespan ranges, allowing you to structure inheritances, trusts, and asset transfers with greater precision rather than relying on generic assumptions."
-				},
-				"benefit2": {
-					"title": "Strategic timing of wealth transfer",
-					"description": "Understanding predispositions that may influence health or capacity enables more intentional decisions about when and how to pass on assets, ensuring your legacy is protected and optimally timed."
-				},
-				"benefit3": {
-					"title": "Confidence in multi‑generational planning",
-					"description": "Personalised genetic insights support clearer long‑term forecasting, helping families prepare for future needs, safeguard beneficiaries, and preserve wealth across generations."
-				}
+			"longevity": {
+				"title": "Longevity & retirement planning",
+				"description": "Explore how explicit choices about retirement, spending and planning horizons affect your financial position."
+			},
+			"estate": {
+				"title": "Estate planning",
+				"description": "Bring beneficiaries, legacy intentions and estate considerations into the same long-term planning picture."
+			},
+			"genetics": {
+				"title": "Genetic evidence",
+				"description": "Individual can connect governed genetic highlights to health, longevity and resilience questions relevant to planning."
+			},
+			"research": {
+				"title": "Personalised research",
+				"description": "See research pathways related to genes or biological topics represented in your profile, with clear scientific guardrails."
+			},
+			"ask": {
+				"title": "Ask Bioanalytix",
+				"description": "Explore planning questions and scenarios while keeping assumptions explicit and decisions in your hands."
 			}
 		}
 	},

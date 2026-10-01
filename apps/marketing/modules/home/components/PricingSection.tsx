@@ -33,76 +33,70 @@ export function PricingSection() {
 			prices?: PaidPlan["prices"];
 			to: string;
 		}> = [];
-		
-		// Optional free plan
+
 		if (!paymentsConfig.requireActiveSubscription) {
 			result.push({
 				id: "free",
 				title: "Free",
-				description: "Get started at no cost.",
+				description: "Build and explore your financial plan.",
 				features: [
-					"Basic access",
-					"Limited features"
+					"Financial and wealth planning",
+					"Longevity and retirement planning",
+					"Estate planning",
+					"Ask Bioanalytix",
 				],
-				cta: "Get Started",
+				cta: "Get started",
 				to: signupUrl ?? "#",
 			});
 		}
-		
-		// The three real plans (static text, no translations)
-		result.push({
-			id: "subscriber",
-			title: "Subscriber Access",
-			description: "Entry-level access to BioAnalytix tools.",
-			features: [
-				"Access to core analytics",
-				"Standard support"
-			],
-			cta: "Get Started",
-			recommended: false,
-			isEnterprise: false,
-			prices: "prices" in paymentsConfig.plans.subscriber
-				? paymentsConfig.plans.subscriber.prices
-				: undefined,
-			to: signupUrl ?? "#",
-		});
-		
-		result.push({
-			id: "premium",
-			title: "Premium Access",
-			description: "Advanced features for growing teams.",
-			features: [
-				"Everything in Subscriber",
-				"Advanced analytics",
-				"Priority support"
-			],
-			cta: "Get Started",
-			recommended: true, // highlight this one
-			isEnterprise: false,
-			prices: "prices" in paymentsConfig.plans.premium
-				? paymentsConfig.plans.premium.prices
-				: undefined,
-			to: signupUrl ?? "#",
-		});
-		
-		result.push({
-			id: "comprehensive",
-			title: "Comprehensive Access",
-			description: "Full access to all BioAnalytix capabilities.",
-			features: [
-				"Everything in Premium",
-				"Full data export",
-				"Dedicated onboarding"
-			],
-			cta: "Get Started",
-			recommended: false,
-			isEnterprise: false,
-			prices: "prices" in paymentsConfig.plans.comprehensive
-				? paymentsConfig.plans.comprehensive.prices
-				: undefined,
-			to: signupUrl ?? "#",
-		});
-		
+
+		const individualPlan = paymentsConfig.plans.pro;
+
+		if (individualPlan && !individualPlan.hidden && "prices" in individualPlan) {
+			result.push({
+				id: "individual",
+				title: "Individual",
+				description: "Add your genetic evidence to your financial planning picture.",
+				features: [
+					"Everything in Free",
+					"DNA upload and genetic profile",
+					"Personalised research evidence",
+					"Genetics-informed planning context",
+				],
+				cta: "Start Individual",
+				recommended: true,
+				isEnterprise: false,
+				prices: individualPlan.prices,
+				to: signupUrl ?? "#",
+			});
+		}
+
+		const professionalPlan = paymentsConfig.plans.enterprise;
+
+		if (
+			professionalPlan &&
+			!professionalPlan.hidden &&
+			"isEnterprise" in professionalPlan &&
+			professionalPlan.isEnterprise
+		) {
+			result.push({
+				id: "professional",
+				title: "Professional",
+				description:
+					"Longevity analytics for advisers, wealth managers, family offices and organisations.",
+				features: [
+					"Everything in Individual",
+					"Client management",
+					"Organisation workspace",
+					"Professional planning workflows",
+				],
+				cta: "Contact us",
+				recommended: false,
+				isEnterprise: true,
+				to: "/contact",
+			});
+		}
+
 		return result;
 	}, [signupUrl]);
 

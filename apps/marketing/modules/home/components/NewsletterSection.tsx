@@ -1,85 +1,44 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
+import { config } from "@config";
 import { Button } from "@repo/ui/components/button";
-import { Input } from "@repo/ui/components/input";
-import { CheckCircleIcon, KeyIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-
-const formSchema = z.object({
-	email: z.email(),
-});
+import { ArrowRightIcon, DnaIcon } from "lucide-react";
 
 export function NewsletterSection() {
-	const t = useTranslations();
-
-	const form = useForm({
-		resolver: zodResolver(formSchema),
-	});
-
-	const onSubmit = form.handleSubmit(async ({ email }) => {
-		try {
-			// TODO: Insert your newsletter signup logic here to integrate with your CRM or email service
-			console.log("Submitting newsletter signup for email:", email);
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-		} catch {
-			form.setError("email", {
-				message: t("newsletter.hints.error.message"),
-			});
-		}
-	});
-
 	return (
-		<section className="py-12 lg:py-16 bg-muted">
-			<div className="max-w-3xl container mx-auto">
-				<div className="mb-8 text-center">
-					<KeyIcon className="mb-3 size-10 mx-auto text-primary" />
-					<h1 className="font-medium text-lg md:text-xl lg:text-2xl xl:text-3xl leading-tighter text-foreground">
-						{t("newsletter.title")}
-					</h1>
-					<p className="mt-2 text-sm sm:text-base text-foreground/60">
-						{t("newsletter.subtitle")}
+		<section className="py-20 border-t bg-muted/30">
+			<div className="container">
+				<div className="max-w-3xl mx-auto text-center">
+					<div className="size-12 mx-auto flex items-center justify-center rounded-2xl bg-primary/10 text-primary">
+						<DnaIcon className="size-6" />
+					</div>
+
+					<h2 className="mt-5 text-3xl font-medium lg:text-4xl">
+						Your longevity is uncertain. Your planning doesn't have to ignore it.
+					</h2>
+
+					<p className="mt-4 max-w-2xl text-base leading-7 mx-auto text-muted-foreground">
+						Start with your financial plan for free, or bring your existing genetic data
+						into Bioanalytix Individual and begin exploring the longevity questions that
+						may matter to your future.
 					</p>
-				</div>
 
-				<div className="max-w-lg mx-auto flex flex-col items-center">
-					{form.formState.isSubmitSuccessful ? (
-						<Alert variant="success">
-							<CheckCircleIcon />
-							<AlertTitle>{t("newsletter.hints.success.title")}</AlertTitle>
-							<AlertDescription>
-								{t("newsletter.hints.success.message")}
-							</AlertDescription>
-						</Alert>
-					) : (
-						<form onSubmit={onSubmit} className="max-w-md mx-auto w-full">
-							<div className="sm:flex-row sm:items-center gap-2 flex flex-col items-stretch justify-center">
-								<Input
-									type="email"
-									required
-									placeholder={t("newsletter.email")}
-									className="rounded-full"
-									{...form.register("email")}
-								/>
+					<div className="mt-7 gap-3 flex flex-wrap justify-center">
+						<Button size="lg" variant="primary" asChild>
+							<a href={`${config.saasUrl}/signup?intent=dna`}>
+								Use my DNA
+								<ArrowRightIcon className="ml-2 size-4" />
+							</a>
+						</Button>
 
-								<Button
-									type="submit"
-									variant="primary"
-									loading={form.formState.isSubmitting}
-								>
-									{t("newsletter.submit")}
-								</Button>
-							</div>
-							{form.formState.errors.email && (
-								<p className="mt-1 text-xs text-destructive">
-									{form.formState.errors.email.message}
-								</p>
-							)}
-						</form>
-					)}
+						<Button size="lg" variant="secondary" asChild>
+							<a href={`${config.saasUrl}/signup`}>Start planning free</a>
+						</Button>
+					</div>
+
+					<p className="mt-4 text-sm text-muted-foreground">
+						Don't have DNA results? A Bioanalytix testing pathway is coming soon.
+					</p>
 				</div>
 			</div>
 		</section>

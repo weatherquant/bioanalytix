@@ -9,7 +9,14 @@ import {
 } from "@repo/ui/components/accordion";
 import { useTranslations } from "next-intl";
 
-const FAQ_ITEM_KEYS = ["refundPolicy", "cancelSubscription", "changePlan", "freeTrial"] as const;
+const FAQ_ITEM_KEYS = [
+	"dnaLifespan",
+	"longevityPlanning",
+	"existingDna",
+	"needDnaTest",
+	"professionalAdvice",
+	"individualPlan",
+] as const;
 
 export function FaqSection({ className }: { className?: string }) {
 	const t = useTranslations();
