@@ -2,10 +2,7 @@ import { getCurrentBioPlanningProfile, getOrCreatePrimaryBioHousehold } from "@r
 
 import { protectedProcedure } from "../../../orpc/procedures";
 import type { HouseholdFinancialState } from "../../financial/household/types";
-import {
-	refreshPlanningProfileHouseholdContext,
-	type BioanalytixPlanningProfileV1,
-} from "../../planning/planningProfile";
+import type { BioanalytixPlanningProfileV1 } from "../../planning/planningProfile";
 import { bioanalytixAgentRequestSchema } from "../agent/agentContract";
 import { runBioanalytixAgent } from "../agent/agentOrchestrator";
 
@@ -33,21 +30,11 @@ export const askBioanalytix = protectedProcedure
 
 		const planningProfileRecord = await getCurrentBioPlanningProfile(household.id);
 
-		if (!planningProfileRecord?.profile) {
-			throw new Error(
-				"A current Bioanalytix planning profile is required before asking planning questions.",
-			);
-		}
-
 		const financialState = household.financialState as unknown as HouseholdFinancialState;
 
-		const storedPlanningProfile =
-			planningProfileRecord.profile as unknown as BioanalytixPlanningProfileV1;
-
-		const planningProfile = refreshPlanningProfileHouseholdContext({
-			profile: storedPlanningProfile,
-			household: financialState,
-		});
+		const planningProfile =
+			(planningProfileRecord?.profile as unknown as BioanalytixPlanningProfileV1 | null) ??
+			null;
 
 		return runBioanalytixAgent({
 			question: input.question,

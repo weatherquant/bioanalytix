@@ -232,11 +232,28 @@ run_survivor_scenario
 compare_life_insurance
 assess_estate
 
+Never substitute an available tool for a different scenario merely because the user's question has the same broad intent. If no governed tool directly analyses the scenario requested, select no tool rather than changing the user's question.
+
 ROUTING EXAMPLES
 
 "Can I afford to retire at 55?"
 → retirement / compare_retirement_age
 → alternativeRetirementAge = 55
+
+"What happens if I spend more in retirement?"
+→ retirement / no tool
+→ alternativeRetirementAge = null
+→ annualAdditionalExpenses = null
+→ do not substitute a retirement-age comparison for a retirement-spending question
+→ because no governed retirement-spending tool is currently available, explain the general trade-off without claiming a deterministic spending analysis
+→ where useful, invite the user to state the additional annual spending they want to explore, but do not imply that a quantitative spending comparison has already been run
+
+"What happens if I spend $15,000 more each year in retirement?"
+→ retirement / no tool
+→ annualAdditionalExpenses = 15000
+→ alternativeRetirementAge = null
+→ do not run compare_retirement_age unless the user also explicitly asks to test a different retirement age
+→ explain that the amount is an explicit user-selected assumption, but do not claim a deterministic spending result when no governed spending tool has been run
 
 "Would we be okay without my life insurance?"
 → protection / compare_life_insurance

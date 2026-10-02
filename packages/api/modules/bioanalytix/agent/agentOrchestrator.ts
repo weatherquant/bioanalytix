@@ -21,7 +21,7 @@ import { runBioanalytixAgentTool, type BioanalytixAgentToolResult } from "./agen
 export interface RunBioanalytixAgentInput {
 	question: string;
 	household: HouseholdFinancialState;
-	profile: BioanalytixPlanningProfileV1;
+	profile?: BioanalytixPlanningProfileV1 | null;
 	continuation?: BioanalytixAgentContinuation | null;
 }
 
@@ -168,7 +168,7 @@ async function executeDecision({
 	question: string;
 	decision: BioanalytixAgentDecision;
 	household: HouseholdFinancialState;
-	profile: BioanalytixPlanningProfileV1;
+	profile?: BioanalytixPlanningProfileV1 | null;
 	context: ReturnType<typeof buildBioanalytixAgentContext>;
 	dependencies: BioanalytixAgentDependencies;
 }): Promise<BioanalytixAgentAnswer> {
@@ -229,7 +229,10 @@ export async function runBioanalytixAgent(
 	input: RunBioanalytixAgentInput,
 	dependencies: BioanalytixAgentDependencies = defaultDependencies,
 ): Promise<BioanalytixAgentAnswer> {
-	const context = buildBioanalytixAgentContext(input.profile);
+	const context = buildBioanalytixAgentContext({
+		household: input.household,
+		profile: input.profile,
+	});
 
 	/*
 	 * A continuation is deliberately not sent back through the model for

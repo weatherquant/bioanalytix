@@ -18,7 +18,7 @@ export interface BioanalytixAgentToolInput {
 
 	household: HouseholdFinancialState;
 
-	profile: BioanalytixPlanningProfileV1;
+	profile?: BioanalytixPlanningProfileV1 | null;
 
 	parameters?: {
 		personId?: string;
@@ -105,7 +105,10 @@ export function runBioanalytixAgentTool(
 			return {
 				status: "completed",
 				tool: "review_plan",
-				result: buildBioanalytixAgentContext(input.profile),
+				result: buildBioanalytixAgentContext({
+					household: input.household,
+					profile: input.profile,
+				}),
 			};
 
 		case "assess_protection": {

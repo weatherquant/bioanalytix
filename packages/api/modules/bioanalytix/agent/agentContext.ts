@@ -1,4 +1,8 @@
-import type { BioanalytixPlanningProfileV1 } from "../../planning/planningProfile";
+import type { HouseholdFinancialState } from "../../financial/household/types";
+import {
+	buildPlanningProfileHouseholdContext,
+	type BioanalytixPlanningProfileV1,
+} from "../../planning/planningProfile";
 
 export interface BioanalytixAgentContext {
 	version: "1.0.0";
@@ -71,77 +75,88 @@ export interface BioanalytixAgentContext {
 	};
 }
 
-export function buildBioanalytixAgentContext(
-	profile: BioanalytixPlanningProfileV1,
-): BioanalytixAgentContext {
-	const household = profile.householdContext;
+export function buildBioanalytixAgentContext({
+	household,
+	profile,
+}: {
+	household: HouseholdFinancialState;
+	profile?: BioanalytixPlanningProfileV1 | null;
+}): BioanalytixAgentContext {
+	const householdContext = buildPlanningProfileHouseholdContext(household);
 
 	return {
 		version: "1.0.0",
 
 		household: {
-			currency: household.currency,
-			country: household.country,
-			annualIncome: household.annualIncome,
-			annualEssentialExpenses: household.annualEssentialExpenses,
-			annualDiscretionaryExpenses: household.annualDiscretionaryExpenses,
-			liquidAssets: household.liquidAssets,
-			totalAssets: household.totalAssets,
-			totalLiabilities: household.totalLiabilities,
-			insuranceCoverCount: household.insuranceCoverCount,
+			currency: householdContext.currency,
+			country: householdContext.country,
+			annualIncome: householdContext.annualIncome,
+			annualEssentialExpenses: householdContext.annualEssentialExpenses,
+			annualDiscretionaryExpenses: householdContext.annualDiscretionaryExpenses,
+			liquidAssets: householdContext.liquidAssets,
+			totalAssets: householdContext.totalAssets,
+			totalLiabilities: householdContext.totalLiabilities,
+			insuranceCoverCount: householdContext.insuranceCoverCount,
 		},
 
 		plan: {
 			protection: {
-				assessment: household.protection.assessment,
-				annualIncomeAtRisk: household.protection.annualIncomeAtRisk,
-				lifeInsuranceCover: household.protection.lifeInsuranceCover,
-				incomeProtectionAnnualBenefit: household.protection.incomeProtectionAnnualBenefit,
-				totalHouseholdLiabilities: household.protection.totalHouseholdLiabilities,
-				liquidAssets: household.protection.liquidAssets,
-				financialAssets: household.protection.financialAssets,
-				hasFinancialDependants: household.protection.hasFinancialDependants,
-				reasons: [...household.protection.reasons],
+				assessment: householdContext.protection.assessment,
+				annualIncomeAtRisk: householdContext.protection.annualIncomeAtRisk,
+				lifeInsuranceCover: householdContext.protection.lifeInsuranceCover,
+				incomeProtectionAnnualBenefit:
+					householdContext.protection.incomeProtectionAnnualBenefit,
+				totalHouseholdLiabilities: householdContext.protection.totalHouseholdLiabilities,
+				liquidAssets: householdContext.protection.liquidAssets,
+				financialAssets: householdContext.protection.financialAssets,
+				hasFinancialDependants: householdContext.protection.hasFinancialDependants,
+				reasons: [...householdContext.protection.reasons],
 			},
 
 			estate: {
-				assessment: household.estatePosition.assessment,
-				economicAssessment: household.estatePosition.economicAssessment,
-				documentationAssessment: household.estatePosition.documentationAssessment,
-				netHouseholdResources: household.estatePosition.netHouseholdResources,
-				totalAssets: household.estatePosition.totalAssets,
-				totalLiabilities: household.estatePosition.totalLiabilities,
-				inheritanceGoal: household.estatePosition.inheritanceGoal,
+				assessment: householdContext.estatePosition.assessment,
+				economicAssessment: householdContext.estatePosition.economicAssessment,
+				documentationAssessment: householdContext.estatePosition.documentationAssessment,
+				netHouseholdResources: householdContext.estatePosition.netHouseholdResources,
+				totalAssets: householdContext.estatePosition.totalAssets,
+				totalLiabilities: householdContext.estatePosition.totalLiabilities,
+				inheritanceGoal: householdContext.estatePosition.inheritanceGoal,
 				currentSurplusOrShortfallToGoal:
-					household.estatePosition.currentSurplusOrShortfallToGoal,
-				reasons: [...household.estatePosition.reasons],
-				qualifications: [...household.estatePosition.qualifications],
+					householdContext.estatePosition.currentSurplusOrShortfallToGoal,
+				reasons: [...householdContext.estatePosition.reasons],
+				qualifications: [...householdContext.estatePosition.qualifications],
 			},
 
 			estateDocuments: {
-				hasWill: household.estate.hasWill,
-				hasEnduringPowerOfAttorney: household.estate.hasEnduringPowerOfAttorney,
-				hasSuperBeneficiaryNomination: household.estate.hasSuperBeneficiaryNomination,
+				hasWill: householdContext.estate.hasWill,
+				hasEnduringPowerOfAttorney: householdContext.estate.hasEnduringPowerOfAttorney,
+				hasSuperBeneficiaryNomination:
+					householdContext.estate.hasSuperBeneficiaryNomination,
 			},
 		},
 
 		genetics: {
-			planningRelevantFindings: profile.exposures.map((exposure) => ({
-				domain: exposure.domain,
-				title: exposure.domain.replaceAll("_", " "),
-				rationale: exposure.rationale,
-			})),
+			planningRelevantFindings:
+				profile?.exposures.map((exposure) => ({
+					domain: exposure.domain,
+					title: exposure.domain.replaceAll("_", " "),
+					rationale: exposure.rationale,
+				})) ?? [],
 
-			planningQuestions: profile.questions.map((question) => ({
-				domain: question.domain,
-				title: question.title,
-				question: question.question,
-				rationale: question.rationale,
-			})),
+			planningQuestions:
+				profile?.questions.map((question) => ({
+					domain: question.domain,
+					title: question.title,
+					question: question.question,
+					rationale: question.rationale,
+				})) ?? [],
 		},
 
 		guardrails: {
-			...profile.guardrails,
+			geneticsChangesFinancialParameters: false,
+			geneticsChangesLongevityAssumptions: false,
+			consumerGeneticsIsDiagnostic: false,
+			absoluteDiseaseRiskCalculated: false,
 		},
 	};
 }

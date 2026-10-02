@@ -212,7 +212,9 @@ function questionForExposure(exposure: PlanningExposure, index: number): Plannin
 	}
 }
 
-function householdContext(household: HouseholdFinancialState): PlanningProfileHouseholdContext {
+export function buildPlanningProfileHouseholdContext(
+	household: HouseholdFinancialState,
+): PlanningProfileHouseholdContext {
 	const primaryPerson =
 		household.people.find((person) => person.role === "primary") ?? household.people[0];
 
@@ -318,7 +320,7 @@ export function buildPlanningProfileV1({
 			modelIds: [...new Set(modelIds)],
 		},
 
-		householdContext: householdContext(household),
+		householdContext: buildPlanningProfileHouseholdContext(household),
 
 		exposures,
 
@@ -358,6 +360,6 @@ export function refreshPlanningProfileHouseholdContext({
 }): BioanalytixPlanningProfileV1 {
 	return {
 		...profile,
-		householdContext: householdContext(household),
+		householdContext: buildPlanningProfileHouseholdContext(household),
 	};
 }

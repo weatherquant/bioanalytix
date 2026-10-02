@@ -1,7 +1,33 @@
 import { describe, expect, it } from "vitest";
 
 import type { BioanalytixPlanningProfileV1 } from "../../planning/planningProfile";
+import { toHouseholdFinancialState } from "../onboarding/toHouseholdFinancialState";
 import { buildBioanalytixAgentContext } from "./agentContext";
+
+function buildHousehold() {
+	return toHouseholdFinancialState({
+		householdId: "agent-context-test",
+		input: {
+			dateOfBirth: "1975-04-12",
+			country: "AU",
+			currency: "AUD",
+			employmentStatus: "employed",
+			hasPartner: false,
+			hasDependants: false,
+			annualHouseholdIncome: 160_000,
+			cashAndSavings: 50_000,
+			investments: 120_000,
+			propertyAndOtherAssets: 800_000,
+			retirementSavings: 350_000,
+			totalDebt: 300_000,
+			annualHouseholdSpending: 85_000,
+			lifeInsuranceCover: 500_000,
+			incomeProtectionAnnualBenefit: 80_000,
+			desiredInheritance: 600_000,
+			expectedRetirementAge: 60,
+		},
+	});
+}
 
 export function buildProfile(): BioanalytixPlanningProfileV1 {
 	return {
@@ -122,16 +148,19 @@ export function buildProfile(): BioanalytixPlanningProfileV1 {
 
 describe("buildBioanalytixAgentContext", () => {
 	it("provides bounded household and planning context", () => {
-		const context = buildBioanalytixAgentContext(buildProfile());
+		const context = buildBioanalytixAgentContext({
+			household: buildHousehold(),
+			profile: buildProfile(),
+		});
 
 		expect(context.household).toEqual({
 			currency: "AUD",
 			country: "AU",
-			annualIncome: 180_000,
-			annualEssentialExpenses: 70_000,
-			annualDiscretionaryExpenses: 30_000,
-			liquidAssets: 100_000,
-			totalAssets: 1_500_000,
+			annualIncome: 160_000,
+			annualEssentialExpenses: 85_000,
+			annualDiscretionaryExpenses: 0,
+			liquidAssets: 170_000,
+			totalAssets: 1_320_000,
 			totalLiabilities: 300_000,
 			insuranceCoverCount: 2,
 		});
@@ -140,17 +169,20 @@ describe("buildBioanalytixAgentContext", () => {
 		expect(context.plan.protection.lifeInsuranceCover).toBe(500_000);
 
 		expect(context.plan.estate.assessment).toBe("worth_reviewing");
-		expect(context.plan.estate.inheritanceGoal).toBe(1_000_000);
+		expect(context.plan.estate.inheritanceGoal).toBe(600_000);
 
 		expect(context.plan.estateDocuments).toEqual({
-			hasWill: true,
-			hasEnduringPowerOfAttorney: false,
+			hasWill: null,
+			hasEnduringPowerOfAttorney: null,
 			hasSuperBeneficiaryNomination: null,
 		});
 	});
 
 	it("passes planning relevance rather than raw genetic interpretation", () => {
-		const context = buildBioanalytixAgentContext(buildProfile());
+		const context = buildBioanalytixAgentContext({
+			household: buildHousehold(),
+			profile: buildProfile(),
+		});
 
 		expect(context.genetics.planningRelevantFindings).toEqual([
 			{
@@ -172,7 +204,31 @@ describe("buildBioanalytixAgentContext", () => {
 	});
 
 	it("preserves the genetics-to-finance guardrails", () => {
-		const context = buildBioanalytixAgentContext(buildProfile());
+		const context = buildBioanalytixAgentContext({
+			household: buildHousehold(),
+			profile: buildProfile(),
+		});
+
+		expect(context.guardrails).toEqual({
+			geneticsChangesFinancialParameters: false,
+			geneticsChangesLongevityAssumptions: false,
+			consumerGeneticsIsDiagnostic: false,
+			absoluteDiseaseRiskCalculated: false,
+		});
+	});
+
+	it("supports financial planning without a genetic profile", () => {
+		const context = buildBioanalytixAgentContext({
+			household: buildHousehold(),
+			profile: null,
+		});
+
+		expect(context.household.currency).toBe("AUD");
+
+		expect(context.genetics).toEqual({
+			planningRelevantFindings: [],
+			planningQuestions: [],
+		});
 
 		expect(context.guardrails).toEqual({
 			geneticsChangesFinancialParameters: false,
