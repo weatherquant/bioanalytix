@@ -9,15 +9,37 @@ export interface LifecycleYearDistribution {
 
 	primaryAge: number;
 
+	afterTaxIncome: SimulationDistribution;
+
+	retirementSafetyNetIncome: SimulationDistribution;
+
+	livingExpenses: SimulationDistribution;
+
 	retirementSpending: SimulationDistribution;
+
+	insurancePremiums: SimulationDistribution;
+
+	debtRepayments: SimulationDistribution;
+
+	superContributions: SimulationDistribution;
+
+	netCashFlow: SimulationDistribution;
+
+	unfundedCashFlow: SimulationDistribution;
+
+	cashAssets: SimulationDistribution;
+
+	nonSuperInvestableWealth: SimulationDistribution;
+
+	nonInvestableAssets: SimulationDistribution;
+
+	liabilities: SimulationDistribution;
 
 	netWorth: SimulationDistribution;
 
 	liquidWealth: SimulationDistribution;
 
 	superannuation: SimulationDistribution;
-
-	unfundedCashFlow: SimulationDistribution;
 }
 
 export interface LifecycleDistributionSummary {
@@ -85,8 +107,66 @@ export function summarizeLifecycleSimulations(
 
 			primaryAge: reference.primaryAge,
 
+			afterTaxIncome: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.afterTaxIncome),
+			),
+
+			retirementSafetyNetIncome: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.retirementSafetyNetIncome),
+			),
+
+			livingExpenses: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.livingExpenses),
+			),
+
 			retirementSpending: summarizeDistribution(
 				results.map((result) => result.years[yearIndex]!.retirementSpending),
+			),
+
+			insurancePremiums: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.insurancePremiums),
+			),
+
+			debtRepayments: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.debtRepayments),
+			),
+
+			superContributions: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.superContributions),
+			),
+
+			netCashFlow: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.netCashFlow),
+			),
+
+			unfundedCashFlow: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.unfundedCashFlow),
+			),
+
+			cashAssets: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.cashAssets),
+			),
+
+			nonSuperInvestableWealth: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.nonSuperInvestableWealth),
+			),
+
+			nonInvestableAssets: summarizeDistribution(
+				results.map((result) => {
+					const year = result.years[yearIndex]!;
+
+					return (
+						year.netWorth -
+						year.cashAssets -
+						year.nonSuperInvestableWealth -
+						year.superannuation +
+						year.liabilities
+					);
+				}),
+			),
+
+			liabilities: summarizeDistribution(
+				results.map((result) => result.years[yearIndex]!.liabilities),
 			),
 
 			netWorth: summarizeDistribution(
@@ -103,10 +183,6 @@ export function summarizeLifecycleSimulations(
 
 			superannuation: summarizeDistribution(
 				results.map((result) => result.years[yearIndex]!.superannuation),
-			),
-
-			unfundedCashFlow: summarizeDistribution(
-				results.map((result) => result.years[yearIndex]!.unfundedCashFlow),
 			),
 		});
 	}

@@ -123,7 +123,48 @@ export default function WealthPage() {
 		p25: point.p25NetWealth,
 		median: point.medianNetWealth,
 		p75: point.p75NetWealth,
+		liquid: point.medianCashAssets + point.medianNonSuperInvestableWealth,
+		superannuation: point.medianSuperannuation,
+		otherAssets: point.medianNonInvestableAssets,
+		liabilities: point.medianLiabilities,
 	}));
+
+	const currentFinancialAssets =
+		wealth.current.cashAssets +
+		wealth.current.nonSuperInvestableWealth +
+		wealth.current.superannuation;
+
+	const currentBalanceSheet = [
+		{
+			label: "Cash",
+			value: wealth.current.cashAssets,
+		},
+		{
+			label: "Non-super investments",
+			value: wealth.current.nonSuperInvestableWealth,
+		},
+		{
+			label: "Superannuation",
+			value: wealth.current.superannuation,
+		},
+		{
+			label: "Other / non-investable assets",
+			value: wealth.current.nonInvestableAssets,
+		},
+		{
+			label: "Liabilities",
+			value: -wealth.current.liabilities,
+		},
+	];
+
+	const retirementAge = response.planning.retirementAge;
+	const retirementSpending = response.planning.desiredAnnualRetirementIncome;
+
+	const retirementPoint =
+		wealth.projection.find((point) => point.age >= retirementAge) ??
+		wealth.projection[wealth.projection.length - 1];
+
+	const projectionEndPoint = wealth.projection[wealth.projection.length - 1];
 
 	const longevityRange = {
 		lower: response.planningHorizon.range.lowerAge,
@@ -236,6 +277,72 @@ export default function WealthPage() {
 							</div>
 						</div>
 
+						<section className="p-5 sm:p-7 rounded-3xl border bg-card">
+							<div className="mb-6">
+								<p className="text-sm font-medium">Your position today</p>
+								<p className="mt-1 text-sm text-muted-foreground">
+									The household balance sheet used as the starting point for this
+									projection.
+								</p>
+							</div>
+
+							<div className="gap-6 lg:grid-cols-[1fr_0.8fr] grid">
+								<div className="overflow-hidden rounded-2xl border">
+									<div className="divide-y">
+										{currentBalanceSheet.map((item) => (
+											<div
+												key={item.label}
+												className="px-4 py-3 gap-4 flex items-center justify-between"
+											>
+												<span className="text-sm text-muted-foreground">
+													{item.label}
+												</span>
+												<span className="text-sm font-medium tabular-nums">
+													{currency.format(item.value)}
+												</span>
+											</div>
+										))}
+
+										<div className="px-4 py-4 gap-4 flex items-center justify-between bg-muted/30">
+											<span className="text-sm font-medium">
+												Household net worth
+											</span>
+											<span className="font-semibold tabular-nums">
+												{currency.format(wealth.current.netWealth)}
+											</span>
+										</div>
+									</div>
+								</div>
+
+								<div className="gap-3 grid">
+									<div className="p-5 rounded-2xl border bg-muted/30">
+										<p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+											Financial assets
+										</p>
+										<p className="mt-2 text-2xl font-semibold tracking-tight">
+											{currency.format(currentFinancialAssets)}
+										</p>
+										<p className="mt-2 text-xs leading-5 text-muted-foreground">
+											Cash, non-super investments and superannuation.
+										</p>
+									</div>
+
+									<div className="p-5 rounded-2xl border bg-muted/30">
+										<p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+											Liquid / non-super assets
+										</p>
+										<p className="mt-2 text-2xl font-semibold tracking-tight">
+											{currency.format(wealth.current.liquidWealth)}
+										</p>
+										<p className="mt-2 text-xs leading-5 text-muted-foreground">
+											Cash and non-super investments available outside
+											superannuation.
+										</p>
+									</div>
+								</div>
+							</div>
+						</section>
+
 						<div className="md:grid-cols-2 xl:grid-cols-4 grid gap-px bg-border">
 							{metrics.map((metric) => {
 								const Icon = metric.icon;
@@ -266,7 +373,9 @@ export default function WealthPage() {
 					<section className="p-5 sm:p-7 rounded-3xl border bg-card">
 						<div className="mb-6 gap-3 sm:flex-row sm:items-end sm:justify-between flex flex-col">
 							<div>
-								<p className="text-sm font-medium">Projected household wealth</p>
+								<p className="text-sm font-medium">
+									How your household balance sheet may evolve
+								</p>
 								<p className="mt-1 text-sm text-muted-foreground">
 									Range of simulated outcomes across your planning horizon.
 								</p>
@@ -384,6 +493,151 @@ export default function WealthPage() {
 									represent financial outcomes, not predicted personal lifespan or
 									investment performance.
 								</p>
+							</div>
+						</div>
+					</section>
+
+					<section className="p-5 sm:p-7 rounded-3xl border bg-card">
+						<div className="mb-6">
+							<p className="text-sm font-medium">How the projection works</p>
+							<p className="mt-1 text-sm text-muted-foreground">
+								The financial mechanics behind the projected household wealth above.
+							</p>
+						</div>
+
+						<div className="gap-6 lg:grid-cols-3 grid">
+							<div className="p-5 rounded-2xl border">
+								<p className="font-medium">Before retirement</p>
+								<p className="mt-3 text-sm leading-6 text-muted-foreground">
+									Employment income supports living costs, insurance, debt
+									repayments and super contributions. Remaining cash flow
+									contributes to the household financial position.
+								</p>
+							</div>
+
+							<div className="p-5 rounded-2xl border">
+								<p className="font-medium">From retirement</p>
+								<p className="mt-3 text-sm leading-6 text-muted-foreground">
+									Employment income stops at the retirement age assumption.
+									Retirement spending begins and available retirement safety-net
+									income is included.
+								</p>
+							</div>
+
+							<div className="p-5 rounded-2xl border">
+								<p className="font-medium">Funding a shortfall</p>
+								<p className="mt-3 text-sm leading-6 text-muted-foreground">
+									When annual spending exceeds available income, the model draws
+									from cash first, then non-super investments, and then
+									superannuation after retirement. Any remaining amount is
+									recorded as unfunded cash flow.
+								</p>
+							</div>
+						</div>
+
+						<div className="mt-6 gap-6 lg:grid-cols-2 grid">
+							<div className="overflow-hidden rounded-2xl border">
+								<div className="px-5 py-4 border-b bg-muted/30">
+									<p className="text-sm font-medium">At retirement</p>
+									<p className="mt-1 text-xs text-muted-foreground">
+										Median simulated balance sheet at approximately age{" "}
+										{retirementPoint?.age ?? retirementAge}.
+									</p>
+								</div>
+
+								{retirementPoint ? (
+									<div className="divide-y">
+										{[
+											["Cash", retirementPoint.medianCashAssets],
+											[
+												"Non-super investments",
+												retirementPoint.medianNonSuperInvestableWealth,
+											],
+											[
+												"Superannuation",
+												retirementPoint.medianSuperannuation,
+											],
+											[
+												"Other / non-investable assets",
+												retirementPoint.medianNonInvestableAssets,
+											],
+											["Liabilities", -retirementPoint.medianLiabilities],
+											["Median net worth", retirementPoint.medianNetWealth],
+										].map(([label, value]) => (
+											<div
+												key={String(label)}
+												className="px-5 py-3 gap-4 flex items-center justify-between"
+											>
+												<span className="text-sm text-muted-foreground">
+													{String(label)}
+												</span>
+												<span className="text-sm font-medium tabular-nums">
+													{currency.format(Number(value))}
+												</span>
+											</div>
+										))}
+									</div>
+								) : null}
+							</div>
+
+							<div className="overflow-hidden rounded-2xl border">
+								<div className="px-5 py-4 border-b bg-muted/30">
+									<p className="text-sm font-medium">
+										Current planning assumptions
+									</p>
+									<p className="mt-1 text-xs text-muted-foreground">
+										The assumptions currently driving this projection.
+									</p>
+								</div>
+
+								<div className="divide-y">
+									{[
+										["Retirement age", String(retirementAge)],
+										[
+											"Annual retirement spending",
+											currency.format(retirementSpending),
+										],
+										["Portfolio strategy", "Balanced"],
+										["Simulated market paths", String(wealth.simulationCount)],
+										[
+											"Projection end",
+											projectionEndPoint
+												? `Age ${projectionEndPoint.age}`
+												: "Not available",
+										],
+									].map(([label, value]) => (
+										<div
+											key={label}
+											className="px-5 py-3 gap-4 flex items-center justify-between"
+										>
+											<span className="text-sm text-muted-foreground">
+												{label}
+											</span>
+											<span className="text-sm font-medium text-right">
+												{value}
+											</span>
+										</div>
+									))}
+								</div>
+							</div>
+						</div>
+
+						<div className="mt-6 p-4 rounded-2xl border bg-muted/30">
+							<div className="gap-3 flex">
+								<Info size={17} className="mt-0.5 shrink-0 text-muted-foreground" />
+
+								<div className="text-sm leading-6 text-muted-foreground">
+									<p>
+										Investment returns continue to be applied to invested assets
+										throughout the projection, including after retirement.
+									</p>
+									<p className="mt-2">
+										Other / non-investable assets are currently carried at their
+										entered value rather than independently projected for future
+										property or asset-price growth. Liabilities reduce according
+										to the repayments represented in the household model.
+									</p>
+								</div>
 							</div>
 						</div>
 					</section>

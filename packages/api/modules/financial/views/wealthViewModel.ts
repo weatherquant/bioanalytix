@@ -31,6 +31,30 @@ export interface WealthProjectionPoint {
 	medianSuperannuation: number;
 
 	p75Superannuation: number;
+
+	medianCashAssets: number;
+
+	medianNonSuperInvestableWealth: number;
+
+	medianNonInvestableAssets: number;
+
+	medianLiabilities: number;
+
+	medianAfterTaxIncome: number;
+
+	medianRetirementSafetyNetIncome: number;
+
+	medianLivingExpenses: number;
+
+	medianRetirementSpending: number;
+
+	medianDebtRepayments: number;
+
+	medianSuperContributions: number;
+
+	medianNetCashFlow: number;
+
+	medianUnfundedCashFlow: number;
 }
 
 export interface WealthViewModel {
@@ -43,7 +67,15 @@ export interface WealthViewModel {
 
 		liquidWealth: number;
 
+		cashAssets: number;
+
+		nonSuperInvestableWealth: number;
+
+		nonInvestableAssets: number;
+
 		superannuation: number;
+
+		liabilities: number;
 	};
 
 	longevity: LongevityPlanningRange;
@@ -157,7 +189,15 @@ export function buildWealthViewModel(
 
 			liquidWealth: firstYear.liquidWealth.percentiles.p50,
 
+			cashAssets: firstYear.cashAssets.percentiles.p50,
+
+			nonSuperInvestableWealth: firstYear.nonSuperInvestableWealth.percentiles.p50,
+
+			nonInvestableAssets: firstYear.nonInvestableAssets.percentiles.p50,
+
 			superannuation: firstYear.superannuation.percentiles.p50,
+
+			liabilities: firstYear.liabilities.percentiles.p50,
 		},
 
 		longevity,
@@ -184,6 +224,30 @@ export function buildWealthViewModel(
 			medianSuperannuation: year.superannuation.percentiles.p50,
 
 			p75Superannuation: year.superannuation.percentiles.p75,
+
+			medianCashAssets: year.cashAssets.percentiles.p50,
+
+			medianNonSuperInvestableWealth: year.nonSuperInvestableWealth.percentiles.p50,
+
+			medianNonInvestableAssets: year.nonInvestableAssets.percentiles.p50,
+
+			medianLiabilities: year.liabilities.percentiles.p50,
+
+			medianAfterTaxIncome: year.afterTaxIncome.percentiles.p50,
+
+			medianRetirementSafetyNetIncome: year.retirementSafetyNetIncome.percentiles.p50,
+
+			medianLivingExpenses: year.livingExpenses.percentiles.p50,
+
+			medianRetirementSpending: year.retirementSpending.percentiles.p50,
+
+			medianDebtRepayments: year.debtRepayments.percentiles.p50,
+
+			medianSuperContributions: year.superContributions.percentiles.p50,
+
+			medianNetCashFlow: year.netCashFlow.percentiles.p50,
+
+			medianUnfundedCashFlow: year.unfundedCashFlow.percentiles.p50,
 		})),
 
 		atPlanningAge: {

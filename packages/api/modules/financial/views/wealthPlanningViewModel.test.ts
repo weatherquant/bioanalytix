@@ -55,7 +55,11 @@ function baseline(): WealthViewModel {
 		current: {
 			netWealth: 1000000,
 			liquidWealth: 300000,
+			cashAssets: 100000,
+			nonSuperInvestableWealth: 200000,
+			nonInvestableAssets: 300000,
 			superannuation: 500000,
+			liabilities: 0,
 		},
 
 		longevity: {

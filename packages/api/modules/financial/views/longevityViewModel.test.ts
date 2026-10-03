@@ -33,11 +33,25 @@ function year(
 		yearIndex: age - 84,
 		projectionDate: `${2040 + age - 84}-09-01`,
 		primaryAge: age,
+
+		afterTaxIncome: distribution(0),
+		retirementSafetyNetIncome: distribution(0),
+		livingExpenses: distribution(0),
 		retirementSpending: distribution(retirementSpending),
+		insurancePremiums: distribution(0),
+		debtRepayments: distribution(0),
+		superContributions: distribution(0),
+		netCashFlow: distribution(0),
+		unfundedCashFlow: distribution(0),
+
+		cashAssets: distribution(netWorth),
+		nonSuperInvestableWealth: distribution(0),
+		nonInvestableAssets: distribution(0),
+		liabilities: distribution(0),
+
 		netWorth: distribution(netWorth),
 		liquidWealth: distribution(netWorth),
 		superannuation: distribution(0),
-		unfundedCashFlow: distribution(0),
 	};
 }
 
