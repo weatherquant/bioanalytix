@@ -75,9 +75,34 @@ export function hasBioanalytixCapability(
  *
  * Unknown, legacy, or unsupported billing plans fail closed to the free tier.
  */
+
+function getDevelopmentTierOverride(): BioanalytixTier | null {
+	if (process.env.NODE_ENV === "production") {
+		return null;
+	}
+
+	const tier = process.env.BIOANALYTIX_DEV_TIER;
+
+	switch (tier) {
+		case "free":
+		case "individual":
+		case "professional":
+			return tier;
+
+		default:
+			return null;
+	}
+}
+
 export function resolveBioanalytixTierFromPlanId(
 	planId: string | null | undefined,
 ): BioanalytixTier {
+	const developmentTierOverride = getDevelopmentTierOverride();
+
+	if (developmentTierOverride) {
+		return developmentTierOverride;
+	}
+
 	switch (planId) {
 		case "pro":
 			return "individual";
