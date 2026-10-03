@@ -103,6 +103,59 @@ describe("runBioanalytixAgentTool", () => {
 		});
 	});
 
+	it("requires explicit additional retirement spending before running a spending comparison", () => {
+		const result = runBioanalytixAgentTool({
+			tool: "compare_retirement_spending",
+			household: buildHousehold(),
+			profile: buildProfile(),
+		});
+
+		expect(result).toEqual({
+			status: "needs_input",
+			tool: "compare_retirement_spending",
+			missingInputs: [
+				{
+					key: "annualAdditionalExpenses",
+					question:
+						"How much additional annual retirement spending would you like me to test?",
+					reason: "Additional retirement spending must be an explicit planning assumption rather than inferred from genetics or other personal information.",
+				},
+			],
+		});
+	});
+
+	it("compares an explicit increase in annual retirement spending", () => {
+		const result = runBioanalytixAgentTool({
+			tool: "compare_retirement_spending",
+			household: buildHousehold(),
+			profile: null,
+			parameters: {
+				annualAdditionalExpenses: 15_000,
+			},
+		});
+
+		expect(result.status).toBe("completed");
+
+		if (result.status !== "completed" || result.tool !== "compare_retirement_spending") {
+			throw new Error("Expected completed compare_retirement_spending result.");
+		}
+
+		expect(result.result.retirementAge).toBe(60);
+		expect(result.result.baselineAnnualRetirementSpending).toBe(85_000);
+		expect(result.result.alternativeAnnualRetirementSpending).toBe(100_000);
+		expect(result.result.annualAdditionalRetirementSpending).toBe(15_000);
+		expect(result.result.strategyId).toBe("balanced");
+		expect(result.result.simulationCount).toBeGreaterThan(0);
+
+		expect(
+			result.result.alternative.summary.endingNetWorth.percentiles.p50,
+		).toBeLessThanOrEqual(result.result.baseline.summary.endingNetWorth.percentiles.p50);
+
+		expect(
+			result.result.alternative.summary.probabilityOfAnyUnfundedCashFlow,
+		).toBeGreaterThanOrEqual(result.result.baseline.summary.probabilityOfAnyUnfundedCashFlow);
+	});
+
 	it("requires explicit survivor assumptions rather than inferring them", () => {
 		const result = runBioanalytixAgentTool({
 			tool: "run_survivor_scenario",

@@ -17,6 +17,7 @@ export type BioanalytixAgentIntent = z.infer<typeof bioanalytixAgentIntentSchema
 export const bioanalytixToolNameSchema = z.enum([
 	"review_plan",
 	"compare_retirement_age",
+	"compare_retirement_spending",
 	"assess_protection",
 	"run_survivor_scenario",
 	"compare_life_insurance",
@@ -85,9 +86,54 @@ export const bioanalytixAgentDecisionSchema = z.object({
 
 export type BioanalytixAgentDecision = z.infer<typeof bioanalytixAgentDecisionSchema>;
 
+const bioanalytixPercentileValuesSchema = z.object({
+	p10: z.number(),
+	p25: z.number(),
+	p50: z.number(),
+	p75: z.number(),
+	p90: z.number(),
+});
+
+const bioanalytixRetirementSpendingSeriesPointSchema = z.object({
+	yearIndex: z.number().int().nonnegative(),
+	projectionDate: z.string().min(1),
+	primaryAge: z.number().nonnegative(),
+	baselineLiquidWealth: bioanalytixPercentileValuesSchema,
+	alternativeLiquidWealth: bioanalytixPercentileValuesSchema,
+});
+
+const bioanalytixRetirementSpendingAnalysisSchema = z.object({
+	type: z.literal("retirement_spending_comparison"),
+	retirementAge: z.number().positive(),
+	strategyId: z.string().min(1),
+	strategyName: z.string().min(1),
+	simulationCount: z.number().int().positive(),
+
+	baselineAnnualRetirementSpending: z.number().nonnegative(),
+	alternativeAnnualRetirementSpending: z.number().nonnegative(),
+	annualAdditionalRetirementSpending: z.number().nonnegative(),
+
+	baselineShortfallProbability: z.number().min(0).max(1),
+	alternativeShortfallProbability: z.number().min(0).max(1),
+
+	baselineTotalUnfundedCashFlow: bioanalytixPercentileValuesSchema,
+	alternativeTotalUnfundedCashFlow: bioanalytixPercentileValuesSchema,
+
+	baselineEndingNetWorth: bioanalytixPercentileValuesSchema,
+	alternativeEndingNetWorth: bioanalytixPercentileValuesSchema,
+
+	series: z.array(bioanalytixRetirementSpendingSeriesPointSchema),
+});
+
+export const bioanalytixAgentAnalysisSchema =
+	bioanalytixRetirementSpendingAnalysisSchema.nullable();
+
+export type BioanalytixAgentAnalysis = z.infer<typeof bioanalytixAgentAnalysisSchema>;
+
 export const bioanalytixAgentAnswerSchema = z.object({
 	answer: z.string().min(1),
 	intent: bioanalytixAgentIntentSchema,
+	analysis: bioanalytixAgentAnalysisSchema,
 	toolUsed: bioanalytixToolNameSchema.nullable(),
 	missingAssumptions: z.array(bioanalytixMissingAssumptionSchema),
 	continuation: bioanalytixAgentContinuationSchema.nullable(),

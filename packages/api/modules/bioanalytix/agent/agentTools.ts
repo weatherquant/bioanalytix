@@ -4,6 +4,8 @@ import { compareLifeInsurance } from "../../financial/protection/compareLifeInsu
 import { assessProtectionPosition } from "../../financial/protection/protectionAnalysis";
 import { analyseSurvivorScenario } from "../../financial/protection/survivorScenario";
 import { compareRetirementAges } from "../../financial/retirement/compareRetirementAges";
+import { compareRetirementSpending } from "../../financial/retirement/compareRetirementSpending";
+import { standardPortfolioStrategy } from "../../financial/retirement/standardPortfolioStrategies";
 import type { BioanalytixPlanningProfileV1 } from "../../planning/planningProfile";
 import { buildBioanalytixProjectionAssumptions } from "../../planning/projectionPolicy";
 import {
@@ -45,6 +47,11 @@ export type BioanalytixAgentToolResult =
 			status: "completed";
 			tool: "compare_retirement_age";
 			result: ReturnType<typeof compareRetirementAges>;
+	  }
+	| {
+			status: "completed";
+			tool: "compare_retirement_spending";
+			result: ReturnType<typeof compareRetirementSpending>;
 	  }
 	| {
 			status: "completed";
@@ -159,6 +166,47 @@ export function runBioanalytixAgentTool(
 					maximumShortfallProbability: simulationPolicy.maximumShortfallProbability,
 					maximumAnnualSpending: simulationPolicy.maximumAnnualSpending,
 					spendingPrecision: simulationPolicy.spendingPrecision,
+				}),
+			};
+		}
+
+		case "compare_retirement_spending": {
+			if (!positiveFinite(parameters.annualAdditionalExpenses)) {
+				return {
+					status: "needs_input",
+					tool: "compare_retirement_spending",
+					missingInputs: [
+						{
+							key: "annualAdditionalExpenses",
+							question:
+								"How much additional annual retirement spending would you like me to test?",
+							reason: "Additional retirement spending must be an explicit planning assumption rather than inferred from genetics or other personal information.",
+						},
+					],
+				};
+			}
+
+			const retirementAge = getBioanalytixBaselineRetirementAge(input.household);
+
+			const simulationPolicy = buildBioanalytixRetirementSimulationPolicy(input.household);
+
+			const balancedStrategy = standardPortfolioStrategy("balanced");
+
+			const baselineAnnualRetirementSpending =
+				input.household.expenses.essentialAnnual +
+				input.household.expenses.discretionaryAnnual;
+
+			return {
+				status: "completed",
+				tool: "compare_retirement_spending",
+				result: compareRetirementSpending({
+					household: input.household,
+					assumptions: simulationPolicy.projectionAssumptions,
+					retirementAge,
+					baselineAnnualRetirementSpending,
+					annualAdditionalRetirementSpending: parameters.annualAdditionalExpenses,
+					strategy: balancedStrategy.strategy,
+					marketPaths: simulationPolicy.marketPaths,
 				}),
 			};
 		}

@@ -19,10 +19,50 @@ type AgentIntent =
 type ToolName =
 	| "review_plan"
 	| "compare_retirement_age"
+	| "compare_retirement_spending"
 	| "assess_protection"
 	| "run_survivor_scenario"
 	| "compare_life_insurance"
 	| "assess_estate";
+
+type PercentileValues = {
+	p10: number;
+	p25: number;
+	p50: number;
+	p75: number;
+	p90: number;
+};
+
+type RetirementSpendingSeriesPoint = {
+	yearIndex: number;
+	projectionDate: string;
+	primaryAge: number;
+	baselineLiquidWealth: PercentileValues;
+	alternativeLiquidWealth: PercentileValues;
+};
+
+type RetirementSpendingAnalysis = {
+	type: "retirement_spending_comparison";
+	retirementAge: number;
+	strategyId: string;
+	strategyName: string;
+	simulationCount: number;
+
+	baselineAnnualRetirementSpending: number;
+	alternativeAnnualRetirementSpending: number;
+	annualAdditionalRetirementSpending: number;
+
+	baselineShortfallProbability: number;
+	alternativeShortfallProbability: number;
+
+	baselineTotalUnfundedCashFlow: PercentileValues;
+	alternativeTotalUnfundedCashFlow: PercentileValues;
+
+	baselineEndingNetWorth: PercentileValues;
+	alternativeEndingNetWorth: PercentileValues;
+
+	series: RetirementSpendingSeriesPoint[];
+};
 
 type MissingAssumption = {
 	key: string;
@@ -49,6 +89,7 @@ type AgentContinuation = {
 type AskResponse = {
 	answer: string;
 	intent: AgentIntent;
+	analysis: RetirementSpendingAnalysis | null;
 	toolUsed: ToolName | null;
 	missingAssumptions: MissingAssumption[];
 	continuation: AgentContinuation | null;
@@ -57,10 +98,35 @@ type AskResponse = {
 
 type AssumptionValues = Record<string, string>;
 
-const exampleQuestions = [
-	"What does my current estate position look like?",
-	"Would my family be financially resilient if something happened to me?",
-	"Do I need my current life insurance cover?",
+const exampleQuestionGroups = [
+	{
+		label: "Explore a scenario",
+		questions: [
+			"What happens if I spend $15,000 more each year in retirement?",
+			"What changes if I retire five years earlier?",
+		],
+	},
+	{
+		label: "Understand my plan",
+		questions: [
+			"How resilient is my current financial plan?",
+			"Which assumptions in my plan matter most?",
+		],
+	},
+	{
+		label: "Protection & estate",
+		questions: [
+			"Would my family be financially protected if I died unexpectedly?",
+			"What estate planning issues should I be thinking about?",
+		],
+	},
+	{
+		label: "Longevity & genetics",
+		questions: [
+			"How could longevity change my retirement planning?",
+			"What does my genetic information make more relevant to my financial planning?",
+		],
+	},
 ];
 
 function isNumericParameter(key: string): boolean {
@@ -100,6 +166,18 @@ function inputSuffix(key: string): string | null {
 		default:
 			return null;
 	}
+}
+
+function formatCurrency(value: number): string {
+	return new Intl.NumberFormat("en-AU", {
+		style: "currency",
+		currency: "AUD",
+		maximumFractionDigits: 0,
+	}).format(value);
+}
+
+function formatPercentage(value: number): string {
+	return `${(value * 100).toFixed(1)}%`;
 }
 
 export function AskBioanalytix() {
@@ -392,33 +470,54 @@ export function AskBioanalytix() {
 						Questions you could explore
 					</div>
 
-					{exampleQuestions.map((example) => (
-						<button
-							key={example}
-							type="button"
-							onClick={() => submitQuestion(example)}
+					{exampleQuestionGroups.map((group) => (
+						<div
+							key={group.label}
 							style={{
-								display: "flex",
-								alignItems: "center",
-								gap: "8px",
-								textAlign: "left",
-								border: 0,
-								background: "transparent",
-								color: "var(--foreground)",
-								padding: "5px 0",
-								font: "inherit",
-								fontSize: "14px",
-								cursor: "pointer",
+								display: "grid",
+								gap: "6px",
+								marginTop: "6px",
 							}}
 						>
-							<MessageCircleQuestion
-								size={15}
+							<div
 								style={{
-									flexShrink: 0,
+									fontSize: "12px",
+									fontWeight: 600,
+									color: "var(--muted-foreground)",
 								}}
-							/>
-							<span>{example}</span>
-						</button>
+							>
+								{group.label}
+							</div>
+
+							{group.questions.map((example) => (
+								<button
+									key={example}
+									type="button"
+									onClick={() => submitQuestion(example)}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: "8px",
+										textAlign: "left",
+										border: 0,
+										background: "transparent",
+										color: "var(--foreground)",
+										padding: "5px 0",
+										font: "inherit",
+										fontSize: "14px",
+										cursor: "pointer",
+									}}
+								>
+									<MessageCircleQuestion
+										size={15}
+										style={{
+											flexShrink: 0,
+										}}
+									/>
+									<span>{example}</span>
+								</button>
+							))}
+						</div>
 					))}
 				</div>
 			)}
@@ -469,7 +568,158 @@ export function AskBioanalytix() {
 						gap: "16px",
 					}}
 				>
+					{result.analysis?.type === "retirement_spending_comparison" && (
+						<div
+							style={{
+								display: "grid",
+								gap: "14px",
+								border: "1px solid var(--border)",
+								borderRadius: "12px",
+								padding: "18px",
+								background: "var(--muted)",
+							}}
+						>
+							<div>
+								<div
+									style={{
+										fontSize: "12px",
+										fontWeight: 600,
+										color: "var(--muted-foreground)",
+										textTransform: "uppercase",
+										letterSpacing: "0.06em",
+									}}
+								>
+									Retirement spending comparison
+								</div>
+
+								<div
+									style={{
+										marginTop: "6px",
+										fontSize: "20px",
+										fontWeight: 650,
+									}}
+								>
+									{formatCurrency(
+										result.analysis.baselineAnnualRetirementSpending,
+									)}
+									{" → "}
+									{formatCurrency(
+										result.analysis.alternativeAnnualRetirementSpending,
+									)}
+								</div>
+							</div>
+
+							<div
+								style={{
+									display: "grid",
+									gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+									gap: "12px",
+								}}
+							>
+								<div>
+									<div
+										style={{
+											fontSize: "12px",
+											color: "var(--muted-foreground)",
+										}}
+									>
+										Chance of an unfunded cash-flow period
+									</div>
+
+									<div style={{ marginTop: "4px", fontWeight: 650 }}>
+										{formatPercentage(
+											result.analysis.baselineShortfallProbability,
+										)}
+										{" → "}
+										{formatPercentage(
+											result.analysis.alternativeShortfallProbability,
+										)}
+									</div>
+								</div>
+
+								<div>
+									<div
+										style={{
+											fontSize: "12px",
+											color: "var(--muted-foreground)",
+										}}
+									>
+										Median total unfunded cash flow
+									</div>
+
+									<div style={{ marginTop: "4px", fontWeight: 650 }}>
+										{formatCurrency(
+											result.analysis.baselineTotalUnfundedCashFlow.p50,
+										)}
+										{" → "}
+										{formatCurrency(
+											result.analysis.alternativeTotalUnfundedCashFlow.p50,
+										)}
+									</div>
+								</div>
+
+								<div>
+									<div
+										style={{
+											fontSize: "12px",
+											color: "var(--muted-foreground)",
+										}}
+									>
+										Median ending net worth
+									</div>
+
+									<div style={{ marginTop: "4px", fontWeight: 650 }}>
+										{formatCurrency(result.analysis.baselineEndingNetWorth.p50)}
+										{" → "}
+										{formatCurrency(
+											result.analysis.alternativeEndingNetWorth.p50,
+										)}
+									</div>
+								</div>
+							</div>
+
+							<div
+								style={{
+									fontSize: "12px",
+									color: "var(--muted-foreground)",
+									lineHeight: 1.5,
+								}}
+							>
+								{result.analysis.simulationCount.toLocaleString("en-AU")} simulated
+								market paths · Retirement age {result.analysis.retirementAge} ·{" "}
+								{result.analysis.strategyName} strategy
+							</div>
+						</div>
+					)}
+
 					{!awaitingInput && (
+						<div>
+							<div
+								style={{
+									fontSize: "12px",
+									fontWeight: 600,
+									color: "var(--muted-foreground)",
+									textTransform: "uppercase",
+									letterSpacing: "0.06em",
+									marginBottom: "8px",
+								}}
+							>
+								Bioanalytix
+							</div>
+
+							<div
+								style={{
+									whiteSpace: "pre-wrap",
+									fontSize: "15px",
+									lineHeight: 1.65,
+								}}
+							>
+								{result.answer}
+							</div>
+						</div>
+					)}
+
+					{awaitingInput && (
 						<div>
 							<div
 								style={{
