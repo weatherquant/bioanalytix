@@ -6,6 +6,7 @@ import {
 	ChartNoAxesCombined,
 	CircleUserRound,
 	Dna,
+	Dumbbell,
 	FlaskConical,
 	HeartPulse,
 	Landmark,
@@ -46,6 +47,11 @@ const navigation = [
 		title: "Health",
 		href: "/v2/health",
 		icon: Brain,
+	},
+	{
+		title: "Performance",
+		href: "/v2/performance",
+		icon: Dumbbell,
 	},
 	{
 		title: "Estate",
