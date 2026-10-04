@@ -6,3 +6,4 @@ export * from "./bioPlanningProfiles";
 export * from "./bioPlans";
 export * from "./bioScenarioRuns";
 export * from "./bioConsents";
+export * from "./bioGeneticData";

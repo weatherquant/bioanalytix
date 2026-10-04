@@ -22,7 +22,7 @@ import type {
 	GeneticProfile,
 	GeneticPlanningRelevanceLevel,
 } from "../../../types/genetics";
-import { getGeneticProfile, uploadGeneticFile } from "./api";
+import { deleteGeneticData, getGeneticProfile, uploadGeneticFile } from "./api";
 
 type PlanningTheme = {
 	id: "resilience" | "protection" | "estate";
@@ -236,6 +236,10 @@ export function DnaProfileClient() {
 
 	const [uploading, setUploading] = useState(false);
 
+	const [deleting, setDeleting] = useState(false);
+
+	const [confirmingDelete, setConfirmingDelete] = useState(false);
+
 	const [geneticDataProcessingConsent, setGeneticDataProcessingConsent] = useState(false);
 
 	const [error, setError] = useState<string | null>(null);
@@ -302,6 +306,23 @@ export function DnaProfileClient() {
 			if (inputRef.current) {
 				inputRef.current.value = "";
 			}
+		}
+	}
+
+	async function handleDeleteGeneticData() {
+		setDeleting(true);
+		setError(null);
+
+		try {
+			await deleteGeneticData();
+
+			setProfile(null);
+			setGeneticDataProcessingConsent(false);
+			setConfirmingDelete(false);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Unable to delete genetic data.");
+		} finally {
+			setDeleting(false);
 		}
 	}
 
@@ -795,6 +816,56 @@ export function DnaProfileClient() {
 
 					{uploading ? "Analysing DNA…" : "Replace DNA file"}
 				</button>
+
+				<div style={deleteSectionStyle}>
+					{confirmingDelete ? (
+						<div style={deleteConfirmationStyle}>
+							<strong>Delete your genetic data?</strong>
+
+							<p style={deleteDescriptionStyle}>
+								This permanently deletes your genetic findings and DNA analysis
+								history from Bioanalytix. Your original DNA file is not retained.
+								Your financial information, planning inputs and account will remain.
+							</p>
+
+							<div style={deleteActionsStyle}>
+								<button
+									type="button"
+									onClick={() => setConfirmingDelete(false)}
+									disabled={deleting}
+									style={secondaryButtonStyle}
+								>
+									Cancel
+								</button>
+
+								<button
+									type="button"
+									onClick={handleDeleteGeneticData}
+									disabled={deleting}
+									style={dangerButtonStyle}
+								>
+									{deleting ? (
+										<Loader2 size={16} className="animate-spin" />
+									) : null}
+
+									{deleting ? "Deleting…" : "Permanently delete genetic data"}
+								</button>
+							</div>
+						</div>
+					) : (
+						<button
+							type="button"
+							onClick={() => {
+								setConfirmingDelete(true);
+								setError(null);
+							}}
+							disabled={uploading || deleting}
+							style={deleteLinkStyle}
+						>
+							Delete genetic data
+						</button>
+					)}
+				</div>
 
 				{error ? <p style={errorStyle}>{error}</p> : null}
 			</div>
@@ -1986,4 +2057,52 @@ const consentStyle: React.CSSProperties = {
 	fontSize: 12,
 	lineHeight: "18px",
 	textAlign: "left",
+};
+
+const deleteSectionStyle: React.CSSProperties = {
+	marginTop: 20,
+	paddingTop: 18,
+	borderTop: "1px solid #e6eaed",
+};
+
+const deleteConfirmationStyle: React.CSSProperties = {
+	maxWidth: 620,
+};
+
+const deleteDescriptionStyle: React.CSSProperties = {
+	margin: "8px 0 14px",
+	color: "#687884",
+	fontSize: 13,
+	lineHeight: "20px",
+};
+
+const deleteActionsStyle: React.CSSProperties = {
+	display: "flex",
+	flexWrap: "wrap",
+	gap: 10,
+};
+
+const deleteLinkStyle: React.CSSProperties = {
+	padding: 0,
+	border: 0,
+	background: "transparent",
+	color: "#b42318",
+	fontSize: 13,
+	fontWeight: 600,
+	cursor: "pointer",
+};
+
+const dangerButtonStyle: React.CSSProperties = {
+	display: "inline-flex",
+	alignItems: "center",
+	justifyContent: "center",
+	gap: 8,
+	padding: "10px 14px",
+	border: "1px solid #b42318",
+	borderRadius: 8,
+	background: "#b42318",
+	color: "#ffffff",
+	fontSize: 13,
+	fontWeight: 600,
+	cursor: "pointer",
 };

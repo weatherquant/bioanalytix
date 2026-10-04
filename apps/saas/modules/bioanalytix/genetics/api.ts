@@ -43,3 +43,16 @@ export async function uploadGeneticFile(
 
 	return result.data ?? result;
 }
+
+export async function deleteGeneticData(): Promise<void> {
+	const response = await fetch("/api/genetics", {
+		method: "DELETE",
+		credentials: "include",
+	});
+
+	if (!response.ok) {
+		const result = await response.json().catch(() => null);
+
+		throw new Error(result?.error ?? "Unable to delete genetic data.");
+	}
+}
