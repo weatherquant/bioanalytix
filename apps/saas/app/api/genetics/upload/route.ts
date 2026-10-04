@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 
 import { auth } from "@repo/auth/auth";
-import { db, replaceCurrentBioPlanningProfile } from "@repo/database";
+import {
+	db,
+	getCurrentBioGeneticDataProcessingConsent,
+	grantBioGeneticDataProcessingConsent,
+	replaceCurrentBioPlanningProfile,
+} from "@repo/database";
 import { NextResponse } from "next/server";
 
 import { getBioanalytixUserEntitlements } from "../../../../../../packages/api/modules/bioanalytix/server-entitlements";
@@ -19,6 +24,9 @@ import {
 
 const PARSER_VERSION = "23andme-parser-v1";
 const PIPELINE_VERSION = "genetics-evidence-v1";
+const MAX_DNA_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+
+const ALLOWED_DNA_FILE_EXTENSIONS = [".txt", ".csv"];
 
 async function getPrimaryHousehold(userId: string) {
 	return db.bioHousehold.findFirst({
@@ -59,12 +67,49 @@ export async function POST(req: Request) {
 
 	const form = await req.formData();
 	const fileValue = form.get("file");
+	const consentValue = form.get("geneticDataProcessingConsent");
 
 	if (!(fileValue instanceof File)) {
 		return NextResponse.json({ error: "DNA file is required" }, { status: 400 });
 	}
 
+	if (consentValue !== "granted") {
+		return NextResponse.json(
+			{
+				error: "Consent to process genetic data is required before uploading a DNA file.",
+			},
+			{ status: 400 },
+		);
+	}
+
 	const file = fileValue;
+
+	if (file.size > MAX_DNA_FILE_SIZE_BYTES) {
+		return NextResponse.json(
+			{
+				error: "DNA file must be 25 MB or smaller.",
+			},
+			{ status: 413 },
+		);
+	}
+
+	const fileName = file.name.toLowerCase();
+
+	if (!ALLOWED_DNA_FILE_EXTENSIONS.some((extension) => fileName.endsWith(extension))) {
+		return NextResponse.json(
+			{
+				error: "DNA file must be a .txt or .csv file.",
+			},
+			{ status: 400 },
+		);
+	}
+
+	let consent = await getCurrentBioGeneticDataProcessingConsent(userId);
+
+	if (!consent) {
+		consent = await grantBioGeneticDataProcessingConsent(userId);
+	}
+
 	const raw = await file.text();
 
 	if (!raw.trim()) {

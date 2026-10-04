@@ -236,6 +236,8 @@ export function DnaProfileClient() {
 
 	const [uploading, setUploading] = useState(false);
 
+	const [geneticDataProcessingConsent, setGeneticDataProcessingConsent] = useState(false);
+
 	const [error, setError] = useState<string | null>(null);
 
 	const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -275,11 +277,19 @@ export function DnaProfileClient() {
 			return;
 		}
 
+		if (!geneticDataProcessingConsent) {
+			setError("Please consent to genetic data processing before uploading your DNA file.");
+
+			event.target.value = "";
+
+			return;
+		}
+
 		setUploading(true);
 		setError(null);
 
 		try {
-			const result = await uploadGeneticFile(file);
+			const result = await uploadGeneticFile(file, geneticDataProcessingConsent);
 
 			const refreshed = await getGeneticProfile();
 
@@ -377,10 +387,29 @@ export function DnaProfileClient() {
 					}}
 				/>
 
+				<label style={consentStyle}>
+					<input
+						type="checkbox"
+						checked={geneticDataProcessingConsent}
+						onChange={(event) => {
+							setGeneticDataProcessingConsent(event.target.checked);
+							setError(null);
+						}}
+						disabled={uploading}
+					/>
+
+					<span>
+						I consent to Bioanalytix processing my genetic data to generate personalised
+						genetic insights. My original DNA file is processed for this purpose and is
+						not retained after processing. Derived genetic findings required to provide
+						my Bioanalytix experience are stored with my account.
+					</span>
+				</label>
+
 				<button
 					type="button"
 					onClick={() => inputRef.current?.click()}
-					disabled={uploading}
+					disabled={uploading || !geneticDataProcessingConsent}
 					style={primaryButtonStyle}
 				>
 					{uploading ? (
@@ -733,10 +762,29 @@ export function DnaProfileClient() {
 					}}
 				/>
 
+				<label style={consentStyle}>
+					<input
+						type="checkbox"
+						checked={geneticDataProcessingConsent}
+						onChange={(event) => {
+							setGeneticDataProcessingConsent(event.target.checked);
+							setError(null);
+						}}
+						disabled={uploading}
+					/>
+
+					<span>
+						I consent to Bioanalytix processing my genetic data to generate personalised
+						genetic insights. My original DNA file is processed for this purpose and is
+						not retained after processing. Derived genetic findings required to provide
+						my Bioanalytix experience are stored with my account.
+					</span>
+				</label>
+
 				<button
 					type="button"
 					onClick={() => inputRef.current?.click()}
-					disabled={uploading}
+					disabled={uploading || !geneticDataProcessingConsent}
 					style={secondaryButtonStyle}
 				>
 					{uploading ? (
@@ -1926,4 +1974,16 @@ const fundamentalsNoteStyle: React.CSSProperties = {
 	letterSpacing: "0.1em",
 	textAlign: "right",
 	textTransform: "uppercase",
+};
+
+const consentStyle: React.CSSProperties = {
+	display: "flex",
+	alignItems: "flex-start",
+	gap: 10,
+	maxWidth: 620,
+	marginBottom: 16,
+	color: "#687884",
+	fontSize: 12,
+	lineHeight: "18px",
+	textAlign: "left",
 };

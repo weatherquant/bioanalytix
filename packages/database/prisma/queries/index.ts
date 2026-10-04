@@ -5,3 +5,4 @@ export * from "./bioHouseholds";
 export * from "./bioPlanningProfiles";
 export * from "./bioPlans";
 export * from "./bioScenarioRuns";
+export * from "./bioConsents";

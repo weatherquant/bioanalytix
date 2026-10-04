@@ -15,10 +15,17 @@ export async function getGeneticProfile(): Promise<GeneticProfile | null> {
 	return result.data ?? null;
 }
 
-export async function uploadGeneticFile(file: File): Promise<GeneticProfile> {
+export async function uploadGeneticFile(
+	file: File,
+	geneticDataProcessingConsent: boolean,
+): Promise<GeneticProfile> {
 	const formData = new FormData();
 
 	formData.append("file", file);
+
+	if (geneticDataProcessingConsent) {
+		formData.append("geneticDataProcessingConsent", "granted");
+	}
 
 	const response = await fetch("/api/genetics/upload", {
 		method: "POST",
