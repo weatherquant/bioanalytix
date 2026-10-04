@@ -94,6 +94,10 @@ function getDevelopmentTierOverride(): BioanalytixTier | null {
 	}
 }
 
+export function isBioanalytixPaidSubscriptionStatus(status: string | null | undefined): boolean {
+	return status === "active" || status === "trialing";
+}
+
 export function resolveBioanalytixTierFromPlanId(
 	planId: string | null | undefined,
 ): BioanalytixTier {

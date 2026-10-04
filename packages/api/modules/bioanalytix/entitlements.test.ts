@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	getBioanalytixEntitlements,
 	hasBioanalytixCapability,
+	isBioanalytixPaidSubscriptionStatus,
 	resolveBioanalytixTierFromPlanId,
 } from "./entitlements";
 
@@ -63,5 +64,28 @@ describe("Bioanalytix tier resolution", () => {
 		expect(resolveBioanalytixTierFromPlanId("lifetime")).toBe("free");
 		expect(resolveBioanalytixTierFromPlanId("enterprise")).toBe("free");
 		expect(resolveBioanalytixTierFromPlanId("future-plan")).toBe("free");
+	});
+});
+
+describe("Bioanalytix paid subscription status", () => {
+	it("allows active and trialing subscriptions", () => {
+		expect(isBioanalytixPaidSubscriptionStatus("active")).toBe(true);
+		expect(isBioanalytixPaidSubscriptionStatus("trialing")).toBe(true);
+	});
+
+	it("fails closed for non-entitling subscription states", () => {
+		expect(isBioanalytixPaidSubscriptionStatus("canceled")).toBe(false);
+		expect(isBioanalytixPaidSubscriptionStatus("expired")).toBe(false);
+		expect(isBioanalytixPaidSubscriptionStatus("incomplete")).toBe(false);
+		expect(isBioanalytixPaidSubscriptionStatus("incomplete_expired")).toBe(false);
+		expect(isBioanalytixPaidSubscriptionStatus("past_due")).toBe(false);
+		expect(isBioanalytixPaidSubscriptionStatus("paused")).toBe(false);
+		expect(isBioanalytixPaidSubscriptionStatus("unpaid")).toBe(false);
+	});
+
+	it("fails closed for missing or unknown subscription states", () => {
+		expect(isBioanalytixPaidSubscriptionStatus(undefined)).toBe(false);
+		expect(isBioanalytixPaidSubscriptionStatus(null)).toBe(false);
+		expect(isBioanalytixPaidSubscriptionStatus("future-status")).toBe(false);
 	});
 });
