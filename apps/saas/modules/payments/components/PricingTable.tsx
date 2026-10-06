@@ -77,7 +77,9 @@ export function PricingTable({
 		}
 	};
 
-	const filteredPlans = Object.entries(plans).filter(([planId]) => planId !== activePlanId);
+	const filteredPlans = Object.entries(plans).filter(
+		([planId, plan]) => planId !== activePlanId && !plan.hidden,
+	);
 
 	const hasSubscriptions = filteredPlans.some(([_, plan]) =>
 		"prices" in plan
@@ -112,7 +114,6 @@ export function PricingTable({
 					const isEnterprise = "isEnterprise" in plan ? plan.isEnterprise : false;
 					const prices = "prices" in plan ? (plan as PaidPlan).prices : undefined;
 					const recommended = plan.recommended ?? false;
-					const hidden = plan.hidden ?? false;
 
 					const planDataEntry = planData[planId as keyof typeof planData];
 
@@ -124,7 +125,6 @@ export function PricingTable({
 
 					const price = prices?.find(
 						(price) =>
-							!hidden &&
 							(price.type === "one-time" || price.interval === interval) &&
 							price.currency === localeCurrency,
 					);
@@ -223,33 +223,43 @@ export function PricingTable({
 										</strong>
 									)}
 
-									<Button
-										className="mt-4 w-full"
-										variant={recommended ? "primary" : "secondary"}
-										onClick={() =>
-											onSelectPlan(
-												planId as PlanId,
-												price
-													? {
-															type:
-																price.type === "one-time"
-																	? "one-time"
-																	: "subscription",
-															interval:
-																price.type === "subscription"
-																	? price.interval
-																	: undefined,
-														}
-													: undefined,
-											)
-										}
-										loading={loading === planId}
-									>
-										{userId || organizationId
-											? t("pricing.choosePlan")
-											: t("pricing.getStarted")}
-										<ArrowRightIcon className="ml-2 size-4" />
-									</Button>
+									{isEnterprise ? (
+										<Button
+											className="mt-4 w-full"
+											variant="secondary"
+											disabled
+										>
+											Coming soon
+										</Button>
+									) : (
+										<Button
+											className="mt-4 w-full"
+											variant={recommended ? "primary" : "secondary"}
+											onClick={() =>
+												onSelectPlan(
+													planId as PlanId,
+													price
+														? {
+																type:
+																	price.type === "one-time"
+																		? "one-time"
+																		: "subscription",
+																interval:
+																	price.type === "subscription"
+																		? price.interval
+																		: undefined,
+															}
+														: undefined,
+												)
+											}
+											loading={loading === planId}
+										>
+											{userId || organizationId
+												? t("pricing.choosePlan")
+												: t("pricing.getStarted")}
+											<ArrowRightIcon className="ml-2 size-4" />
+										</Button>
+									)}
 								</div>
 							</div>
 						</div>

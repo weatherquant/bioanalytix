@@ -1,8 +1,10 @@
 {
 	"extends": "@repo/tsconfig/nextjs.json",
+	"references": [{ "path": "../../packages/api" }],
 	"compilerOptions": {
 		"plugins": [{ "name": "next" }],
 		"paths": {
+			"@/*": ["./*"],
 			"@config": ["./config"],
 			"@organizations/*": ["./modules/organizations/*"],
 			"@auth/*": ["./modules/auth/*"],
@@ -12,7 +14,8 @@
 			"@admin/*": ["./modules/admin/*"],
 			"@ai/*": ["./modules/ai/*"],
 			"@onboarding/*": ["./modules/onboarding/*"],
-			"@shared/*": ["./modules/shared/*"]
+			"@shared/*": ["./modules/shared/*"],
+			"@genetics/*": ["../../packages/api/modules/genetics/*"]
 		}
 	},
 	"include": ["**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.mjs", ".next/types/**/*.ts"],

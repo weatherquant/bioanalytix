@@ -77,7 +77,11 @@
 			"navigationTitle": "Menu",
 			"openNavigation": "Open navigation",
 			"organizationSettings": "Organization settings",
-			"start": "Start"
+			"start": "Start",
+			"genetics": "Genetics",
+			"estate": "Estate Plan",
+			"portfolio": "Portfolio",
+			"research": "Research"
 		},
 		"userMenu": {
 			"accountSettings": "Account settings",

@@ -1,3 +1,4 @@
+// Designed to wrap all authenticated pages
 import { SessionProvider } from "@auth/components/SessionProvider";
 import { sessionQueryKey } from "@auth/lib/api";
 import { getOrganizationList, getSession } from "@auth/lib/server";

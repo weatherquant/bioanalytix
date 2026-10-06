@@ -1,0 +1,1093 @@
+import { describe, expect, it } from "vitest";
+
+import type { HouseholdFinancialState } from "../household/types";
+import type { ProjectionAssumptions } from "../projection/types";
+import type { LifecycleRetirementSafetyNet } from "../retirement/lifecycleSafetyNet";
+import { runLifecycleSimulation } from "./lifecycleSimulation";
+import { LifecycleSimulationError, type LifecyclePlan } from "./lifecycleTypes";
+import type { MarketPath, PortfolioStrategy } from "./types";
+
+function household(): HouseholdFinancialState {
+	return {
+		id: "household-1",
+
+		asOfDate: "2026-09-01",
+
+		currency: "AUD",
+
+		country: "Australia",
+
+		people: [
+			{
+				id: "person-1",
+
+				role: "primary",
+
+				dateOfBirth: "1970-09-02",
+
+				employmentStatus: "employed",
+			},
+		],
+
+		income: [
+			{
+				id: "income-1",
+
+				personId: "person-1",
+
+				type: "employment",
+
+				annualAmount: 100000,
+
+				taxable: true,
+			},
+		],
+
+		expenses: {
+			essentialAnnual: 50000,
+
+			discretionaryAnnual: 20000,
+		},
+
+		assets: [
+			{
+				id: "cash",
+
+				type: "cash",
+
+				value: 20000,
+
+				liquid: true,
+
+				investable: true,
+
+				incomeProducing: false,
+			},
+
+			{
+				id: "portfolio",
+
+				type: "investment",
+
+				value: 100000,
+
+				liquid: true,
+
+				investable: true,
+
+				incomeProducing: true,
+			},
+		],
+
+		superannuation: [
+			{
+				id: "super-1",
+
+				personId: "person-1",
+
+				balance: 300000,
+
+				annualContribution: 10000,
+
+				preserved: true,
+			},
+		],
+
+		liabilities: [],
+
+		insurance: [],
+
+		estate: {},
+
+		goals: [],
+	};
+}
+
+function assumptions(): ProjectionAssumptions {
+	return {
+		inflationRate: 0,
+
+		wageGrowthRate: 0,
+
+		spendingGrowthRate: 0,
+
+		cashReturnRate: 0,
+
+		investmentReturnRate: 0,
+
+		superReturnRate: 0,
+
+		effectiveTaxRate: 0,
+
+		projectionEndDate: "2046-09-01",
+	};
+}
+
+function plan(): LifecyclePlan {
+	return {
+		retirementAge: 60,
+
+		annualRetirementSpending: 70000,
+	};
+}
+
+function strategy(): PortfolioStrategy {
+	return {
+		id: "balanced",
+
+		name: "Balanced",
+
+		workingAllocation: {
+			growth: 0.7,
+
+			defensive: 0.2,
+
+			cash: 0.1,
+		},
+
+		transitionAllocation: {
+			growth: 0.6,
+
+			defensive: 0.3,
+
+			cash: 0.1,
+		},
+
+		retirementAllocation: {
+			growth: 0.5,
+
+			defensive: 0.4,
+
+			cash: 0.1,
+		},
+
+		transitionYearsBeforeRetirement: 3,
+	};
+}
+
+function flatMarketPath(years = 20): MarketPath {
+	return {
+		simulationIndex: 0,
+
+		years: Array.from(
+			{
+				length: years,
+			},
+
+			(_, yearIndex) => ({
+				yearIndex,
+
+				growthReturn: 0,
+
+				defensiveReturn: 0,
+
+				cashReturn: 0,
+
+				inflationRate: 0,
+			}),
+		),
+	};
+}
+
+describe("runLifecycleSimulation", () => {
+	it("projects the household across the requested calendar horizon", () => {
+		const result = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			plan: plan(),
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(),
+		});
+
+		expect(result.years).toHaveLength(21);
+
+		expect(result.years[0]?.projectionDate).toBe("2026-09-01");
+
+		expect(result.years[20]?.projectionDate).toBe("2046-09-01");
+	});
+
+	it("uses working, transition and retired allocations at the appropriate ages", () => {
+		const result = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			plan: plan(),
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(),
+		});
+
+		const age56 = result.years.find((year) => year.primaryAge === 56);
+
+		const age58 = result.years.find((year) => year.primaryAge === 58);
+
+		const age60 = result.years.find((year) => year.primaryAge === 60);
+
+		expect(age56?.phase).toBe("working");
+
+		expect(age58?.phase).toBe("retirement_transition");
+
+		expect(age60?.phase).toBe("retired");
+	});
+
+	it("applies the portfolio allocation to the supplied market path", () => {
+		const market = flatMarketPath();
+
+		market.years[0] = {
+			yearIndex: 0,
+
+			growthReturn: 0.1,
+
+			defensiveReturn: 0.05,
+
+			cashReturn: 0.02,
+
+			inflationRate: 0,
+		};
+
+		const result = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			plan: plan(),
+
+			strategy: strategy(),
+
+			marketPath: market,
+		});
+
+		expect(result.years[1]?.portfolioReturn).toBeCloseTo(0.082);
+	});
+
+	it("stops primary employment income at retirement", () => {
+		const result = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			plan: plan(),
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(),
+		});
+
+		const retiredYear = result.years.find(
+			(year) => year.phase === "retired" && year.yearIndex > 0,
+		);
+
+		expect(retiredYear?.afterTaxIncome).toBe(0);
+	});
+
+	it("uses retirement spending after retirement rather than working-life living expenses", () => {
+		const result = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			plan: plan(),
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(),
+		});
+
+		const retiredYear = result.years.find(
+			(year) => year.phase === "retired" && year.yearIndex > 0,
+		)!;
+
+		expect(retiredYear.livingExpenses).toBe(0);
+
+		expect(retiredYear.retirementSpending).toBe(70000);
+	});
+
+	it("draws cash and non-super investments before super", () => {
+		const inputHousehold = household();
+
+		inputHousehold.income = [];
+
+		inputHousehold.assets = [
+			{
+				id: "cash",
+
+				type: "cash",
+
+				value: 10000,
+
+				liquid: true,
+
+				investable: true,
+
+				incomeProducing: false,
+			},
+
+			{
+				id: "portfolio",
+
+				type: "investment",
+
+				value: 20000,
+
+				liquid: true,
+
+				investable: true,
+
+				incomeProducing: true,
+			},
+		];
+
+		const inputPlan = plan();
+
+		inputPlan.retirementAge = 55;
+
+		inputPlan.annualRetirementSpending = 40000;
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+
+			assumptions: assumptions(),
+
+			plan: inputPlan,
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(),
+		});
+
+		expect(result.years[1]?.cashAssets).toBe(0);
+
+		expect(result.years[1]?.nonSuperInvestableWealth).toBe(0);
+
+		expect(result.years[1]?.superannuation).toBeLessThan(300000);
+	});
+
+	it("records unfunded cash flow when available retirement resources are exhausted", () => {
+		const inputHousehold = household();
+
+		inputHousehold.income = [];
+
+		inputHousehold.assets = [];
+
+		inputHousehold.superannuation = [];
+
+		const inputPlan = plan();
+
+		inputPlan.retirementAge = 55;
+
+		inputPlan.annualRetirementSpending = 50000;
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+
+			assumptions: assumptions(),
+
+			plan: inputPlan,
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(),
+		});
+
+		expect(result.summary.totalUnfundedCashFlow).toBeGreaterThan(0);
+
+		expect(result.summary.firstUnfundedDate).toBe("2027-09-01");
+	});
+
+	it("produces different outcomes for different strategies on the same market path", () => {
+		const market = flatMarketPath();
+
+		for (const year of market.years) {
+			year.growthReturn = 0.1;
+
+			year.defensiveReturn = 0.02;
+		}
+
+		const growthStrategy = strategy();
+
+		const defensiveStrategy: PortfolioStrategy = {
+			...strategy(),
+
+			id: "defensive",
+
+			name: "Defensive",
+
+			workingAllocation: {
+				growth: 0.2,
+
+				defensive: 0.7,
+
+				cash: 0.1,
+			},
+
+			transitionAllocation: {
+				growth: 0.2,
+
+				defensive: 0.7,
+
+				cash: 0.1,
+			},
+
+			retirementAllocation: {
+				growth: 0.2,
+
+				defensive: 0.7,
+
+				cash: 0.1,
+			},
+		};
+
+		const growthResult = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			plan: plan(),
+
+			strategy: growthStrategy,
+
+			marketPath: market,
+		});
+
+		const defensiveResult = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: assumptions(),
+
+			plan: plan(),
+
+			strategy: defensiveStrategy,
+
+			marketPath: market,
+		});
+
+		/**
+		 * Compare the strategies before terminal depletion can
+		 * erase the difference between their wealth paths.
+		 *
+		 * Both strategies experience exactly the same market
+		 * sequence. The only difference is portfolio allocation.
+		 */
+		const comparisonYearIndex = 5;
+
+		const growthYear = growthResult.years[comparisonYearIndex]!;
+
+		const defensiveYear = defensiveResult.years[comparisonYearIndex]!;
+
+		expect(growthYear.portfolioReturn).toBeGreaterThan(defensiveYear.portfolioReturn);
+
+		expect(growthYear.superannuation).toBeGreaterThan(defensiveYear.superannuation);
+
+		expect(growthYear.netWorth).toBeGreaterThan(defensiveYear.netWorth);
+	});
+
+	it("fails closed when the market path is shorter than the lifecycle horizon", () => {
+		expect(() =>
+			runLifecycleSimulation({
+				household: household(),
+
+				assumptions: assumptions(),
+
+				plan: plan(),
+
+				strategy: strategy(),
+
+				marketPath: flatMarketPath(5),
+			}),
+		).toThrow(LifecycleSimulationError);
+	});
+
+	it("preserves the supplied annual portfolio return when there are no cash flows", () => {
+		const inputHousehold = household();
+
+		inputHousehold.income = [];
+
+		inputHousehold.expenses = {
+			essentialAnnual: 0,
+			discretionaryAnnual: 0,
+		};
+
+		inputHousehold.insurance = [];
+
+		inputHousehold.superannuation = [];
+
+		inputHousehold.assets = [
+			{
+				id: "portfolio",
+
+				type: "investment",
+
+				value: 100000,
+
+				liquid: true,
+
+				investable: true,
+
+				incomeProducing: true,
+			},
+		];
+
+		const inputAssumptions = assumptions();
+
+		inputAssumptions.projectionEndDate = "2027-09-01";
+
+		const market = flatMarketPath(1);
+
+		market.years[0] = {
+			yearIndex: 0,
+
+			growthReturn: 0.1,
+
+			defensiveReturn: 0.1,
+
+			cashReturn: 0.1,
+
+			inflationRate: 0,
+		};
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+
+			assumptions: inputAssumptions,
+
+			plan: plan(),
+
+			strategy: strategy(),
+
+			marketPath: market,
+		});
+
+		expect(result.years[1]?.nonSuperInvestableWealth).toBeCloseTo(110000, 8);
+	});
+
+	it("gives mid-period positive cash flow approximately half a year of cash return", () => {
+		const inputHousehold = household();
+
+		inputHousehold.assets = [];
+
+		inputHousehold.superannuation = [];
+
+		inputHousehold.expenses = {
+			essentialAnnual: 0,
+			discretionaryAnnual: 0,
+		};
+
+		inputHousehold.income = [
+			{
+				id: "income",
+
+				personId: "person-1",
+
+				type: "employment",
+
+				annualAmount: 100000,
+
+				taxable: false,
+			},
+		];
+
+		const inputAssumptions = assumptions();
+
+		inputAssumptions.projectionEndDate = "2027-09-01";
+
+		const market = flatMarketPath(1);
+
+		market.years[0] = {
+			yearIndex: 0,
+
+			growthReturn: 0,
+
+			defensiveReturn: 0,
+
+			cashReturn: 0.1025,
+
+			inflationRate: 0,
+		};
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+
+			assumptions: inputAssumptions,
+
+			plan: plan(),
+
+			strategy: strategy(),
+
+			marketPath: market,
+		});
+
+		/**
+		 * 10.25% annual return corresponds to two 5%
+		 * half-period returns.
+		 *
+		 * The $100,000 mid-period surplus therefore receives
+		 * only the second 5% return.
+		 */
+		expect(result.years[1]?.cashAssets).toBeCloseTo(105000, 8);
+	});
+
+	it("includes retirement safety-net income in retired household cash flow", () => {
+		const safetyNet: LifecycleRetirementSafetyNet = {
+			policy: {
+				id: "TEST_SAFETY_NET",
+
+				countryCode: "TEST",
+
+				calculate: () => ({
+					policyId: "TEST_SAFETY_NET",
+
+					countryCode: "TEST",
+
+					annualIncome: 30000,
+
+					eligible: true,
+
+					source: "Test retirement benefit",
+
+					qualifications: [],
+				}),
+			},
+
+			mapAssessmentInput: (context) => ({
+				assessmentDate: context.projectionDate,
+
+				age: context.primaryAge,
+
+				householdType: "single",
+
+				assessableAssets:
+					context.cashAssets + context.nonSuperInvestableWealth + context.superannuation,
+
+				financialAssets:
+					context.cashAssets + context.nonSuperInvestableWealth + context.superannuation,
+
+				otherAssessableAnnualIncome: context.afterTaxIncomeBeforeSafetyNet,
+			}),
+		};
+
+		const testHousehold = household();
+
+		testHousehold.income = [];
+
+		testHousehold.expenses = {
+			essentialAnnual: 0,
+			discretionaryAnnual: 0,
+		};
+
+		const result = runLifecycleSimulation({
+			household: testHousehold,
+
+			assumptions: {
+				...assumptions(),
+
+				projectionEndDate: "2031-09-01",
+			},
+
+			plan: {
+				retirementAge: 55,
+
+				annualRetirementSpending: 50000,
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(5),
+
+			retirementSafetyNet: safetyNet,
+		});
+
+		expect(result.years[1]?.retirementSafetyNetIncome).toBe(30000);
+
+		expect(result.summary.totalRetirementSafetyNetIncome).toBe(150000);
+	});
+
+	it("does not invoke the retirement safety net before retirement", () => {
+		let calls = 0;
+
+		const safetyNet: LifecycleRetirementSafetyNet = {
+			policy: {
+				id: "TEST_SAFETY_NET",
+
+				countryCode: "TEST",
+
+				calculate: () => {
+					calls += 1;
+
+					return {
+						policyId: "TEST_SAFETY_NET",
+
+						countryCode: "TEST",
+
+						annualIncome: 30000,
+
+						eligible: true,
+
+						source: "Test retirement benefit",
+
+						qualifications: [],
+					};
+				},
+			},
+
+			mapAssessmentInput: (context) => ({
+				assessmentDate: context.projectionDate,
+
+				age: context.primaryAge,
+
+				householdType: "single",
+
+				assessableAssets: 0,
+
+				financialAssets: 0,
+
+				otherAssessableAnnualIncome: context.afterTaxIncomeBeforeSafetyNet,
+			}),
+		};
+
+		const result = runLifecycleSimulation({
+			household: household(),
+
+			assumptions: {
+				...assumptions(),
+
+				projectionEndDate: "2028-09-01",
+			},
+
+			plan: {
+				retirementAge: 65,
+
+				annualRetirementSpending: 70000,
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(2),
+
+			retirementSafetyNet: safetyNet,
+		});
+
+		expect(calls).toBe(0);
+
+		expect(result.summary.totalRetirementSafetyNetIncome).toBe(0);
+	});
+
+	it("reduces unfunded retirement cash flow when safety-net income is available", () => {
+		const safetyNet: LifecycleRetirementSafetyNet = {
+			policy: {
+				id: "TEST_SAFETY_NET",
+
+				countryCode: "TEST",
+
+				calculate: () => ({
+					policyId: "TEST_SAFETY_NET",
+
+					countryCode: "TEST",
+
+					annualIncome: 30000,
+
+					eligible: true,
+
+					source: "Test retirement benefit",
+
+					qualifications: [],
+				}),
+			},
+
+			mapAssessmentInput: (context) => ({
+				assessmentDate: context.projectionDate,
+
+				age: context.primaryAge,
+
+				householdType: "single",
+
+				assessableAssets:
+					context.cashAssets + context.nonSuperInvestableWealth + context.superannuation,
+
+				financialAssets:
+					context.cashAssets + context.nonSuperInvestableWealth + context.superannuation,
+
+				otherAssessableAnnualIncome: context.afterTaxIncomeBeforeSafetyNet,
+			}),
+		};
+
+		const depletedHousehold = household();
+
+		depletedHousehold.income = [];
+
+		depletedHousehold.assets = [];
+
+		depletedHousehold.superannuation = [];
+
+		depletedHousehold.expenses = {
+			essentialAnnual: 0,
+			discretionaryAnnual: 0,
+		};
+
+		const withoutSafetyNet = runLifecycleSimulation({
+			household: depletedHousehold,
+
+			assumptions: {
+				...assumptions(),
+
+				projectionEndDate: "2027-09-01",
+			},
+
+			plan: {
+				retirementAge: 55,
+
+				annualRetirementSpending: 50000,
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(1),
+		});
+
+		const withSafetyNet = runLifecycleSimulation({
+			household: depletedHousehold,
+
+			assumptions: {
+				...assumptions(),
+
+				projectionEndDate: "2027-09-01",
+			},
+
+			plan: {
+				retirementAge: 55,
+
+				annualRetirementSpending: 50000,
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(1),
+
+			retirementSafetyNet: safetyNet,
+		});
+
+		expect(withoutSafetyNet.summary.totalUnfundedCashFlow).toBe(50000);
+
+		expect(withSafetyNet.summary.totalUnfundedCashFlow).toBe(20000);
+	});
+
+	it("applies different investment tax treatment outside and inside super", () => {
+		const inputHousehold = household();
+
+		inputHousehold.income = [];
+
+		inputHousehold.expenses = {
+			essentialAnnual: 0,
+			discretionaryAnnual: 0,
+		};
+
+		inputHousehold.insurance = [];
+
+		inputHousehold.assets = [
+			{
+				id: "portfolio",
+				type: "investment",
+				value: 100000,
+				liquid: true,
+				investable: true,
+				incomeProducing: true,
+			},
+		];
+
+		inputHousehold.superannuation = [
+			{
+				id: "super-1",
+				personId: "person-1",
+				balance: 100000,
+				annualContribution: 0,
+				preserved: true,
+			},
+		];
+
+		const inputAssumptions = assumptions();
+
+		inputAssumptions.effectiveTaxRate = 0.3;
+		inputAssumptions.projectionEndDate = "2027-09-01";
+
+		const market = flatMarketPath(1);
+
+		market.years[0] = {
+			yearIndex: 0,
+			growthReturn: 0.1,
+			defensiveReturn: 0.1,
+			cashReturn: 0.1,
+			inflationRate: 0,
+		};
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+			assumptions: inputAssumptions,
+			plan: {
+				retirementAge: 65,
+				annualRetirementSpending: 0,
+			},
+			strategy: strategy(),
+			marketPath: market,
+		});
+
+		const year = result.years[1]!;
+
+		/*
+		 * Gross portfolio return is 10%.
+		 *
+		 * Outside super:
+		 * 10% × (1 - 30%) = 7%
+		 * $100,000 -> $107,000
+		 *
+		 * Super:
+		 * 10% × (1 - 15%) = 8.5%
+		 * $100,000 -> $108,500
+		 *
+		 * The reported portfolio return remains the underlying
+		 * gross market/strategy return rather than the account-
+		 * specific after-tax return.
+		 */
+		expect(year.portfolioReturn).toBeCloseTo(0.1, 8);
+
+		expect(year.nonSuperInvestableWealth).toBeCloseTo(107000, 8);
+
+		expect(year.superannuation).toBeCloseTo(108500, 8);
+
+		expect(year.superannuation).toBeGreaterThan(year.nonSuperInvestableWealth);
+	});
+
+	it("applies the age-adjusted retirement spending profile across later-life age bands", () => {
+		const inputHousehold = household();
+
+		/*
+		 * Give the household enough financial resources that the test
+		 * observes the spending profile rather than asset depletion.
+		 */
+		inputHousehold.assets = [
+			{
+				id: "cash",
+				type: "cash",
+				value: 5_000_000,
+				liquid: true,
+				investable: true,
+				incomeProducing: false,
+			},
+		];
+
+		const inputAssumptions = assumptions();
+		inputAssumptions.projectionEndDate = "2057-09-01";
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+
+			assumptions: inputAssumptions,
+
+			plan: {
+				retirementAge: 60,
+				annualRetirementSpending: 80_000,
+				retirementSpendingProfile: {
+					type: "age_adjusted",
+				},
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(31),
+		});
+
+		const age74 = result.years.find(
+			(year) => year.primaryAge === 74 && year.phase === "retired",
+		);
+
+		const age75 = result.years.find(
+			(year) => year.primaryAge === 75 && year.phase === "retired",
+		);
+
+		const age84 = result.years.find(
+			(year) => year.primaryAge === 84 && year.phase === "retired",
+		);
+
+		const age85 = result.years.find(
+			(year) => year.primaryAge === 85 && year.phase === "retired",
+		);
+
+		expect(age74?.retirementSpending).toBe(80_000);
+		expect(age75?.retirementSpending).toBe(72_000);
+		expect(age84?.retirementSpending).toBe(72_000);
+		expect(age85?.retirementSpending).toBe(64_000);
+	});
+
+	it("adds explicit later-life care costs only for the selected ages", () => {
+		const inputHousehold = household();
+
+		inputHousehold.assets = [
+			{
+				id: "cash",
+				type: "cash",
+				value: 5_000_000,
+				liquid: true,
+				investable: true,
+				incomeProducing: false,
+			},
+		];
+
+		const inputAssumptions = assumptions();
+		inputAssumptions.projectionEndDate = "2059-09-01";
+
+		const result = runLifecycleSimulation({
+			household: inputHousehold,
+
+			assumptions: inputAssumptions,
+
+			plan: {
+				retirementAge: 60,
+				annualRetirementSpending: 80_000,
+				retirementSpendingProfile: {
+					type: "age_adjusted",
+					laterLifeCare: {
+						startAge: 85,
+						annualCost: 50_000,
+						durationYears: 3,
+					},
+				},
+			},
+
+			strategy: strategy(),
+
+			marketPath: flatMarketPath(33),
+		});
+
+		const age84 = result.years.find(
+			(year) => year.primaryAge === 84 && year.phase === "retired",
+		);
+
+		const age85 = result.years.find(
+			(year) => year.primaryAge === 85 && year.phase === "retired",
+		);
+
+		const age86 = result.years.find(
+			(year) => year.primaryAge === 86 && year.phase === "retired",
+		);
+
+		const age87 = result.years.find(
+			(year) => year.primaryAge === 87 && year.phase === "retired",
+		);
+
+		const age88 = result.years.find(
+			(year) => year.primaryAge === 88 && year.phase === "retired",
+		);
+
+		expect(age84?.retirementSpending).toBe(72_000);
+
+		expect(age85?.retirementSpending).toBe(114_000);
+		expect(age86?.retirementSpending).toBe(114_000);
+		expect(age87?.retirementSpending).toBe(114_000);
+
+		expect(age88?.retirementSpending).toBe(64_000);
+	});
+});

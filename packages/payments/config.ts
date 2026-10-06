@@ -13,7 +13,7 @@ export const config: PaymentsConfig = {
 					interval: "month",
 					amount: 29,
 					currency: "USD",
-					seatBased: true,
+					seatBased: false,
 					trialPeriodDays: 7,
 				},
 				{
@@ -22,12 +22,13 @@ export const config: PaymentsConfig = {
 					interval: "year",
 					amount: 290,
 					currency: "USD",
-					seatBased: true,
+					seatBased: false,
 					trialPeriodDays: 7,
 				},
 			],
 		},
 		lifetime: {
+			hidden: true,
 			prices: [
 				{
 					type: "one-time",

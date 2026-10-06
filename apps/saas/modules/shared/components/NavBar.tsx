@@ -345,6 +345,30 @@ export function NavBar() {
 				isActive: pathname === "/" || pathname === basePath,
 			},
 			{
+				label: t("app.menu.genetics"),
+				href: "/v2/dna",
+				icon: UserCogIcon,
+				isActive: pathname.startsWith("/v2/dna"),
+			},
+			{
+				label: t("app.menu.estate"),
+				href: "/v2/estate",
+				icon: ShieldUserIcon,
+				isActive: pathname.startsWith("/v2/estate"),
+			},
+			{
+				label: t("app.menu.portfolio"),
+				href: "/v2/wealth",
+				icon: HomeIcon,
+				isActive: pathname.startsWith("/v2/wealth"),
+			},
+			{
+				label: t("app.menu.research"),
+				href: "/v2/research",
+				icon: BotMessageSquareIcon,
+				isActive: pathname.startsWith("/v2/research"),
+			},
+			{
 				label: t("app.menu.aiChatbot"),
 				href: "/chatbot",
 				icon: BotMessageSquareIcon,

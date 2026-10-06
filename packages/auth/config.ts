@@ -9,7 +9,7 @@ export const config = {
 	enableTwoFactor: true,
 	sessionCookieMaxAge: 60 * 60 * 24 * 30,
 	users: {
-		enableOnboarding: true,
+		enableOnboarding: false,
 	},
 	organizations: {
 		enable: true,

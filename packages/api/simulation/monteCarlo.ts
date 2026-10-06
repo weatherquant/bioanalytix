@@ -5,35 +5,22 @@ export function runMonteCarlo(input: {
 	income: number;
 	expenses: number;
 	returnRate: number;
+	volatility?: number;
 	genetics?: any;
 }) {
 	const { age, retirementAge, savings, income, expenses, returnRate } = input;
 
 	const simulations = 1000;
-	const volatility = 0.12;
+	const volatility = input.volatility ?? 0.12;
 
-	// spending behaviour
-	const earlySpendMultiplier = 1.2;
-	const lateSpendMultiplier = 0.8;
-	const healthShockAmount = 100000;
-	const healthShockProbability = 0.25;
+	// ===== genetics from Supabase =====
+	const genetics = input.genetics ?? {};
 
-	// genetics
-	const genetics = {
-		foxo3: {
-			score: input.genetics?.foxo3?.score || 0,
-			status: input.genetics?.foxo3?.status || "Unknown",
-			impact: input.genetics?.foxo3?.impact || "No data",
-		},
-		apoe: {
-			score: input.genetics?.apoe?.score || 0,
-			genotype: input.genetics?.apoe?.genotype || "Unknown",
-			impact: input.genetics?.apoe?.impact || "No data",
-		},
-	};
-	const geneticAdjustment = (genetics.foxo3?.score || 0) + (genetics.apoe?.score || 0);
+	// use longevityScore to nudge lifespan a bit (not huge)
+	const rawLongevityScore = genetics.longevityScore ?? 50;
+	const longevityScore = Math.max(0, Math.min(100, rawLongevityScore));
+	const geneticAdjustmentYears = ((longevityScore - 50) / 50) * 5;
 
-	// ===== helpers =====
 	function randomNormal(mean: number, std: number) {
 		let u = 0,
 			v = 0;
@@ -49,6 +36,7 @@ export function runMonteCarlo(input: {
 		while (v === 0) v = Math.random();
 
 		const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+
 		return Math.max(60, Math.round(base + z * spread));
 	}
 
@@ -61,9 +49,8 @@ export function runMonteCarlo(input: {
 
 	// ===== MONTE CARLO LOOP =====
 	for (let s = 0; s < simulations; s++) {
-		// lifespan sampled per scenario
-		const rawLife = sampleLifespan() + geneticAdjustment * 2;
-
+		const baseLife = 85 + geneticAdjustmentYears;
+		const rawLife = sampleLifespan(baseLife);
 		const lifeExpectancy = Math.max(60, Math.min(105, rawLife));
 
 		totalLife += lifeExpectancy;
@@ -72,7 +59,7 @@ export function runMonteCarlo(input: {
 		let wealth = savings;
 		const path = [wealth];
 
-		// ===== accumulation =====
+		// accumulation
 		for (let i = age; i < retirementAge; i++) {
 			const r = randomNormal(returnRate, volatility);
 			wealth = wealth * (1 + r) + (income - expenses);
@@ -82,7 +69,12 @@ export function runMonteCarlo(input: {
 		let survived = true;
 		let healthShockTriggered = false;
 
-		// ===== retirement =====
+		// retirement
+		const earlySpendMultiplier = 1.2;
+		const lateSpendMultiplier = 0.8;
+		const healthShockAmount = 100000;
+		const healthShockProbability = 0.25;
+
 		for (let i = retirementAge; i < lifeExpectancy; i++) {
 			const r = randomNormal(returnRate, volatility);
 
@@ -96,7 +88,6 @@ export function runMonteCarlo(input: {
 				adjustedExpenses *= lateSpendMultiplier;
 			}
 
-			// safe probability calculation
 			const yearsRemaining = Math.max(5, lifeExpectancy - retirementAge);
 
 			if (!healthShockTriggered && Math.random() < healthShockProbability / yearsRemaining) {
@@ -107,72 +98,77 @@ export function runMonteCarlo(input: {
 			wealth = wealth * (1 + r) - adjustedExpenses;
 			path.push(wealth);
 
-			if (wealth <= 0) {
+			if (wealth <= adjustedExpenses) {
 				survived = false;
-
-				// record depletion age
 				depletionAges.push(i);
-
 				break;
 			}
 		}
 
-		if (survived) successCount++;
-
 		if (survived) {
-			depletionAges.push(lifeExpectancy); // never ran out
+			successCount++;
+			depletionAges.push(lifeExpectancy);
 		}
 
 		allPaths.push(path);
 	}
 
-	// ===== results =====
 	const probabilitySuccess = (successCount / simulations) * 100;
 	const probabilityFailure = 100 - probabilitySuccess;
 
 	const averageDeathAge = totalLife / simulations;
 
-	const lifeP10 = getPercentile(lifespans, 10);
-	const lifeP50 = getPercentile(lifespans, 50);
-	const lifeP90 = getPercentile(lifespans, 90);
-	const depletionP50 = getPercentile(depletionAges, 50);
-
-	// ===== percentiles =====
 	function getPercentile(values: number[], p: number) {
 		const sorted = [...values].sort((a, b) => a - b);
 		const index = Math.floor((p / 100) * sorted.length);
 		return sorted[index] ?? sorted[sorted.length - 1];
 	}
 
-	const p10: number[] = [];
-	const p50: number[] = [];
-	const p90: number[] = [];
+	const lifeP25 = getPercentile(lifespans, 25);
+	const lifeP50 = getPercentile(lifespans, 50);
+	const lifeP75 = getPercentile(lifespans, 75);
+	const depletionP50 = getPercentile(depletionAges, 50);
 
-	const years = allPaths[0].length;
+	const p25: number[] = [];
+	const p50: number[] = [];
+	const p75: number[] = [];
+
+	const years = Math.max(...allPaths.map((p) => p.length));
 
 	for (let t = 0; t < years; t++) {
-		const values = allPaths.map((path) => path[t] ?? 0);
-		p10.push(getPercentile(values, 10));
+		const values = allPaths.map((path) => path[t] ?? path[path.length - 1] ?? 0);
+
+		p25.push(getPercentile(values, 25));
 		p50.push(getPercentile(values, 50));
-		p90.push(getPercentile(values, 90));
+		p75.push(getPercentile(values, 75));
 	}
+
+	const medianWealthAtRetirement = getPercentile(
+		allPaths.map((path) => path[retirementAge - age] ?? 0),
+		50,
+	);
+
+	const expectedRetirementYears = Math.max(1, lifeP50 - retirementAge);
+
+	const sustainableIncome = medianWealthAtRetirement / expectedRetirementYears;
 
 	return {
 		probabilitySuccess,
 		probabilityFailure,
 
-		// wealth paths (for chart)
-		p10,
+		p25,
 		p50,
-		p90,
+		p75,
 
-		// lifespan metrics
 		averageDeathAge,
-		lifeP10,
+		lifeP25,
 		lifeP50,
-		lifeP90,
+		lifeP75,
 		depletionP50,
 
-		genetics,
+		sustainableIncome,
+
+		// IMPORTANT: return the full genetics object passed in
+		genetics: input.genetics ?? {},
 	};
 }
