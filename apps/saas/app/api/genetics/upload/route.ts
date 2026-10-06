@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import { auth } from "@repo/auth/auth";
 import {
 	db,
@@ -12,8 +10,10 @@ import { NextResponse } from "next/server";
 import { getBioanalytixUserEntitlements } from "../../../../../../packages/api/modules/bioanalytix/server-entitlements";
 import type { HouseholdFinancialState } from "../../../../../../packages/api/modules/financial/household/types";
 import { interpretAvailableModels } from "../../../../../../packages/api/modules/genetics/evidence/interpretationDispatcher";
-import { observationsFrom23andMeRaw } from "../../../../../../packages/api/modules/genetics/observations/from23andMe";
+import { observationsFrom23andMeRecords } from "../../../../../../packages/api/modules/genetics/observations/from23andMe";
+import type { Parsed23andMeGenotype } from "../../../../../../packages/api/modules/genetics/parser";
 import { SNP_REFERENCE } from "../../../../../../packages/api/modules/genetics/snp-reference";
+import { SUPPORTED_GENETIC_RSID_SET } from "../../../../../../packages/api/modules/genetics/supported-rsids";
 import { buildGeneticHighlights } from "../../../../../../packages/api/modules/planning/geneticHighlightEngine";
 import { biologicalInsightToPlanningExposures } from "../../../../../../packages/api/modules/planning/geneticsBridge";
 import { buildPlanningInsights } from "../../../../../../packages/api/modules/planning/planningInsightEngine";
@@ -27,6 +27,51 @@ const PIPELINE_VERSION = "genetics-evidence-v1";
 const MAX_DNA_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 
 const ALLOWED_DNA_FILE_EXTENSIONS = [".txt", ".csv"];
+const MAX_EXTRACTED_GENOTYPE_RECORDS = 100;
+
+interface ClientGenotypeRecord {
+	rsid: string;
+	chromosome: string;
+	position: string;
+	genotype: string;
+	lineNumber: number;
+}
+
+interface GeneticUploadRequest {
+	records: ClientGenotypeRecord[];
+	geneticDataProcessingConsent: string;
+	source: {
+		originalFileName: string;
+		fileSize: number;
+		mimeType: string | null;
+		sourceLineCount: number;
+		validGenotypeCount: number;
+		sha256: string;
+	};
+}
+
+function isValidClientGenotypeRecord(value: unknown): value is ClientGenotypeRecord {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+
+	const record = value as Record<string, unknown>;
+
+	return (
+		typeof record.rsid === "string" &&
+		/^rs\d+$/i.test(record.rsid) &&
+		SUPPORTED_GENETIC_RSID_SET.has(record.rsid.toLowerCase()) &&
+		typeof record.chromosome === "string" &&
+		record.chromosome.length > 0 &&
+		typeof record.position === "string" &&
+		record.position.length > 0 &&
+		typeof record.genotype === "string" &&
+		/^[ACGT]{2}$/.test(record.genotype.toUpperCase()) &&
+		typeof record.lineNumber === "number" &&
+		Number.isInteger(record.lineNumber) &&
+		record.lineNumber > 0
+	);
+}
 
 async function getPrimaryHousehold(userId: string) {
 	return db.bioHousehold.findFirst({
@@ -65,58 +110,93 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: "Bioanalytix household not found" }, { status: 404 });
 	}
 
-	const form = await req.formData();
-	const fileValue = form.get("file");
-	const consentValue = form.get("geneticDataProcessingConsent");
+	let body: GeneticUploadRequest;
 
-	if (!(fileValue instanceof File)) {
-		return NextResponse.json({ error: "DNA file is required" }, { status: 400 });
+	try {
+		body = (await req.json()) as GeneticUploadRequest;
+	} catch {
+		return NextResponse.json({ error: "Invalid genetic upload request." }, { status: 400 });
 	}
 
-	if (consentValue !== "granted") {
+	if (body.geneticDataProcessingConsent !== "granted") {
 		return NextResponse.json(
 			{
-				error: "Consent to process genetic data is required before uploading a DNA file.",
+				error: "Consent to process genetic data is required before uploading DNA data.",
 			},
 			{ status: 400 },
 		);
 	}
 
-	const file = fileValue;
-
-	if (file.size > MAX_DNA_FILE_SIZE_BYTES) {
-		return NextResponse.json(
-			{
-				error: "DNA file must be 25 MB or smaller.",
-			},
-			{ status: 413 },
-		);
+	if (!body.source || typeof body.source !== "object") {
+		return NextResponse.json({ error: "DNA source metadata is required." }, { status: 400 });
 	}
 
-	const fileName = file.name.toLowerCase();
+	const { originalFileName, fileSize, mimeType, sourceLineCount, validGenotypeCount, sha256 } =
+		body.source;
+
+	if (
+		typeof originalFileName !== "string" ||
+		!originalFileName.trim() ||
+		typeof fileSize !== "number" ||
+		!Number.isFinite(fileSize) ||
+		fileSize <= 0 ||
+		typeof sourceLineCount !== "number" ||
+		!Number.isInteger(sourceLineCount) ||
+		sourceLineCount <= 0 ||
+		typeof validGenotypeCount !== "number" ||
+		!Number.isInteger(validGenotypeCount) ||
+		validGenotypeCount < 0 ||
+		typeof sha256 !== "string" ||
+		!/^[a-f0-9]{64}$/i.test(sha256)
+	) {
+		return NextResponse.json({ error: "Invalid DNA source metadata." }, { status: 400 });
+	}
+
+	if (fileSize > MAX_DNA_FILE_SIZE_BYTES) {
+		return NextResponse.json({ error: "DNA file must be 25 MB or smaller." }, { status: 413 });
+	}
+
+	const fileName = originalFileName.toLowerCase();
 
 	if (!ALLOWED_DNA_FILE_EXTENSIONS.some((extension) => fileName.endsWith(extension))) {
 		return NextResponse.json(
-			{
-				error: "DNA file must be a .txt or .csv file.",
-			},
+			{ error: "DNA file must be a .txt or .csv file." },
 			{ status: 400 },
 		);
 	}
+
+	if (!Array.isArray(body.records) || body.records.length === 0) {
+		return NextResponse.json(
+			{ error: "No supported Bioanalytix genetic markers were provided." },
+			{ status: 400 },
+		);
+	}
+
+	if (body.records.length > MAX_EXTRACTED_GENOTYPE_RECORDS) {
+		return NextResponse.json(
+			{ error: "Too many genetic marker records were provided." },
+			{ status: 400 },
+		);
+	}
+
+	if (!body.records.every(isValidClientGenotypeRecord)) {
+		return NextResponse.json({ error: "Invalid genetic marker data." }, { status: 400 });
+	}
+
+	const records: Parsed23andMeGenotype[] = body.records.map((record) => ({
+		rsid: record.rsid.toLowerCase(),
+		chromosome: record.chromosome,
+		position: record.position,
+		genotype: record.genotype.toUpperCase(),
+		lineNumber: record.lineNumber,
+		sourceRecord: [record.rsid, record.chromosome, record.position, record.genotype].join("\t"),
+	}));
 
 	let consent = await getCurrentBioGeneticDataProcessingConsent(userId);
 
 	if (!consent) {
 		consent = await grantBioGeneticDataProcessingConsent(userId);
 	}
-
-	const raw = await file.text();
-
-	if (!raw.trim()) {
-		return NextResponse.json({ error: "DNA file is empty" }, { status: 400 });
-	}
-
-	const sha256 = createHash("sha256").update(raw).digest("hex");
 
 	/*
 	 * We are not yet persisting the original raw DNA file to object storage.
@@ -131,7 +211,7 @@ export async function POST(req: Request) {
 		data: {
 			householdId: household.id,
 			storageKey,
-			originalFileName: file.name,
+			originalFileName,
 			provider: "23andMe",
 			fileFormat: "23andMe raw genotype data",
 			sha256,
@@ -139,8 +219,12 @@ export async function POST(req: Request) {
 			parserVersion: PARSER_VERSION,
 			pipelineVersion: PIPELINE_VERSION,
 			processingMetadata: {
-				fileSize: file.size,
-				mimeType: file.type || null,
+				fileSize,
+				mimeType,
+				sourceLineCount,
+				validGenotypeCount,
+				extractedRecordCount: records.length,
+				rawFileUploaded: false,
 			},
 		},
 	});
@@ -155,7 +239,7 @@ export async function POST(req: Request) {
 			},
 		});
 
-		const observations = observationsFrom23andMeRaw(raw, {
+		const observations = observationsFrom23andMeRecords(records, {
 			parserVersion: PARSER_VERSION,
 			provider: "23andMe",
 		});
@@ -188,7 +272,7 @@ export async function POST(req: Request) {
 		 * The authoritative evidence representation remains the observation /
 		 * insight data recorded against BioGeneticUpload processingMetadata.
 		 */
-		const relevantRsids = new Set(SNP_REFERENCE.map((item) => item.rsid));
+		const relevantRsids = new Set<string>(SNP_REFERENCE.map((item) => item.rsid));
 
 		const snps = Object.fromEntries(
 			observations
@@ -208,8 +292,12 @@ export async function POST(req: Request) {
 			data: {
 				status: "READY",
 				processingMetadata: {
-					fileSize: file.size,
-					mimeType: file.type || null,
+					fileSize,
+					mimeType,
+					sourceLineCount,
+					validGenotypeCount,
+					extractedRecordCount: records.length,
+					rawFileUploaded: false,
 
 					observationCount: observations.length,
 					insightCount: insights.length,
