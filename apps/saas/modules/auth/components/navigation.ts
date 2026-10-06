@@ -44,7 +44,7 @@ export const bioanalytixNavigation = [
 	},
 	{
 		title: "Research",
-		href: "/research",
+		href: "/v2/research",
 		icon: FlaskConical,
 	},
 	{

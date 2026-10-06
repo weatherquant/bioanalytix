@@ -648,7 +648,17 @@ export function PlanWorkspace() {
 		setSavedMessage(null);
 	}
 
-	function updateAssumption<K extends keyof PlanAssumptions>(key: K, value: PlanAssumptions[K]) {
+	function numericInputValue(value: string): number | undefined {
+if (value.trim() === "") {
+return undefined;
+}
+
+const parsed = Number(value);
+
+return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function updateAssumption<K extends keyof PlanAssumptions>(key: K, value: PlanAssumptions[K]) {
 		setAssumptions((current) => ({
 			...current,
 			[key]: value,
@@ -971,7 +981,7 @@ export function PlanWorkspace() {
 														onChange={(event) =>
 															updateAssumption(
 																"additionalAnnualHealthCosts",
-																event.target.value,
+																numericInputValue(event.target.value),
 															)
 														}
 														placeholder="10,000"
@@ -992,7 +1002,7 @@ export function PlanWorkspace() {
 													onChange={(event) =>
 														updateAssumption(
 															"healthCostDurationYears",
-															event.target.value,
+															numericInputValue(event.target.value),
 														)
 													}
 													placeholder="5"
@@ -1014,7 +1024,7 @@ export function PlanWorkspace() {
 												onChange={(event) =>
 													updateAssumption(
 														"retirementAgeToTest",
-														event.target.value,
+														numericInputValue(event.target.value),
 													)
 												}
 												placeholder="60"
@@ -1039,7 +1049,7 @@ export function PlanWorkspace() {
 												onChange={(event) =>
 													updateAssumption(
 														"retirementAgeToTest",
-														event.target.value,
+														numericInputValue(event.target.value),
 													)
 												}
 												placeholder="60"

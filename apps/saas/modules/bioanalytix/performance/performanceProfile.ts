@@ -166,6 +166,6 @@ export function buildPerformanceProfile(profile: GeneticProfile | null): Perform
 
 		areas,
 		findings,
-		updatedAt: profile?.upload?.updatedAt ?? null,
+		updatedAt: profile?.updatedAt ?? null,
 	};
 }
