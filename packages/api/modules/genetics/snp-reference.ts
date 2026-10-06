@@ -1,5 +1,7 @@
+import type { SupportedGeneticRsid } from "./supported-rsids";
+
 export interface SNPRecord {
-	rsid: string;
+	rsid: SupportedGeneticRsid;
 	gene: string;
 	trait: string;
 	category: string;
