@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import type { GeneticProfile } from "../../../types/genetics";
+import { BioanalytixPageHero } from "../components/heroes/BioanalytixPageHero";
+import { PerformanceHeroVisual } from "../components/heroes/PerformanceHeroVisual";
 import { getGeneticProfile } from "../genetics/api";
 import { buildPerformanceProfile, type PerformanceFinding } from "./performanceProfile";
 
@@ -73,31 +75,13 @@ export function PerformanceProfileClient() {
 
 	return (
 		<div className="space-y-6">
-			<section className="p-6 sm:p-8 rounded-3xl border bg-card">
-				<div className="gap-6 lg:flex-row lg:items-start lg:justify-between flex flex-col">
-					<div className="max-w-3xl">
-						<div className="mb-4 gap-2 text-xs font-medium flex items-center tracking-[0.16em] text-muted-foreground uppercase">
-							<Activity size={15} />
-							Performance × Genetics
-						</div>
-
-						<h1 className="text-3xl font-semibold tracking-tight">
-							What might your genetics tell you about physical performance?
-						</h1>
-
-						<p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
-							Bioanalytix connects governed genetic evidence with physical performance
-							questions worth exploring. Your genes are one source of evidence, not a
-							verdict on your athletic potential.
-						</p>
-					</div>
-
-					<div className="px-4 py-2 text-xs shrink-0 rounded-full border text-muted-foreground">
-						{profile.summary.performanceFindings} performance{" "}
-						{profile.summary.performanceFindings === 1 ? "finding" : "findings"}
-					</div>
-				</div>
-			</section>
+			<BioanalytixPageHero
+				eyebrow="YOUR PERFORMANCE. INFORMED BY EVIDENCE."
+				title="What might your biology tell you about your performance?"
+				description="Explore how governed genetic evidence may contribute to strength, endurance, recovery and other dimensions of physical performance."
+				secondaryDescription="Bioanalytix brings these signals together as evidence to explore — not as a verdict on your athletic ability or potential."
+				visual={<PerformanceHeroVisual />}
+			/>
 
 			{!profile.hasGeneticData ? (
 				<section className="p-6 sm:p-8 rounded-3xl border bg-card">

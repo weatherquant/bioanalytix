@@ -25,6 +25,8 @@ import {
 } from "recharts";
 
 import { AppHeader } from "../../../../modules/bioanalytix/components/AppHeader";
+import { BioanalytixPageHero } from "../../../../modules/bioanalytix/components/heroes/BioanalytixPageHero";
+import { WealthHeroVisual } from "../../../../modules/bioanalytix/components/heroes/WealthHeroVisual";
 import { PageShell } from "../../../../modules/bioanalytix/components/PageShell";
 import { orpcClient } from "../../../../modules/shared/lib/orpc-client";
 
@@ -249,34 +251,14 @@ export default function WealthPage() {
 
 			<PageShell>
 				<div className="space-y-6">
+					<BioanalytixPageHero
+						eyebrow="Your wealth. Built for a longer life."
+						title="Will your wealth support the life you may actually live?"
+						description="See how your household resources may evolve from today through retirement and across a longer planning horizon."
+						secondaryDescription="Bioanalytix connects your financial position with longevity so you can explore resilience, future spending capacity and the trade-offs that may emerge over time."
+						visual={<WealthHeroVisual />}
+					/>
 					<section className="overflow-hidden rounded-3xl border bg-card">
-						<div className="px-6 py-5 sm:px-8 border-b">
-							<div className="gap-4 lg:flex-row lg:items-start lg:justify-between flex flex-col">
-								<div>
-									<div className="mb-3 gap-2 text-xs font-medium flex items-center tracking-[0.16em] text-muted-foreground uppercase">
-										<ChartNoAxesCombined size={15} />
-										Longevity × wealth
-									</div>
-
-									<h2 className="max-w-3xl text-2xl font-semibold tracking-tight sm:text-3xl">
-										Will your wealth last for the life you may actually live?
-									</h2>
-
-									<p className="mt-3 max-w-3xl text-sm leading-6 sm:text-base text-muted-foreground">
-										Bioanalytix connects your longevity planning horizon with
-										your financial trajectory so you can see where resilience
-										remains strong and where longer life begins to change the
-										picture.
-									</p>
-								</div>
-
-								<div className="gap-2 px-3 py-1.5 text-xs inline-flex w-fit items-center rounded-full border bg-muted/40 text-muted-foreground">
-									<Info size={13} />
-									{wealth.simulationCount} simulations
-								</div>
-							</div>
-						</div>
-
 						<section className="p-5 sm:p-7 rounded-3xl border bg-card">
 							<div className="mb-6">
 								<p className="text-sm font-medium">Your position today</p>

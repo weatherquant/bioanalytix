@@ -14,6 +14,8 @@ import {
 import Link from "next/link";
 
 import { AppHeader } from "../../../../modules/bioanalytix/components/AppHeader";
+import { BioanalytixPageHero } from "../../../../modules/bioanalytix/components/heroes/BioanalytixPageHero";
+import { OverviewHeroVisual } from "../../../../modules/bioanalytix/components/heroes/OverviewHeroVisual";
 import { PageShell } from "../../../../modules/bioanalytix/components/PageShell";
 import { orpcClient } from "../../../../modules/shared/lib/orpc-client";
 
@@ -90,22 +92,13 @@ export default function OverviewPage() {
 			<PageShell>
 				<div className="space-y-6">
 					{/* Hero */}
-					<section className="px-1 py-5 md:py-8">
-						<div className="gap-2 text-sm font-medium flex items-center text-muted-foreground">
-							<Dna size={16} />
-							<span>Bioanalytix</span>
-						</div>
-
-						<h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight md:text-4xl">
-							Plan for the life you may actually live.
-						</h2>
-
-						<p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
-							Your biological evidence helps identify the planning questions worth
-							exploring. Your financial model shows what your choices could mean for
-							retirement, resilience and the estate you leave behind.
-						</p>
-					</section>
+					<BioanalytixPageHero
+						eyebrow="Your life. One connected plan."
+						title="Plan for the life you may actually live."
+						description="Bring your biology, longevity, wealth and priorities together to understand the planning questions that matter most for your future."
+						secondaryDescription="Bioanalytix connects your evidence with your financial position, helping you explore retirement, resilience and legacy in one integrated plan."
+						visual={<OverviewHeroVisual />}
+					/>
 
 					{/* Personal DNA */}
 					<section className="overflow-hidden rounded-3xl border bg-card">

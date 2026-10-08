@@ -4,6 +4,9 @@ import { ArrowRight, HeartPulse, Loader2, MessageCircleQuestion } from "lucide-r
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { BioanalytixPageHero } from "../../../../modules/bioanalytix/components/heroes/BioanalytixPageHero";
+import { LongevityHeroVisual } from "../../../../modules/bioanalytix/components/heroes/LongevityHeroVisual";
+
 import styles from "./LongevityPage.module.css";
 
 interface JourneyPoint {
@@ -347,20 +350,13 @@ export default function LongevityPage() {
 
 	return (
 		<div className={styles.workspace}>
-			<section className={styles.intro}>
-				<div>
-					<p className={styles.eyebrow}>Longevity</p>
-
-					<h1 className={styles.title}>
-						How might your financial life change as you age?
-					</h1>
-
-					<p className={styles.description}>
-						Explore how retirement spending, household resources and later-life choices
-						could interact over time.
-					</p>
-				</div>
-			</section>
+			<BioanalytixPageHero
+				eyebrow="Your longevity. Plan further ahead."
+				title="How might your financial life change as you age?"
+				description="Explore how retirement spending, household resources and later-life choices could interact across a longer life."
+				secondaryDescription="Bioanalytix helps you explore the financial implications of different longevity and care scenarios without treating them as predictions of your future."
+				visual={<LongevityHeroVisual />}
+			/>
 
 			<section className={styles.section}>
 				<div className={styles.heroCard}>
