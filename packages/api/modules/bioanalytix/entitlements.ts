@@ -76,7 +76,7 @@ export function hasBioanalytixCapability(
  * Unknown, legacy, or unsupported billing plans fail closed to the free tier.
  */
 
-function getDevelopmentTierOverride(): BioanalytixTier | null {
+export function getDevelopmentTierOverride(): BioanalytixTier | null {
 	if (process.env.NODE_ENV === "production") {
 		return null;
 	}
