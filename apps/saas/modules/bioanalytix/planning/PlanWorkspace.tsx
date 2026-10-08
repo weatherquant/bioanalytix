@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { BioanalytixPageHero } from "../components/heroes/BioanalytixPageHero";
+import { PlanHeroVisual } from "../components/heroes/PlanHeroVisual";
 import { AskBioanalytix } from "./AskBioanalytix";
 
 import styles from "./PlanWorkspace.module.css";
@@ -649,16 +651,16 @@ export function PlanWorkspace() {
 	}
 
 	function numericInputValue(value: string): number | undefined {
-if (value.trim() === "") {
-return undefined;
-}
+		if (value.trim() === "") {
+			return undefined;
+		}
 
-const parsed = Number(value);
+		const parsed = Number(value);
 
-return Number.isFinite(parsed) ? parsed : undefined;
-}
+		return Number.isFinite(parsed) ? parsed : undefined;
+	}
 
-function updateAssumption<K extends keyof PlanAssumptions>(key: K, value: PlanAssumptions[K]) {
+	function updateAssumption<K extends keyof PlanAssumptions>(key: K, value: PlanAssumptions[K]) {
 		setAssumptions((current) => ({
 			...current,
 			[key]: value,
@@ -867,34 +869,27 @@ function updateAssumption<K extends keyof PlanAssumptions>(key: K, value: PlanAs
 
 	return (
 		<div className={styles.workspace}>
-			<section className={styles.intro}>
-				<div>
-					<p className={styles.eyebrow}>Your Plan</p>
+			<BioanalytixPageHero
+				eyebrow="YOUR QUESTIONS. EXPLORED IN CONTEXT."
+				title="What would you like to explore?"
+				description="Ask questions about the situations that matter to you, test different assumptions and see how they could affect your long-term financial plan."
+				secondaryDescription="Bioanalytix brings your planning context together to help you explore possibilities — not to prescribe a decision."
+				visual={<PlanHeroVisual />}
+			/>
 
-					<h2 className={styles.title}>What would you like to explore?</h2>
+			<div className={styles.status}>
+				<div className={styles.statusLabel}>Plan status</div>
 
-					<p className={styles.description}>
-						Choose a situation that&apos;s on your mind. Bioanalytix will help you
-						understand how it could affect your long-term financial plan.
-					</p>
-				</div>
+				<strong>{lastSavedAt ? "Saved" : "Ready to explore"}</strong>
 
-				<div className={styles.status}>
-					<div className={styles.statusLabel}>Plan status</div>
-
-					<strong>{lastSavedAt ? "Saved" : "Ready to explore"}</strong>
-
-					{lastSavedAt ? (
-						<div className={styles.savedAt}>
-							Last saved {new Date(lastSavedAt).toLocaleString()}
-						</div>
-					) : (
-						<div className={styles.savedAt}>
-							Your scenarios will be saved to your Plan.
-						</div>
-					)}
-				</div>
-			</section>
+				{lastSavedAt ? (
+					<div className={styles.savedAt}>
+						Last saved {new Date(lastSavedAt).toLocaleString()}
+					</div>
+				) : (
+					<div className={styles.savedAt}>Your scenarios will be saved to your Plan.</div>
+				)}
+			</div>
 
 			<section className={styles.exploreSection}>
 				<div className={styles.sectionHeading}>
@@ -981,7 +976,9 @@ function updateAssumption<K extends keyof PlanAssumptions>(key: K, value: PlanAs
 														onChange={(event) =>
 															updateAssumption(
 																"additionalAnnualHealthCosts",
-																numericInputValue(event.target.value),
+																numericInputValue(
+																	event.target.value,
+																),
 															)
 														}
 														placeholder="10,000"

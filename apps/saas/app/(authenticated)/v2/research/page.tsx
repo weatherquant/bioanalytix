@@ -9,10 +9,11 @@ import {
 	FlaskConical,
 	Lightbulb,
 	Microscope,
-	Sparkles,
 } from "lucide-react";
 
 import { AppHeader } from "../../../../modules/bioanalytix/components/AppHeader";
+import { BioanalytixPageHero } from "../../../../modules/bioanalytix/components/heroes/BioanalytixPageHero";
+import { ResearchHeroVisual } from "../../../../modules/bioanalytix/components/heroes/ResearchHeroVisual";
 import { PageShell } from "../../../../modules/bioanalytix/components/PageShell";
 import { orpcClient } from "../../../../modules/shared/lib/orpc-client";
 
@@ -186,61 +187,52 @@ export default function ResearchPage() {
 
 			<PageShell>
 				<div className="space-y-8">
-					<section className="overflow-hidden rounded-3xl border bg-card">
-						<div className="p-8 md:p-10">
-							<div className="max-w-3xl gap-2 text-sm font-medium flex items-center text-muted-foreground">
-								<Sparkles className="size-4" />
-								Your research pathways
-							</div>
+					<BioanalytixPageHero
+						eyebrow="YOUR PROFILE. CONNECTED TO THE EVIDENCE."
+						title="Follow the science that may matter to you."
+						description="Explore research connected to your genetic profile, health and longevity in plain language, with the strength and limits of the evidence kept in view."
+						secondaryDescription="A research match provides context for further consideration — it does not mean a study's findings necessarily apply to you."
+						visual={<ResearchHeroVisual />}
+					/>
 
-							<h1 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight md:text-4xl">
-								Follow the science connected to your profile.
-							</h1>
-
-							<p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
-								Bioanalytix helps you follow research related to your genetic
-								profile, health and longevity — in plain language, with the limits
-								of the science kept in view.
-							</p>
-
-							{response.personalised && (
-								<div className="mt-8 gap-3 sm:grid-cols-3 grid">
-									<div className="p-4 rounded-2xl border bg-background/50">
-										<div className="gap-2 text-sm flex items-center text-muted-foreground">
-											<Dna className="size-4" />
-											Genetic insights
-										</div>
-
-										<p className="mt-2 text-2xl font-semibold">
-											{response.profile.geneticInsights}
-										</p>
+					{response.personalised && (
+						<section className="p-6 md:p-7 rounded-3xl border bg-card">
+							<div className="gap-3 sm:grid-cols-3 grid">
+								<div className="p-4 rounded-2xl border bg-background/50">
+									<div className="gap-2 text-sm flex items-center text-muted-foreground">
+										<Dna className="size-4" />
+										Genetic insights
 									</div>
 
-									<div className="p-4 rounded-2xl border bg-background/50">
-										<div className="gap-2 text-sm flex items-center text-muted-foreground">
-											<BookOpen className="size-4" />
-											Research matches
-										</div>
-
-										<p className="mt-2 text-2xl font-semibold">
-											{response.profile.matchedResearch}
-										</p>
-									</div>
-
-									<div className="p-4 rounded-2xl border bg-background/50">
-										<div className="gap-2 text-sm flex items-center text-muted-foreground">
-											<FlaskConical className="size-4" />
-											Related topics
-										</div>
-
-										<p className="mt-2 text-2xl font-semibold">
-											{response.profile.matchedTopics.length}
-										</p>
-									</div>
+									<p className="mt-2 text-2xl font-semibold">
+										{response.profile.geneticInsights}
+									</p>
 								</div>
-							)}
-						</div>
-					</section>
+
+								<div className="p-4 rounded-2xl border bg-background/50">
+									<div className="gap-2 text-sm flex items-center text-muted-foreground">
+										<BookOpen className="size-4" />
+										Research matches
+									</div>
+
+									<p className="mt-2 text-2xl font-semibold">
+										{response.profile.matchedResearch}
+									</p>
+								</div>
+
+								<div className="p-4 rounded-2xl border bg-background/50">
+									<div className="gap-2 text-sm flex items-center text-muted-foreground">
+										<FlaskConical className="size-4" />
+										Related topics
+									</div>
+
+									<p className="mt-2 text-2xl font-semibold">
+										{response.profile.matchedTopics.length}
+									</p>
+								</div>
+							</div>
+						</section>
+					)}
 
 					{!response.personalised ? (
 						<section className="p-7 rounded-3xl border bg-card">

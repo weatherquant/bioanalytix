@@ -4,6 +4,9 @@ import { ArrowRight, CheckCircle2, Circle, Loader2, MessageCircleQuestion } from
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { BioanalytixPageHero } from "../../../../modules/bioanalytix/components/heroes/BioanalytixPageHero";
+import { EstateHeroVisual } from "../../../../modules/bioanalytix/components/heroes/EstateHeroVisual";
+
 import styles from "./EstatePage.module.css";
 
 type EstateAssessment = "strong" | "comfortable" | "review" | "exposed";
@@ -396,18 +399,13 @@ export default function EstatePage() {
 
 	return (
 		<div className={styles.workspace}>
-			<section className={styles.intro}>
-				<div>
-					<p className={styles.eyebrow}>Estate</p>
-
-					<h1 className={styles.title}>What might you leave behind?</h1>
-
-					<p className={styles.description}>
-						Your current household position provides the starting point for thinking
-						about what you may leave to the people who matter to you.
-					</p>
-				</div>
-			</section>
+			<BioanalytixPageHero
+				eyebrow="YOUR LEGACY. PLANNED WITH PERSPECTIVE."
+				title="What might you leave behind?"
+				description="Explore how your household resources, longevity assumptions and financial choices may shape what remains for the people who matter to you."
+				secondaryDescription="Bioanalytix brings your estate position and long-term planning assumptions together for exploration — not as a prediction or legal estate calculation."
+				visual={<EstateHeroVisual />}
+			/>
 
 			<section className={styles.section}>
 				<div className={styles.heroCard}>
