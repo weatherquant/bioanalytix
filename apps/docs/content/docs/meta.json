@@ -1,3 +1,10 @@
 {
-	"pages": ["index", "getting-started"]
+  "title": "Bioanalytix Knowledge Centre",
+  "pages": [
+    "index",
+    "understanding-bioanalytix",
+    "genetics",
+    "financial-planning",
+    "trust"
+  ]
 }
