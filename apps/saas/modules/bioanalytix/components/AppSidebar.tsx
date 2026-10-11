@@ -72,9 +72,13 @@ export function AppSidebar() {
 		<aside className={styles.sidebar}>
 			<div className={styles.brand}>
 				<Link href="/v2/overview" className={styles.brandLink}>
-					<div className={styles.brandIcon}>
-						<Dna size={18} />
-					</div>
+					<img
+						src="/images/bioanalytix-mark-orange-graphite.png"
+						alt=""
+						width={32}
+						height={48}
+						className="h-10 w-auto shrink-0 object-contain"
+					/>
 
 					<div>
 						<p className={styles.brandName}>BIOANALYTIX</p>

@@ -416,6 +416,9 @@ importers:
       '@repo/logs':
         specifier: workspace:*
         version: link:../../packages/logs
+      '@repo/mail':
+        specifier: workspace:*
+        version: link:../../packages/mail
       '@repo/payments':
         specifier: workspace:*
         version: link:../../packages/payments

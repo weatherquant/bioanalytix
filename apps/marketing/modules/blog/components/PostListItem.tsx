@@ -1,73 +1,67 @@
-"use client";
+﻿"use client";
 
 import type { Post } from "@blog/types";
 import { LocaleLink } from "@i18n/routing";
+import { ArrowUpRight, BookOpen } from "lucide-react";
 import { useLocale } from "next-intl";
-import Image from "next/image";
 
 export function PostListItem({ post }: { post: Post }) {
-	const locale = useLocale();
-	const { title, excerpt, authorName, image, date, path, authorImage, tags } = post;
+        const locale = useLocale();
+        const { title, excerpt, authorName, date, path, tags } = post;
 
-	return (
-		<div className="p-6 rounded-4xl border bg-card">
-			{image && (
-				<div className="mb-4 aspect-video -mx-2 -mt-2 relative overflow-hidden rounded-2xl">
-					<Image
-						src={image}
-						alt={title}
-						fill
-						sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-						className="object-cover object-center"
-					/>
-					<LocaleLink href={`/blog/${path}`} className="inset-0 absolute" />
-				</div>
-			)}
+        return (
+                <article className="group flex h-full flex-col rounded-4xl border bg-card p-7 transition-shadow hover:shadow-md">
+                        <div className="mb-6 flex items-center justify-between">
+                                <div className="flex size-10 items-center justify-center rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                                        <BookOpen size={19} />
+                                </div>
 
-			{tags && (
-				<div className="mb-2 gap-2 flex flex-wrap">
-					{tags.map((tag) => (
-						<span
-							key={tag}
-							className="font-semibold text-xs tracking-wider text-primary uppercase"
-						>
-							#{tag}
-						</span>
-					))}
-				</div>
-			)}
+                                <p className="text-sm text-muted-foreground">
+                                        {Intl.DateTimeFormat(locale, {
+                                                day: "numeric",
+                                                month: "short",
+                                                year: "numeric",
+                                        }).format(new Date(date))}
+                                </p>
+                        </div>
 
-			<LocaleLink href={`/blog/${path}`} className="font-semibold text-xl">
-				{title}
-			</LocaleLink>
-			{excerpt && <p className="opacity-50">{excerpt}</p>}
+                        {tags && (
+                                <div className="mb-3 flex flex-wrap gap-2">
+                                        {tags.map((tag) => (
+                                                <span
+                                                        key={tag}
+                                                        className="font-semibold text-xs tracking-wider text-orange-600 uppercase dark:text-orange-400"
+                                                >
+                                                        {tag}
+                                                </span>
+                                        ))}
+                                </div>
+                        )}
 
-			<div className="mt-4 flex items-center justify-between">
-				{authorName && (
-					<div className="flex items-center">
-						{authorImage && (
-							<div className="mr-2 size-8 relative overflow-hidden rounded-full">
-								<Image
-									src={authorImage}
-									alt={authorName}
-									fill
-									sizes="96px"
-									className="object-cover object-center"
-								/>
-							</div>
-						)}
-						<div>
-							<p className="font-semibold text-sm opacity-50">{authorName}</p>
-						</div>
-					</div>
-				)}
+                        <LocaleLink
+                                href={`/blog/${path}`}
+                                className="flex items-start gap-2 font-semibold text-2xl leading-tight tracking-tight"
+                        >
+                                <span>{title}</span>
+                                <ArrowUpRight
+                                        size={18}
+                                        className="mt-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-60"
+                                />
+                        </LocaleLink>
 
-				<div className="mr-0 ml-auto">
-					<p className="text-sm opacity-30">
-						{Intl.DateTimeFormat(locale).format(new Date(date))}
-					</p>
-				</div>
-			</div>
-		</div>
-	);
+                        {excerpt && (
+                                <p className="mt-4 leading-7 text-muted-foreground">
+                                        {excerpt}
+                                </p>
+                        )}
+
+                        <div className="mt-auto pt-7">
+                                <div className="border-t pt-4">
+                                        <p className="font-medium text-sm">
+                                                {authorName ?? "Bioanalytix Research"}
+                                        </p>
+                                </div>
+                        </div>
+                </article>
+        );
 }

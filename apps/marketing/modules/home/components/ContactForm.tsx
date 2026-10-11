@@ -36,17 +36,28 @@ export function ContactForm() {
 		},
 	});
 
-	const onSubmit = form.handleSubmit(async (values) => {
-		try {
-			// TODO: Insert your contact form submission logic here to integrate with your CRM or email service
-			console.log("Submitting contact form for values:", values);
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-		} catch {
-			form.setError("root", {
-				message: t("contact.form.notifications.error"),
-			});
-		}
-	});
+        const onSubmit = form.handleSubmit(async (values) => {
+                try {
+                        const response = await fetch("/api/contact", {
+                                method: "POST",
+                                headers: {
+                                        "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                        ...values,
+                                        website: "",
+                                }),
+                        });
+
+                        if (!response.ok) {
+                                throw new Error("Contact submission failed.");
+                        }
+                } catch {
+                        form.setError("root", {
+                                message: t("contact.form.notifications.error"),
+                        });
+                }
+        });
 
 	return (
 		<div>
