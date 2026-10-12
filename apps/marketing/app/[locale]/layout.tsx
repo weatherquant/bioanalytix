@@ -18,7 +18,7 @@ const sansFont = Figtree({
 	variable: "--font-sans",
 });
 
-const locales = Object.keys(i18nConfig.locales) as string[];
+const locales = [i18nConfig.defaultLocale] as string[];
 
 export function generateStaticParams() {
 	return locales.map((locale) => ({ locale }));

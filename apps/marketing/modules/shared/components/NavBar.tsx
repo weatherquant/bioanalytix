@@ -6,11 +6,10 @@ import { cn, Logo } from "@repo/ui";
 import { Button } from "@repo/ui/components/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@repo/ui/components/sheet";
 import { ColorModeToggle } from "@shared/components/ColorModeToggle";
-import { LocaleSwitch } from "@shared/components/LocaleSwitch";
 import { MenuIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import NextLink from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 
 export function NavBar() {
@@ -61,10 +60,6 @@ export function NavBar() {
 		{
 			label: t("common.menu.blog"),
 			href: "/blog",
-		},
-		{
-			label: t("common.menu.changelog"),
-			href: "/changelog",
 		},
 		{
 			label: t("common.menu.contact"),
@@ -125,9 +120,6 @@ export function NavBar() {
 
 					<div className="gap-3 flex flex-1 items-center justify-end">
 						<ColorModeToggle />
-						<Suspense>
-							<LocaleSwitch />
-						</Suspense>
 
 						<Sheet
 							open={mobileMenuOpen}
