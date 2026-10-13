@@ -80,6 +80,10 @@ const savedPlanSchema = z.object({
 		careCostDurationYears: z.number().positive().optional(),
 	}),
 
+	portfolioStrategyId: z
+		.enum(["capital_stable", "conservative", "balanced", "growth", "high_growth"])
+		.optional(),
+
 	estateObjective: z
 		.object({
 			targetAmount: z.number().positive(),

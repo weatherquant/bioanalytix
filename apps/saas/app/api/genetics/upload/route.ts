@@ -13,7 +13,10 @@ import { interpretAvailableModels } from "../../../../../../packages/api/modules
 import { observationsFrom23andMeRecords } from "../../../../../../packages/api/modules/genetics/observations/from23andMe";
 import type { Parsed23andMeGenotype } from "../../../../../../packages/api/modules/genetics/parser";
 import { SNP_REFERENCE } from "../../../../../../packages/api/modules/genetics/snp-reference";
-import { SUPPORTED_GENETIC_RSID_SET } from "../../../../../../packages/api/modules/genetics/supported-rsids";
+import {
+	GENETIC_MARKER_CATALOGUE_VERSION,
+	SUPPORTED_GENETIC_RSID_SET,
+} from "../../../../../../packages/api/modules/genetics/supported-rsids";
 import { buildGeneticHighlights } from "../../../../../../packages/api/modules/planning/geneticHighlightEngine";
 import { biologicalInsightToPlanningExposures } from "../../../../../../packages/api/modules/planning/geneticsBridge";
 import { buildPlanningInsights } from "../../../../../../packages/api/modules/planning/planningInsightEngine";
@@ -244,6 +247,16 @@ export async function POST(req: Request) {
 			provider: "23andMe",
 		});
 
+		const retainedGenotypes = observations
+			.filter(
+				(observation) =>
+					observation.callStatus === "called" && Boolean(observation.genotype),
+			)
+			.map((observation) => ({
+				rsid: observation.rsid,
+				genotype: observation.genotype as string,
+			}));
+
 		await db.bioGeneticUpload.update({
 			where: {
 				id: upload.id,
@@ -298,6 +311,10 @@ export async function POST(req: Request) {
 					validGenotypeCount,
 					extractedRecordCount: records.length,
 					rawFileUploaded: false,
+
+					markerCatalogueVersion: GENETIC_MARKER_CATALOGUE_VERSION,
+					retainedGenotypes,
+					retainedGenotypeCount: retainedGenotypes.length,
 
 					observationCount: observations.length,
 					insightCount: insights.length,

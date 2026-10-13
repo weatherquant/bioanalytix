@@ -175,10 +175,13 @@ export const runBioanalytixPlanScenario = protectedProcedure
 
 			const balancedStrategy = standardPortfolioStrategy("balanced");
 
+			const selectedStrategy = standardPortfolioStrategy(
+				plan.portfolioStrategyId ?? "balanced",
+			);
+
 			const sharedRetirementInput = {
 				household: householdState,
 				assumptions: simulationPolicy.projectionAssumptions,
-				strategy: balancedStrategy.strategy,
 				marketPaths: simulationPolicy.marketPaths,
 				maximumShortfallProbability: simulationPolicy.maximumShortfallProbability,
 				maximumAnnualSpending: simulationPolicy.maximumAnnualSpending,
@@ -187,12 +190,20 @@ export const runBioanalytixPlanScenario = protectedProcedure
 
 			const baselineResult = findSustainableRetirementIncome({
 				...sharedRetirementInput,
+				strategy: balancedStrategy.strategy,
 				retirementAge: baselineRetirementAge,
 			});
 
 			const alternativeResult = findSustainableRetirementIncome({
 				...sharedRetirementInput,
+				strategy: balancedStrategy.strategy,
 				retirementAge: alternativeRetirementAge,
+			});
+
+			const selectedStrategyResult = findSustainableRetirementIncome({
+				...sharedRetirementInput,
+				strategy: selectedStrategy.strategy,
+				retirementAge: baselineRetirementAge,
 			});
 
 			const baselineAnnualRetirementIncome = baselineResult.sustainableAnnualRetirementIncome;
@@ -202,6 +213,12 @@ export const runBioanalytixPlanScenario = protectedProcedure
 
 			const annualIncomeDifference =
 				alternativeAnnualRetirementIncome - baselineAnnualRetirementIncome;
+
+			const selectedStrategyAnnualRetirementIncome =
+				selectedStrategyResult.sustainableAnnualRetirementIncome;
+
+			const strategyAnnualIncomeDifference =
+				selectedStrategyAnnualRetirementIncome - baselineAnnualRetirementIncome;
 
 			const viewModel = {
 				question:
@@ -233,9 +250,13 @@ export const runBioanalytixPlanScenario = protectedProcedure
 					{
 						id: balancedStrategy.id,
 						name: balancedStrategy.name,
-						annualIncome: alternativeAnnualRetirementIncome,
-						riskLabel: "Moderate volatility",
-						allocationLabel: "60% growth · 35% defensive · 5% cash",
+						annualIncome: baselineAnnualRetirementIncome,
+					},
+					{
+						id: selectedStrategy.id,
+						name: selectedStrategy.name,
+						annualIncome: selectedStrategyAnnualRetirementIncome,
+						differenceFromBalanced: strategyAnnualIncomeDifference,
 					},
 				],
 
@@ -304,6 +325,12 @@ export const runBioanalytixPlanScenario = protectedProcedure
 							baselineAnnualRetirementIncome > 0
 								? annualIncomeDifference / baselineAnnualRetirementIncome
 								: null,
+						selectedPortfolioStrategy: {
+							id: selectedStrategy.id,
+							name: selectedStrategy.name,
+							result: selectedStrategyResult,
+							annualIncomeDifferenceFromBalanced: strategyAnnualIncomeDifference,
+						},
 					},
 					viewModel,
 				},

@@ -420,10 +420,12 @@ export function DnaProfileClient() {
 					/>
 
 					<span>
-						I consent to Bioanalytix processing my genetic data to generate personalised
-						genetic insights. My original DNA file is processed for this purpose and is
-						not retained after processing. Derived genetic findings required to provide
-						my Bioanalytix experience are stored with my account.
+						I consent to Bioanalytix processing selected genetic markers from my DNA
+						file to generate personalised genetic insights. My original DNA file is
+						processed locally in my browser and is not uploaded to or retained by
+						Bioanalytix. Selected genetic observations matching the Bioanalytix marker
+						catalogue are stored with my account for current and future Bioanalytix
+						analysis.
 					</span>
 				</label>
 
@@ -773,144 +775,147 @@ export function DnaProfileClient() {
 					</div>
 				</div>
 
-                                <div style={privacyPanelStyle}>
-                                        <div style={privacyPanelHeadingStyle}>
-                                                <ShieldCheck size={18} />
-                                                <strong>DNA &amp; privacy</strong>
-                                        </div>
+				<div style={privacyPanelStyle}>
+					<div style={privacyPanelHeadingStyle}>
+						<ShieldCheck size={18} />
+						<strong>DNA &amp; privacy</strong>
+					</div>
 
-                                        <div>
-                                                <strong>Your raw DNA file is not stored</strong>
+					<div>
+						<strong>Your raw DNA file is not stored</strong>
 
-                                                <p style={deleteDescriptionStyle}>
-                                                        Your DNA file is processed locally in your browser. Bioanalytix receives
-                                                        only the selected genetic observations required for analysis, together
-                                                        with limited source metadata. Your original DNA file is not uploaded to
-                                                        or retained by Bioanalytix.
-                                                </p>
-                                        </div>
+						<p style={deleteDescriptionStyle}>
+							Your DNA file is processed locally in your browser. Bioanalytix receives
+							only the selected genetic observations required for analysis, together
+							with limited source metadata. Your original DNA file is not uploaded to
+							or retained by Bioanalytix.
+						</p>
+					</div>
 
-                                        <div>
-                                                <strong>Stored with your account</strong>
+					<div>
+						<strong>Stored with your account</strong>
 
-                                                <p style={deleteDescriptionStyle}>
-                                                        Derived genetic findings and analysis needed to provide your Bioanalytix
-                                                        experience are stored with your account.
-                                                </p>
-                                        </div>
-                                </div>
+						<p style={deleteDescriptionStyle}>
+							Only selected genetic observations matching the Bioanalytix marker
+							catalogue, together with derived findings and analysis, are stored with
+							your account. Your complete genotype dataset is not retained. The
+							selected observations may be used for future Bioanalytix analysis as its
+							evidence library develops.
+						</p>
+					</div>
+				</div>
 
-                                <div style={deleteSectionStyle}>
-                                        <strong>Replace your DNA data</strong>
+				<div style={deleteSectionStyle}>
+					<strong>Replace your DNA data</strong>
 
-                                        <input
-                                                ref={inputRef}
-                                                type="file"
-                                                accept=".txt,.csv"
-                                                onChange={handleFile}
-                                                style={{
-                                                        display: "none",
-                                                }}
-                                        />
+					<input
+						ref={inputRef}
+						type="file"
+						accept=".txt,.csv"
+						onChange={handleFile}
+						style={{
+							display: "none",
+						}}
+					/>
 
-                                        <label style={{ ...consentStyle, marginTop: 12 }}>
-                                                <input
-                                                        type="checkbox"
-                                                        checked={geneticDataProcessingConsent}
-                                                        onChange={(event) => {
-                                                                setGeneticDataProcessingConsent(event.target.checked);
-                                                                setError(null);
-                                                        }}
-                                                        disabled={uploading}
-                                                />
+					<label style={{ ...consentStyle, marginTop: 12 }}>
+						<input
+							type="checkbox"
+							checked={geneticDataProcessingConsent}
+							onChange={(event) => {
+								setGeneticDataProcessingConsent(event.target.checked);
+								setError(null);
+							}}
+							disabled={uploading}
+						/>
 
-                                                <span>
-                                                        I consent to Bioanalytix processing this replacement DNA file to generate
-                                                        personalised genetic insights. The file will be processed locally in my
-                                                        browser and will not be uploaded to or retained by Bioanalytix. Derived
-                                                        genetic findings required to provide my Bioanalytix experience will be
-                                                        stored with my account.
-                                                </span>
-                                        </label>
+						<span>
+							I consent to Bioanalytix processing selected genetic markers from this
+							replacement DNA file to generate personalised genetic insights. The file
+							will be processed locally in my browser and will not be uploaded to or
+							retained by Bioanalytix. Selected genetic observations matching the
+							Bioanalytix marker catalogue will be stored with my account for current
+							and future Bioanalytix analysis.
+						</span>
+					</label>
 
-                                        <button
-                                                type="button"
-                                                onClick={() => inputRef.current?.click()}
-                                                disabled={uploading || !geneticDataProcessingConsent}
-                                                style={secondaryButtonStyle}
-                                        >
-                                                {uploading ? (
-                                                        <Loader2 size={16} className="animate-spin" />
-                                                ) : (
-                                                        <FileUp size={16} />
-                                                )}
+					<button
+						type="button"
+						onClick={() => inputRef.current?.click()}
+						disabled={uploading || !geneticDataProcessingConsent}
+						style={secondaryButtonStyle}
+					>
+						{uploading ? (
+							<Loader2 size={16} className="animate-spin" />
+						) : (
+							<FileUp size={16} />
+						)}
 
-                                                {uploading ? "Analysing DNA..." : "Replace DNA file"}
-                                        </button>
-                                </div>
+						{uploading ? "Analysing DNA..." : "Replace DNA file"}
+					</button>
+				</div>
 
-                                <div style={deleteSectionStyle}>
-                                        {!confirmingDelete ? (
-                                                <>
-                                                        <strong>Delete your genetic data</strong>
+				<div style={deleteSectionStyle}>
+					{!confirmingDelete ? (
+						<>
+							<strong>Delete your genetic data</strong>
 
-                                                        <p style={deleteDescriptionStyle}>
-                                                                Permanently remove your genetic findings and DNA analysis history
-                                                                from Bioanalytix. Your financial information, planning inputs and
-                                                                account will remain.
-                                                        </p>
+							<p style={deleteDescriptionStyle}>
+								Permanently remove your retained genetic observations, genetic
+								findings and DNA analysis history from Bioanalytix. Your financial
+								information, planning inputs and account will remain.
+							</p>
 
-                                                        <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                        setConfirmingDelete(true);
-                                                                        setError(null);
-                                                                }}
-                                                                disabled={uploading || deleting}
-                                                                style={deleteLinkStyle}
-                                                        >
-                                                                Delete genetic data
-                                                        </button>
-                                                </>
-                                        ) : (
-                                                <div style={deleteConfirmationStyle}>
-                                                        <strong>Delete your genetic data?</strong>
+							<button
+								type="button"
+								onClick={() => {
+									setConfirmingDelete(true);
+									setError(null);
+								}}
+								disabled={uploading || deleting}
+								style={deleteLinkStyle}
+							>
+								Delete genetic data
+							</button>
+						</>
+					) : (
+						<div style={deleteConfirmationStyle}>
+							<strong>Delete your genetic data?</strong>
 
-                                                        <p style={deleteDescriptionStyle}>
-                                                                This permanently deletes your genetic findings and DNA analysis
-                                                                history from Bioanalytix. Your original DNA file is not retained.
-                                                                Your financial information, planning inputs and account will remain.
-                                                        </p>
+							<p style={deleteDescriptionStyle}>
+								This permanently deletes your retained genetic observations, genetic
+								findings and DNA analysis history from Bioanalytix. Your original
+								DNA file is not retained. Your financial information, planning
+								inputs and account will remain.
+							</p>
 
-                                                        <div style={deleteActionsStyle}>
-                                                                <button
-                                                                        type="button"
-                                                                        onClick={() => setConfirmingDelete(false)}
-                                                                        disabled={deleting}
-                                                                        style={secondaryButtonStyle}
-                                                                >
-                                                                        Cancel
-                                                                </button>
+							<div style={deleteActionsStyle}>
+								<button
+									type="button"
+									onClick={() => setConfirmingDelete(false)}
+									disabled={deleting}
+									style={secondaryButtonStyle}
+								>
+									Cancel
+								</button>
 
-                                                                <button
-                                                                        type="button"
-                                                                        onClick={handleDeleteGeneticData}
-                                                                        disabled={deleting}
-                                                                        style={dangerButtonStyle}
-                                                                >
-                                                                        {deleting ? (
-                                                                                <Loader2 size={16} className="animate-spin" />
-                                                                        ) : null}
+								<button
+									type="button"
+									onClick={handleDeleteGeneticData}
+									disabled={deleting}
+									style={dangerButtonStyle}
+								>
+									{deleting ? (
+										<Loader2 size={16} className="animate-spin" />
+									) : null}
 
-                                                                        {deleting
-                                                                                ? "Deleting..."
-                                                                                : "Permanently delete genetic data"}
-                                                                </button>
-                                                        </div>
-                                                </div>
-                                        )}
-                                </div>
-                                {error ? <p style={errorStyle}>{error}</p> : null}
+									{deleting ? "Deleting..." : "Permanently delete genetic data"}
+								</button>
+							</div>
+						</div>
+					)}
+				</div>
+				{error ? <p style={errorStyle}>{error}</p> : null}
 			</div>
 		</>
 	);
@@ -2103,23 +2108,23 @@ const consentStyle: React.CSSProperties = {
 };
 
 const privacyPanelStyle: React.CSSProperties = {
-        marginTop: 4,
-        padding: 18,
-        background: "#f8fafb",
-        border: "1px solid #e6eaed",
-        borderRadius: 12,
-        color: "#46545d",
-        fontSize: 13,
-        lineHeight: "20px",
+	marginTop: 4,
+	padding: 18,
+	background: "#f8fafb",
+	border: "1px solid #e6eaed",
+	borderRadius: 12,
+	color: "#46545d",
+	fontSize: 13,
+	lineHeight: "20px",
 };
 
 const privacyPanelHeadingStyle: React.CSSProperties = {
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 14,
-        color: "#303b42",
-        fontSize: 14,
+	display: "flex",
+	alignItems: "center",
+	gap: 8,
+	marginBottom: 14,
+	color: "#303b42",
+	fontSize: 14,
 };
 const deleteSectionStyle: React.CSSProperties = {
 	marginTop: 20,

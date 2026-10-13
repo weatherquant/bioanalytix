@@ -114,6 +114,7 @@ interface SavedPlan {
 	questions: PlanningQuestion[];
 	areaReviews?: PlanningAreaReview[];
 	assumptions: PlanAssumptions;
+	portfolioStrategyId?: "capital_stable" | "conservative" | "balanced" | "growth" | "high_growth";
 	priorities: string[];
 	estateObjective?: {
 		targetAmount: number;
@@ -226,6 +227,25 @@ interface PlanScenarioResponse {
 	result?: FinancialScenarioResult | RetirementScenarioResult | ProtectionAssessmentResult;
 }
 
+interface PortfolioScenarioResponse {
+	status: "completed";
+	retirementAge: number;
+	baseline: {
+		id: string;
+		name: string;
+		annualIncome: number;
+	};
+	selected: {
+		id: string;
+		name: string;
+		annualIncome: number;
+	};
+	difference: {
+		annualAmount: number;
+		direction: "higher" | "lower" | "same";
+	};
+}
+
 function isFinancialScenarioResult(
 	result: PlanScenarioResponse["result"],
 ): result is FinancialScenarioResult {
@@ -334,6 +354,64 @@ const EXPLORATION_EVENTS: ExplorationEvent[] = [
 		icon: Briefcase,
 	},
 ];
+
+const PORTFOLIO_STRATEGIES = [
+	{
+		id: "capital_stable",
+		name: "Capital Stable",
+		growth: 20,
+		defensive: 80,
+		fixedInterest: 65,
+		cash: 15,
+		risk: "Lower",
+		description:
+			"Emphasises capital stability and defensive assets, with limited exposure to long-term growth markets.",
+	},
+	{
+		id: "conservative",
+		name: "Conservative",
+		growth: 40,
+		defensive: 60,
+		fixedInterest: 50,
+		cash: 10,
+		risk: "Low to moderate",
+		description:
+			"Combines substantial defensive exposure with a meaningful allocation to long-term growth assets.",
+	},
+	{
+		id: "balanced",
+		name: "Balanced",
+		growth: 60,
+		defensive: 40,
+		fixedInterest: 35,
+		cash: 5,
+		risk: "Moderate",
+		description:
+			"Balances long-term growth exposure with defensive assets intended to moderate portfolio fluctuations.",
+	},
+	{
+		id: "growth",
+		name: "Growth",
+		growth: 70,
+		defensive: 30,
+		fixedInterest: 25,
+		cash: 5,
+		risk: "Higher",
+		description:
+			"Places greater emphasis on long-term growth assets while retaining some defensive exposure and liquidity.",
+	},
+	{
+		id: "high_growth",
+		name: "High Growth",
+		growth: 85,
+		defensive: 15,
+		fixedInterest: 10,
+		cash: 5,
+		risk: "Highest",
+		description:
+			"Maintains substantial exposure to long-term growth markets and therefore accepts larger portfolio fluctuations.",
+	},
+] as const;
 
 function iconForDomain(domain: PlanningDomain) {
 	switch (domain) {
@@ -519,6 +597,9 @@ export function PlanWorkspace() {
 
 	const [assumptions, setAssumptions] = useState<PlanAssumptions>({});
 
+	const [portfolioStrategyId, setPortfolioStrategyId] =
+		useState<NonNullable<SavedPlan["portfolioStrategyId"]>>("balanced");
+
 	const [priorities, setPriorities] = useState<string[]>([]);
 
 	const [notes, setNotes] = useState("");
@@ -540,6 +621,11 @@ export function PlanWorkspace() {
 	const [scenarioResults, setScenarioResults] = useState<Record<string, PlanScenarioResponse>>(
 		{},
 	);
+
+	const [portfolioScenarioRunning, setPortfolioScenarioRunning] = useState(false);
+
+	const [portfolioScenarioResult, setPortfolioScenarioResult] =
+		useState<PortfolioScenarioResponse | null>(null);
 
 	const [activeEventId, setActiveEventId] = useState<ExplorationEventId | null>(null);
 
@@ -576,6 +662,8 @@ export function PlanWorkspace() {
 				);
 
 				setAssumptions(data.savedPlan.assumptions ?? {});
+
+				setPortfolioStrategyId(data.savedPlan.portfolioStrategyId ?? "balanced");
 
 				setPriorities(data.savedPlan.priorities ?? []);
 
@@ -717,6 +805,74 @@ export function PlanWorkspace() {
 		markDirty();
 	}
 
+	async function saveAndRunPortfolioScenario() {
+		setPortfolioScenarioRunning(true);
+		setError(null);
+		setSavedMessage(null);
+		setPortfolioScenarioResult(null);
+
+		const payload: SavedPlan = {
+			version: "1.0.0",
+			planningProfileId,
+			questions,
+			areaReviews,
+			assumptions,
+			portfolioStrategyId,
+			estateObjective,
+			priorities,
+			notes,
+		};
+
+		try {
+			const saveResponse = await fetch("/api/bioanalytix/plan", {
+				method: "POST",
+				credentials: "include",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(payload),
+			});
+
+			if (!saveResponse.ok) {
+				const result = await saveResponse.json().catch(() => null);
+
+				throw new Error(
+					result?.message ?? result?.error ?? "Unable to save your investment strategy.",
+				);
+			}
+
+			const saved = await saveResponse.json();
+
+			setDirty(false);
+			setLastSavedAt(saved.updatedAt ?? saved.plan?.lastSavedAt ?? new Date().toISOString());
+
+			const scenarioResponse = await fetch("/api/bioanalytix/plan/portfolio-scenario", {
+				method: "POST",
+				credentials: "include",
+			});
+
+			if (!scenarioResponse.ok) {
+				const result = await scenarioResponse.json().catch(() => null);
+
+				throw new Error(
+					result?.message ?? result?.error ?? "Unable to compare investment strategies.",
+				);
+			}
+
+			const result = (await scenarioResponse.json()) as PortfolioScenarioResponse;
+
+			setPortfolioScenarioResult(result);
+		} catch (scenarioError) {
+			setError(
+				scenarioError instanceof Error
+					? scenarioError.message
+					: "Unable to compare investment strategies.",
+			);
+		} finally {
+			setPortfolioScenarioRunning(false);
+		}
+	}
+
 	async function saveAndRunScenario(question: PlanningQuestion) {
 		setSaving(true);
 		setScenarioRunningId(question.id);
@@ -738,6 +894,7 @@ export function PlanWorkspace() {
 			questions: nextQuestions,
 			areaReviews,
 			assumptions,
+			portfolioStrategyId,
 			estateObjective,
 			priorities,
 			notes,
@@ -811,19 +968,13 @@ export function PlanWorkspace() {
 
 		const payload: SavedPlan = {
 			version: "1.0.0",
-
 			planningProfileId,
-
 			questions,
-
 			areaReviews,
-
 			assumptions,
-
+			portfolioStrategyId,
 			estateObjective,
-
 			priorities,
-
 			notes,
 		};
 
@@ -889,6 +1040,179 @@ export function PlanWorkspace() {
 				) : (
 					<div className={styles.savedAt}>Your scenarios will be saved to your Plan.</div>
 				)}
+			</div>
+
+			<section className="space-y-4">
+				<div>
+					<h2 className="text-lg font-semibold">Investment strategy</h2>
+					<p className="mt-1 text-sm text-muted-foreground">
+						Explore how different mixes of growth and defensive assets affect the
+						retirement income supported by your plan.
+					</p>
+				</div>
+
+				<div className="gap-3 md:grid-cols-5 grid">
+					{PORTFOLIO_STRATEGIES.map((strategy) => {
+						const selected = portfolioStrategyId === strategy.id;
+
+						return (
+							<button
+								key={strategy.id}
+								type="button"
+								onClick={() => {
+									setPortfolioStrategyId(strategy.id);
+									setPortfolioScenarioResult(null);
+									markDirty();
+								}}
+								className={`p-4 rounded-xl border text-left transition ${
+									selected
+										? "border-primary bg-muted"
+										: "border-border hover:bg-muted/50"
+								}`}
+							>
+								<div className="font-medium">{strategy.name}</div>
+
+								<div className="mt-2 text-sm">
+									{strategy.growth}% growth / {strategy.defensive}% defensive
+								</div>
+
+								<div className="mt-1 text-xs text-muted-foreground">
+									{strategy.risk} risk
+								</div>
+							</button>
+						);
+					})}
+				</div>
+
+				{(() => {
+					const strategy =
+						PORTFOLIO_STRATEGIES.find(
+							(candidate) => candidate.id === portfolioStrategyId,
+						) ?? PORTFOLIO_STRATEGIES[2];
+
+					return (
+						<div className="p-4 rounded-xl border bg-muted/30">
+							<div className="font-medium">{strategy.name}</div>
+
+							<p className="mt-1 text-sm text-muted-foreground">
+								{strategy.description}
+							</p>
+
+							<p className="mt-3 text-sm">
+								<strong>{strategy.growth}% growth</strong>
+								{" / "}
+								{strategy.fixedInterest}% fixed interest
+								{" / "}
+								{strategy.cash}% cash
+							</p>
+						</div>
+					);
+				})()}
+
+				<div className="gap-3 flex flex-wrap items-center">
+					<button
+						type="button"
+						onClick={() => void saveAndRunPortfolioScenario()}
+						disabled={portfolioScenarioRunning}
+						className="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground disabled:opacity-60"
+					>
+						{portfolioScenarioRunning ? "Calculating..." : "See impact on my plan"}
+					</button>
+
+					<span className="text-xs text-muted-foreground">
+						Compared with the Balanced strategy using your current retirement age.
+					</span>
+				</div>
+
+				{portfolioScenarioResult && (
+					<div className="p-5 rounded-xl border">
+						<p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Portfolio comparison
+						</p>
+
+						<h3 className="mt-1 text-lg font-semibold">
+							{portfolioScenarioResult.selected.name} compared with Balanced
+						</h3>
+
+						<p className="mt-1 text-sm text-muted-foreground">
+							Retirement age {portfolioScenarioResult.retirementAge}
+						</p>
+
+						<div className="mt-4 gap-3 sm:grid-cols-2 grid">
+							<div className="p-4 rounded-lg border">
+								<div className="text-sm text-muted-foreground">Balanced</div>
+
+								<div className="mt-1 text-xl font-semibold">
+									{formatCurrency(portfolioScenarioResult.baseline.annualIncome)}{" "}
+									p.a.
+								</div>
+							</div>
+
+							<div className="p-4 rounded-lg border">
+								<div className="text-sm text-muted-foreground">
+									{portfolioScenarioResult.selected.name}
+								</div>
+
+								<div className="mt-1 text-xl font-semibold">
+									{formatCurrency(portfolioScenarioResult.selected.annualIncome)}{" "}
+									p.a.
+								</div>
+							</div>
+						</div>
+
+						<p className="mt-4 text-sm">
+							<strong>
+								{portfolioScenarioResult.difference.direction === "same"
+									? "No modelled change"
+									: `${portfolioScenarioResult.difference.direction === "higher" ? "+" : "-"}${formatCurrency(
+											Math.abs(
+												portfolioScenarioResult.difference.annualAmount,
+											),
+										)} p.a.`}
+							</strong>{" "}
+							{portfolioScenarioResult.difference.direction === "same"
+								? "in sustainable retirement income compared with Balanced."
+								: `${portfolioScenarioResult.difference.direction} modelled sustainable retirement income compared with Balanced.`}
+						</p>
+
+						<p className="mt-3 text-sm text-muted-foreground">
+							{portfolioStrategyId === "growth" ||
+							portfolioStrategyId === "high_growth"
+								? "This strategy has more growth exposure than Balanced. It may increase long-term return potential, but also increases market fluctuations and sensitivity to adverse return sequences during withdrawals."
+								: portfolioStrategyId === "capital_stable" ||
+									  portfolioStrategyId === "conservative"
+									? "This strategy has less growth exposure than Balanced. It may reduce portfolio fluctuations, but also lowers long-term return potential and may increase the risk that returns do not keep pace with spending over a long retirement."
+									: "Balanced is the comparison baseline; both calculations use the same allocation."}{" "}
+							The comparison uses the same retirement age and simulated market paths
+							for both strategies.
+						</p>
+					</div>
+				)}
+			</section>
+
+			<div className="p-4 rounded-xl border">
+				<h3 className="font-medium">How to think about these portfolios</h3>
+
+				<p className="mt-2 text-sm text-muted-foreground">
+					Growth assets provide greater long-term return potential but typically
+					experience larger market fluctuations. Defensive assets can reduce overall
+					portfolio volatility but generally have lower expected long-term returns.
+				</p>
+
+				<p className="mt-2 text-sm text-muted-foreground">
+					Broad-market passive index funds or ETFs can be used to obtain diversified
+					market exposure without selecting individual securities. The percentages shown
+					here describe economic exposures, not particular investment products recommended
+					by Bioanalytix.
+				</p>
+
+				<p className="mt-2 text-sm text-muted-foreground">
+					When withdrawals are being made, the order of market returns also matters. A
+					large fall early in retirement can have a greater effect than the same fall
+					occurring later, and reducing growth exposure after a fall can crystallise
+					losses. Bioanalytix therefore evaluates these strategies across simulated market
+					paths rather than assuming a single investment return.
+				</p>
 			</div>
 
 			<section className={styles.exploreSection}>

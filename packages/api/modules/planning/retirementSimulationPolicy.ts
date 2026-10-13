@@ -8,7 +8,7 @@ import type {
 } from "../financial/simulation/types";
 import { buildBioanalytixProjectionAssumptions } from "./projectionPolicy";
 
-export const BIOANALYTIX_RETIREMENT_SIMULATION_POLICY_VERSION = "1.1.0";
+export const BIOANALYTIX_RETIREMENT_SIMULATION_POLICY_VERSION = "1.2.0";
 
 /**
  * MVP retirement simulation policy.
@@ -21,13 +21,13 @@ export const BIOANALYTIX_RETIREMENT_SIMULATION_POLICY_VERSION = "1.1.0";
  */
 export const BIOANALYTIX_MARKET_MODEL_ASSUMPTIONS: MarketModelAssumptions = {
 	growth: {
-		expectedReturn: 0.07,
-		volatility: 0.16,
+		expectedReturn: 0.095,
+		volatility: 0.145,
 	},
 
 	defensive: {
-		expectedReturn: 0.04,
-		volatility: 0.06,
+		expectedReturn: 0.05,
+		volatility: 0.065,
 	},
 
 	cash: {

@@ -65,6 +65,13 @@ export interface SavedEstateObjective {
 	targetAmount: number;
 }
 
+export type SavedPortfolioStrategyId =
+	| "capital_stable"
+	| "conservative"
+	| "balanced"
+	| "growth"
+	| "high_growth";
+
 export interface SavedBioanalytixPlanV1 {
 	version: typeof SAVED_PLAN_VERSION;
 
@@ -79,6 +86,8 @@ export interface SavedBioanalytixPlanV1 {
 	areaReviews?: SavedPlanningAreaReview[];
 
 	assumptions: PlanScenarioAssumptions;
+
+	portfolioStrategyId?: SavedPortfolioStrategyId;
 
 	estateObjective?: SavedEstateObjective;
 
@@ -98,6 +107,8 @@ export function emptySavedPlan(): SavedBioanalytixPlanV1 {
 		areaReviews: [],
 
 		assumptions: {},
+
+		portfolioStrategyId: "balanced",
 
 		priorities: [],
 

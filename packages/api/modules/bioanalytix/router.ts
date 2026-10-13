@@ -11,6 +11,7 @@ import { getBioanalytixPlan } from "./procedures/get-plan";
 import { getBioanalytixResearch } from "./procedures/get-research";
 import { getBioanalytixWealth } from "./procedures/get-wealth";
 import { runBioanalytixPlanScenario } from "./procedures/run-plan-scenario";
+import { runBioanalytixPortfolioScenario } from "./procedures/run-portfolio-scenario";
 import { saveBioanalytixOnboardingDraft } from "./procedures/save-onboarding-draft";
 import { saveBioanalytixPlan } from "./procedures/save-plan";
 
@@ -40,6 +41,7 @@ export const bioanalytixRouter = publicProcedure.router({
 		get: getBioanalytixPlan,
 		save: saveBioanalytixPlan,
 		runScenario: runBioanalytixPlanScenario,
+		runPortfolioScenario: runBioanalytixPortfolioScenario,
 	}),
 
 	overview: publicProcedure.router({
