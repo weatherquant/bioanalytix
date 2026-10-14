@@ -7,10 +7,21 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
         const { locale } = await props.params;
         const t = await getTranslations({ locale, namespace: "blog" });
 
+        const description =
+                "Research and perspectives on genetics, longevity, retirement planning and the economics of longer lives.";
+
         return {
                 title: t("title"),
-                description:
-                        "Research and perspectives on genetics, longevity, retirement planning and the economics of longer lives.",
+                description,
+                alternates: {
+                        canonical: "/blog",
+                },
+                openGraph: {
+                        type: "website",
+                        title: `${t("title")} | Bioanalytix`,
+                        description,
+                        url: "/blog",
+                },
         };
 }
 
