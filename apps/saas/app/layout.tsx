@@ -25,6 +25,16 @@ export const metadata: Metadata = {
 		default: config.appName,
 		template: `%s | ${config.appName}`,
 	},
+	robots: {
+		index: false,
+		follow: false,
+		nocache: true,
+		googleBot: {
+			index: false,
+			follow: false,
+			noimageindex: true,
+		},
+	},
 };
 
 export default async function RootLayout({ children }: PropsWithChildren) {

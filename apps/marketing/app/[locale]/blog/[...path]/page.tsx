@@ -20,9 +20,27 @@ export async function generateMetadata(props: { params: Promise<Params> }) {
         const slug = getActivePathFromUrlParam(path);
         const post = await getPostBySlug(slug, { locale });
 
+        if (!post) {
+                return {};
+        }
+
+        const canonicalPath = `/blog/${slug}`;
+
         return {
-                title: post?.title,
-                description: post?.excerpt,
+                title: post.title,
+                description: post.excerpt,
+                alternates: {
+                        canonical: canonicalPath,
+                },
+                openGraph: {
+                        type: "article",
+                        title: post.title,
+                        description: post.excerpt,
+                        url: canonicalPath,
+                        publishedTime: new Date(post.date).toISOString(),
+                        authors: [post.authorName ?? "Bioanalytix Research"],
+                        tags: post.tags ?? [],
+                },
         };
 }
 
